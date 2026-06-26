@@ -8,7 +8,12 @@ import { AccountantLayout } from '@/components/layouts/AccountantLayout';
 import { OwnerDashboard } from '@/pages/owner/OwnerDashboard';
 import { PosPage } from '@/pages/pos/PosPage';
 import { AccountantDashboard } from '@/pages/accountant/AccountantDashboard';
-import { CataloguePage } from '@/pages/catalogue/CataloguePage';
+const CatalogueHomePage = lazy(() => import('@/pages/catalogue/CatalogueHomePage'));
+const CatalogueBrowsePage = lazy(() => import('@/pages/catalogue/CatalogueBrowsePage'));
+const CatalogueItemPage = lazy(() => import('@/pages/catalogue/CatalogueItemPage'));
+const CatalogueLoginPage = lazy(() => import('@/pages/catalogue/CatalogueLoginPage'));
+const CatalogueRegisterPage = lazy(() => import('@/pages/catalogue/CatalogueRegisterPage'));
+const MyOrdersPage = lazy(() => import('@/pages/catalogue/MyOrdersPage'));
 import { Role } from '@svarna/shared-types';
 import { OfflineBanner } from '@/components/shared/OfflineBanner';
 
@@ -19,6 +24,10 @@ const CategoriesPage = lazy(() => import('@/pages/owner/CategoriesPage'));
 const RatesPage = lazy(() => import('@/pages/owner/RatesPage'));
 const InvoiceListPage = lazy(() => import('@/pages/pos/InvoiceListPage'));
 const InvoiceDetailPage = lazy(() => import('@/pages/pos/InvoiceDetailPage'));
+const OrdersPage = lazy(() => import('@/pages/owner/OrdersPage'));
+const OrderDetailPage = lazy(() => import('@/pages/owner/OrderDetailPage'));
+const OrderNewPage = lazy(() => import('@/pages/owner/OrderNewPage'));
+const KarigarPage = lazy(() => import('@/pages/owner/KarigarPage'));
 
 const Spin = () => <div className="flex items-center justify-center h-full p-8 text-gray-400">Loading…</div>;
 
@@ -29,7 +38,12 @@ export default function App() {
       <Routes>
         {/* Public */}
         <Route path="/auth/login" element={<LoginPage />} />
-        <Route path="/catalogue/*" element={<CataloguePage />} />
+        <Route path="/catalogue" element={<CatalogueHomePage />} />
+        <Route path="/catalogue/browse" element={<CatalogueBrowsePage />} />
+        <Route path="/catalogue/items/:id" element={<CatalogueItemPage />} />
+        <Route path="/catalogue/login" element={<CatalogueLoginPage />} />
+        <Route path="/catalogue/register" element={<CatalogueRegisterPage />} />
+        <Route path="/catalogue/my-orders" element={<MyOrdersPage />} />
 
         {/* Owner */}
         <Route
@@ -47,6 +61,10 @@ export default function App() {
           <Route path="inventory/categories" element={<CategoriesPage />} />
           <Route path="inventory/:id" element={<InventoryDetailPage />} />
           <Route path="rates" element={<RatesPage />} />
+          <Route path="orders" element={<OrdersPage />} />
+          <Route path="orders/new" element={<OrderNewPage />} />
+          <Route path="orders/:id" element={<OrderDetailPage />} />
+          <Route path="karigar" element={<KarigarPage />} />
         </Route>
 
         {/* POS */}
