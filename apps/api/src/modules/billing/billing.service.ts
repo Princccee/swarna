@@ -216,9 +216,9 @@ export class BillingService {
       // Create the invoice
       const created = await tx.invoice.create({
         data: {
-          customerId: dto.customerId,
-          rateSnapshotId: primarySnapshotId,
-          createdById: userId,
+          customer: { connect: { id: dto.customerId } },
+          rateSnapshot: { connect: { id: primarySnapshotId } },
+          createdBy: { connect: { id: userId } },
           invoiceNumber,
           subtotal: calc.subtotal,
           makingTotal: calc.makingTotal,
@@ -239,7 +239,7 @@ export class BillingService {
           invoicedAt: new Date(),
           lines: {
             create: calc.lines.map((l) => ({
-              itemId: l.itemId,
+              item: { connect: { id: l.itemId } },
               qty: l.qty,
               netWeightG: l.netWeightG,
               ratePerGram: l.ratePerGram,
@@ -267,12 +267,25 @@ export class BillingService {
 
         await tx.stockMovement.create({
           data: {
-            itemId: lineDto.itemId,
+            item: { connect: { id: lineDto.itemId } },
             type: 'OUT',
             qty: lineDto.qty,
             reason: 'Sale',
             refId: created.id,
           },
+        });
+      }
+
+      // Create Payment record if paymentMode supplied
+      if (dto.paymentMode) {
+        const paid = new Prisma.Decimal(String(dto.paymentAmount ?? calc.totalAmount));
+        const balanceDue = calc.totalAmount.sub(paid).toDecimalPlaces(2);
+        await tx.payment.create({
+          data: { invoice: { connect: { id: created.id } }, amount: paid, mode: dto.paymentMode },
+        });
+        await tx.invoice.update({
+          where: { id: created.id },
+          data: { amountPaid: paid, balanceDue },
         });
       }
 
@@ -287,7 +300,11 @@ export class BillingService {
         },
       });
 
-      return created;
+      // Re-fetch so response includes payment + updated amounts
+      return tx.invoice.findUniqueOrThrow({
+        where: { id: created.id },
+        include: { customer: true, lines: { include: { item: true } }, payments: true, rateSnapshot: true },
+      });
     });
 
     // Update customer totalSpent (outside transaction — non-critical)
