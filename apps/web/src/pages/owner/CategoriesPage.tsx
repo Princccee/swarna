@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import api from '../../lib/api';
+import { api } from '../../lib/api';
 import { toast } from 'sonner';
 
 const schema = z.object({
@@ -19,7 +19,7 @@ export default function CategoriesPage() {
 
   const { data: categories = [], isLoading } = useQuery({
     queryKey: ['categories'],
-    queryFn: () => api.get('/inventory/categories').then((r) => r.data),
+    queryFn: () => api.get('/inventory/categories').then((r: any) => r.data),
   });
 
   const createMutation = useMutation({

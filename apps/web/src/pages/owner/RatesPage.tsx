@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useRateStore } from '../../stores/rate.store';
-import api from '../../lib/api';
+import { api } from '../../lib/api';
 
 const PURITY_COLORS: Record<string, string> = {
   GOLD_24K: '#f59e0b', GOLD_22K: '#d97706', GOLD_18K: '#b45309',
@@ -28,7 +28,7 @@ export default function RatesPage() {
     queryFn: () => {
       const metal = selectedPurity.startsWith('SILVER') ? 'SILVER' : selectedPurity.startsWith('PLATINUM') ? 'PLATINUM' : 'GOLD';
       const from = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().split('T')[0];
-      return api.get(`/rates/history/${metal}/${selectedPurity}?from=${from}&limit=100`).then((r) => r.data);
+      return api.get(`/rates/history/${metal}/${selectedPurity}?from=${from}&limit=100`).then((r: any) => r.data);
     },
   });
 

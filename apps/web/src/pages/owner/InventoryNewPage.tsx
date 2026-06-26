@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import api from '../../lib/api';
+import { api } from '../../lib/api';
 import { toast } from 'sonner';
 
 const schema = z.object({
@@ -26,7 +26,7 @@ export default function InventoryNewPage() {
   const navigate = useNavigate();
   const { data: catData } = useQuery({
     queryKey: ['categories'],
-    queryFn: () => api.get('/inventory/categories').then((r) => r.data),
+    queryFn: () => api.get('/inventory/categories').then((r: any) => r.data),
   });
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
@@ -36,7 +36,7 @@ export default function InventoryNewPage() {
 
   const mutation = useMutation({
     mutationFn: (data: FormData) => api.post('/inventory/items', data),
-    onSuccess: (res) => { toast.success('Item created'); navigate(`/owner/inventory/${res.data.id}`); },
+    onSuccess: (res: any) => { toast.success('Item created'); navigate(`/owner/inventory/${res.data.id}`); },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Failed to create item'),
   });
 

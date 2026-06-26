@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? '';
+// Empty string = same origin; nginx proxies /socket.io/ → API container
+const BASE_URL = '';
 
 let rateSocket: Socket | null = null;
 

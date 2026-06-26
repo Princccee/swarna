@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import api from '../../lib/api';
+import { api } from '../../lib/api';
 
 export function LowStockAlert() {
   const { data } = useQuery({
     queryKey: ['lowStockCount'],
-    queryFn: () => api.get('/inventory/items?lowStock=true&limit=1').then((r) => r.data.meta?.total ?? 0),
+    queryFn: () => api.get('/inventory/items?lowStock=true&limit=1').then((r: any) => r.data.meta?.total ?? 0),
     refetchInterval: 60_000,
   });
 

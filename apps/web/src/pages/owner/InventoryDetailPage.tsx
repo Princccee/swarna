@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../../lib/api';
+import { api } from '../../lib/api';
 import { HuidBadge } from '../../components/shared/HuidBadge';
 import { StockMovementDrawer } from '../../components/shared/StockMovementDrawer';
 import { toast } from 'sonner';
@@ -19,19 +19,19 @@ export default function InventoryDetailPage() {
 
   const { data: item, isLoading } = useQuery({
     queryKey: ['item', id],
-    queryFn: () => api.get(`/inventory/items/${id}`).then((r) => r.data),
+    queryFn: () => api.get(`/inventory/items/${id}`).then((r: any) => r.data),
   });
 
   const { data: valuationData } = useQuery({
     queryKey: ['valuation', id],
-    queryFn: () => api.get(`/inventory/items/${id}/valuation`).then((r) => r.data),
+    queryFn: () => api.get(`/inventory/items/${id}/valuation`).then((r: any) => r.data),
     enabled: !!id,
     refetchInterval: 30_000,
   });
 
   const { data: stockHistory } = useQuery({
     queryKey: ['stockHistory', id],
-    queryFn: () => api.get(`/inventory/items/${id}/stock-history`).then((r) => r.data),
+    queryFn: () => api.get(`/inventory/items/${id}/stock-history`).then((r: any) => r.data),
     enabled: !!id,
   });
 

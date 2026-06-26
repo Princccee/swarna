@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import api from '../../lib/api';
+import { api } from '../../lib/api';
 import { HuidBadge } from '../../components/shared/HuidBadge';
 
 const PURITY_LABELS: Record<string, string> = {
@@ -22,7 +22,7 @@ export default function InventoryListPage() {
       if (search) params.set('search', search);
       if (purity) params.set('purity', purity);
       if (lowStock) params.set('lowStock', 'true');
-      return api.get(`/inventory/items?${params}`).then((r) => r.data);
+      return api.get(`/inventory/items?${params}`).then((r: any) => r.data);
     },
   });
 
