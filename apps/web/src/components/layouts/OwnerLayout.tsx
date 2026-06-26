@@ -2,13 +2,14 @@ import { Outlet, NavLink } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import {
   LayoutDashboard, Package, Receipt, ShoppingCart,
-  Users, Settings, LogOut, TrendingUp, Tag,
+  Users, Settings, LogOut, TrendingUp, Tag, MonitorSmartphone,
 } from 'lucide-react';
 import { RateTicker } from '@/components/shared/RateTicker';
 import { LowStockAlert } from '@/components/shared/LowStockAlert';
 
 const navItems = [
   { to: '/owner/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/pos', label: 'POS', icon: MonitorSmartphone },
   { to: '/owner/inventory', label: 'Inventory', icon: Package, badge: <LowStockAlert /> },
   { to: '/owner/inventory/categories', label: 'Categories', icon: Tag },
   { to: '/owner/rates', label: 'Rates', icon: TrendingUp },

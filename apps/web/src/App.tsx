@@ -10,18 +10,22 @@ import { PosPage } from '@/pages/pos/PosPage';
 import { AccountantDashboard } from '@/pages/accountant/AccountantDashboard';
 import { CataloguePage } from '@/pages/catalogue/CataloguePage';
 import { Role } from '@svarna/shared-types';
+import { OfflineBanner } from '@/components/shared/OfflineBanner';
 
 const InventoryListPage = lazy(() => import('@/pages/owner/InventoryListPage'));
 const InventoryNewPage = lazy(() => import('@/pages/owner/InventoryNewPage'));
 const InventoryDetailPage = lazy(() => import('@/pages/owner/InventoryDetailPage'));
 const CategoriesPage = lazy(() => import('@/pages/owner/CategoriesPage'));
 const RatesPage = lazy(() => import('@/pages/owner/RatesPage'));
+const InvoiceListPage = lazy(() => import('@/pages/pos/InvoiceListPage'));
+const InvoiceDetailPage = lazy(() => import('@/pages/pos/InvoiceDetailPage'));
 
 const Spin = () => <div className="flex items-center justify-center h-full p-8 text-gray-400">Loading…</div>;
 
 export default function App() {
   return (
     <Suspense fallback={<Spin />}>
+      <OfflineBanner />
       <Routes>
         {/* Public */}
         <Route path="/auth/login" element={<LoginPage />} />
@@ -55,6 +59,8 @@ export default function App() {
           }
         >
           <Route index element={<PosPage />} />
+          <Route path="invoices" element={<InvoiceListPage />} />
+          <Route path="invoices/:id" element={<InvoiceDetailPage />} />
         </Route>
 
         {/* Accountant */}
