@@ -89,7 +89,7 @@ export default function InvoiceDetailPage() {
   if (isLoading) return <div className="p-6 text-gray-400">Loading…</div>;
   if (!invoice) return <div className="p-6 text-red-500">Invoice not found</div>;
 
-  const lineItems: any[] = invoice.lineItems ?? invoice.items ?? [];
+  const lineItems: any[] = invoice.lines ?? invoice.lineItems ?? invoice.items ?? [];
   const payments: any[] = invoice.payments ?? [];
   const gst = invoice.gstBreakdown ?? invoice.taxBreakdown ?? null;
   const isOwner = user?.role === Role.OWNER;
