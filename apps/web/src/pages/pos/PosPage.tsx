@@ -226,9 +226,26 @@ export function PosPage() {
   const previewMutation = useMutation({
     mutationFn: (payload: object) =>
       api.post('/billing/preview', payload).then((r: any) => r.data),
-    onSuccess: (data: BillPreview) => {
+    onSuccess: (raw: any) => {
+      // Normalise: API returns Prisma Decimal strings + "totalAmount" not "grandTotal"
+      const data: BillPreview = {
+        subtotal:         Number(raw.subtotal),
+        makingTotal:      Number(raw.makingTotal),
+        stoneTotal:       Number(raw.stoneTotal),
+        oldGoldDeduction: Number(raw.oldGoldDeduction),
+        taxableAmount:    Number(raw.taxableAmount),
+        cgst:             Number(raw.cgst),
+        sgst:             Number(raw.sgst),
+        igst:             Number(raw.igst),
+        grandTotal:       Number(raw.totalAmount ?? raw.grandTotal),
+        lines: (raw.lines ?? []).map((l: any) => ({
+          itemId:      l.itemId,
+          ratePerGram: Number(l.ratePerGram),
+          lineTotal:   Number(l.lineTotal),
+        })),
+      };
       setPreview(data);
-      // Merge ratePerGram back into lines
+      // Merge ratePerGram + lineTotal back into bill lines
       setLines((prev) =>
         prev.map((line) => {
           const match = data.lines?.find((l) => l.itemId === line.itemId);
@@ -239,7 +256,6 @@ export function PosPage() {
       );
     },
     onError: () => {
-      // Silently fail preview — don't toast
       setPreview(null);
     },
   });
