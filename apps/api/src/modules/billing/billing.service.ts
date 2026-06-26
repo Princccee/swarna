@@ -590,6 +590,7 @@ export class BillingService {
         name: dto.name,
         phone: dto.phone,
         email: dto.email,
+        address: dto.address,
         panNumber: dto.panNumber,
       },
     });

@@ -181,6 +181,7 @@ model Customer {
   name        String
   phone       String    @unique
   email       String?
+  address     String?
   panNumber   String?
   kycDocUrl   String?
   kycVerified Boolean   @default(false)
