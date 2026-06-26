@@ -11,6 +11,10 @@ import { InventoryModule } from './modules/inventory/inventory.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { CatalogueModule } from './modules/catalogue/catalogue.module';
+import { RegistersModule } from './modules/registers/registers.module';
+import { SettingsModule } from './modules/settings/settings.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import appConfig from './config/app.config';
 
 @Module({
@@ -37,6 +41,10 @@ import appConfig from './config/app.config';
     BillingModule,
     OrdersModule,
     CatalogueModule,
+    RegistersModule,
+    SettingsModule,
+    NotificationsModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}

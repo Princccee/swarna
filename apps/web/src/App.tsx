@@ -29,6 +29,14 @@ const OrderDetailPage = lazy(() => import('@/pages/owner/OrderDetailPage'));
 const OrderNewPage = lazy(() => import('@/pages/owner/OrderNewPage'));
 const KarigarPage = lazy(() => import('@/pages/owner/KarigarPage'));
 
+const SalesRegisterPage = lazy(() => import('@/pages/accountant/SalesRegisterPage'));
+const GstRegisterPage = lazy(() => import('@/pages/accountant/GstRegisterPage'));
+const HuidLogPage = lazy(() => import('@/pages/accountant/HuidLogPage'));
+const StockAuditPage = lazy(() => import('@/pages/accountant/StockAuditPage'));
+const AuditTrailPage = lazy(() => import('@/pages/accountant/AuditTrailPage'));
+const KycRegisterPage = lazy(() => import('@/pages/accountant/KycRegisterPage'));
+const SettingsPage = lazy(() => import('@/pages/owner/SettingsPage'));
+
 const Spin = () => <div className="flex items-center justify-center h-full p-8 text-gray-400">Loading…</div>;
 
 export default function App() {
@@ -65,6 +73,7 @@ export default function App() {
           <Route path="orders/new" element={<OrderNewPage />} />
           <Route path="orders/:id" element={<OrderDetailPage />} />
           <Route path="karigar" element={<KarigarPage />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
 
         {/* POS */}
@@ -91,6 +100,12 @@ export default function App() {
           }
         >
           <Route index element={<AccountantDashboard />} />
+          <Route path="registers/sales" element={<SalesRegisterPage />} />
+          <Route path="registers/gst" element={<GstRegisterPage />} />
+          <Route path="registers/huid" element={<HuidLogPage />} />
+          <Route path="registers/stock" element={<StockAuditPage />} />
+          <Route path="registers/kyc" element={<KycRegisterPage />} />
+          <Route path="audit" element={<AuditTrailPage />} />
         </Route>
 
         <Route path="/" element={<Navigate to="/auth/login" replace />} />
