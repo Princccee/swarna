@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { downloadInvoicePdf } from '../../lib/download-pdf';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -270,8 +271,7 @@ export function PosPage() {
         description: 'Bill has been saved successfully.',
         action: {
           label: 'View PDF',
-          onClick: () =>
-            window.open(`/api/v1/billing/invoices/${data.id}/pdf`, '_blank'),
+          onClick: () => downloadInvoicePdf(data.id, data.invoiceNumber),
         },
       });
       setCreatedInvoiceId(data?.id ?? null);
@@ -919,15 +919,13 @@ export function PosPage() {
         {/* ── Bottom action bar ── */}
         <div className="shrink-0 px-5 py-3 border-t border-slate-200 bg-white flex items-center gap-3">
           {createdInvoiceId && (
-            <a
-              href={`/api/v1/billing/invoices/${createdInvoiceId}/pdf`}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => downloadInvoicePdf(createdInvoiceId)}
               className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-700 font-medium transition-colors"
             >
               <ExternalLink size={14} />
-              Preview PDF
-            </a>
+              Download PDF
+            </button>
           )}
           <div className="flex-1" />
 
