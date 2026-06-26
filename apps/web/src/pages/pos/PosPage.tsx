@@ -420,14 +420,7 @@ export function PosPage() {
   }
 
   function handleGenerateInvoice() {
-    if (lines.length === 0) {
-      toast.error('Add at least one item to the bill');
-      return;
-    }
-    if (!isWalkIn && !customer) {
-      toast.error('Please select a customer before generating the invoice');
-      return;
-    }
+    if (lines.length === 0 || (!isWalkIn && !customer)) return;
     const payload = {
       ...buildPayload(),
       ...(customer && !isWalkIn ? { customerId: customer.id } : {}),
@@ -1098,9 +1091,15 @@ export function PosPage() {
             </div>
           )}
 
+          {!isWalkIn && !customer && lines.length > 0 && (
+            <p className="text-xs text-amber-600 font-medium">
+              Select or register a customer to continue
+            </p>
+          )}
+
           <button
             onClick={handleGenerateInvoice}
-            disabled={lines.length === 0 || invoiceMutation.isPending}
+            disabled={lines.length === 0 || (!isWalkIn && !customer) || invoiceMutation.isPending}
             className="flex items-center gap-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-semibold text-sm rounded-lg transition-colors shadow-sm disabled:shadow-none"
           >
             {invoiceMutation.isPending ? (
