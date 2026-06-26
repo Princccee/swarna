@@ -268,23 +268,19 @@ export function PosPage() {
     },
   });
 
-  // ── Build preview payload ─────────────────────────────────────────────────
+  // ── Build preview payload (no customerId — preview doesn't need it) ────────
   const buildPayload = useCallback(() => {
     return {
       lines: lines.map((l) => ({
         itemId: l.itemId,
         qty: l.qty,
         netWeightG: l.netWeightG,
-        makingPct: l.makingPct,
-        makingPerGram: l.makingPerGram,
-        stoneValue: l.stoneValue,
       })),
-      oldGoldWeightG: oldGold.weightG ? parseFloat(oldGold.weightG) : null,
-      oldGoldRatePerGram: oldGold.ratePerGram ? parseFloat(oldGold.ratePerGram) : null,
-      customerId: !isWalkIn && customer ? customer.id : null,
+      oldGoldWeightG: oldGold.weightG ? parseFloat(oldGold.weightG) : 0,
+      oldGoldRatePerGram: oldGold.ratePerGram ? parseFloat(oldGold.ratePerGram) : 0,
       isInterstate: gstMode === 'inter',
     };
-  }, [lines, oldGold, customer, isWalkIn, gstMode]);
+  }, [lines, oldGold, gstMode]);
 
   // ── Auto-trigger preview when bill changes ────────────────────────────────
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -374,8 +370,13 @@ export function PosPage() {
       toast.error('Add at least one item to the bill');
       return;
     }
+    if (!isWalkIn && !customer) {
+      toast.error('Please select a customer before generating the invoice');
+      return;
+    }
     const payload = {
       ...buildPayload(),
+      ...(customer && !isWalkIn ? { customerId: customer.id } : {}),
       paymentMode,
       paymentAmount: paymentAmount ? parseFloat(paymentAmount) : preview?.grandTotal ?? 0,
     };

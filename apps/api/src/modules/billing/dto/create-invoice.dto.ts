@@ -9,7 +9,7 @@ export class InvoiceLineDto {
 }
 
 export class CreateInvoiceDto {
-  @IsUUID() customerId: string;
+  @IsOptional() @IsUUID() customerId?: string;
   @IsArray() @ValidateNested({ each: true }) @Type(() => InvoiceLineDto)
   lines: InvoiceLineDto[];
   @IsOptional() @IsNumber() @Min(0) oldGoldWeightG?: number;

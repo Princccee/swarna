@@ -78,6 +78,16 @@ export class BillingService {
   // Private helpers
   // -------------------------------------------------------------------------
 
+  /** Get or create the generic walk-in customer used when no customerId is supplied. */
+  private async getWalkInCustomer() {
+    const WALK_IN_PHONE = '0000000000';
+    const existing = await this.prisma.customer.findUnique({ where: { phone: WALK_IN_PHONE } });
+    if (existing) return existing;
+    return this.prisma.customer.create({
+      data: { name: 'Walk-in Customer', phone: WALK_IN_PHONE },
+    });
+  }
+
   /** Fetch rate from Redis for a given purity. Throws BadRequestException if missing. */
   private async fetchRate(metal: Metal, purity: Purity): Promise<Prisma.Decimal> {
     const key = `rate:${metal}:${purity}`;
@@ -188,8 +198,10 @@ export class BillingService {
     // Generate invoice number
     const invoiceNumber = await this.nextInvoiceNumber();
 
-    // Verify customer exists
-    const customer = await this.prisma.customer.findUnique({ where: { id: dto.customerId } });
+    // Resolve customer — use walk-in placeholder when none supplied
+    const customer = dto.customerId
+      ? await this.prisma.customer.findUnique({ where: { id: dto.customerId } })
+      : await this.getWalkInCustomer();
     if (!customer) throw new NotFoundException(`Customer ${dto.customerId} not found.`);
 
     // Create one RateSnapshot per unique purity (use the first purity's snapshot as the invoice's primary snapshot)
@@ -216,7 +228,7 @@ export class BillingService {
       // Create the invoice
       const created = await tx.invoice.create({
         data: {
-          customer: { connect: { id: dto.customerId } },
+          customer: { connect: { id: customer.id } },
           rateSnapshot: { connect: { id: primarySnapshotId } },
           createdBy: { connect: { id: userId } },
           invoiceNumber,
@@ -310,7 +322,7 @@ export class BillingService {
     // Update customer totalSpent (outside transaction — non-critical)
     this.prisma.customer
       .update({
-        where: { id: dto.customerId },
+        where: { id: customer.id },
         data: { totalSpent: { increment: calc.totalAmount } },
       })
       .catch((err: Error) => this.logger.warn('Failed to update customer totalSpent: ' + err.message));
