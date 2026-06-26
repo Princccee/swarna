@@ -16,6 +16,8 @@ export class CreateInvoiceDto {
   @IsOptional() @IsNumber() @Min(0) oldGoldRatePerGram?: number;
   @IsOptional() @IsString() notes?: string;
   @IsOptional() isInterstate?: boolean;
+  @IsOptional() @IsEnum(PaymentMode) paymentMode?: PaymentMode;
+  @IsOptional() @IsNumber() @Min(0) paymentAmount?: number;
 }
 
 export class RecordPaymentDto {
