@@ -31,5 +31,9 @@ export default registerAs('app', () => ({
     phone: process.env.SHOP_PHONE || '',
     logoUrl: process.env.SHOP_LOGO_URL || '',
   },
+  bullionFeed: {
+    url: process.env.BULLION_FEED_URL || '',
+    apiKey: process.env.BULLION_FEED_API_KEY || '',
+  },
   piiEncryptionKey: process.env.PII_ENCRYPTION_KEY || '',
 }));

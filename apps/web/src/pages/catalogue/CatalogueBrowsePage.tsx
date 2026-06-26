@@ -1,0 +1,755 @@
+import { useState, useEffect } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { api } from '../../lib/api';
+import { useAuthStore } from '../../stores/auth.store';
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const PURITY_OPTIONS: { value: string; label: string }[] = [
+  { value: '', label: 'All Purities' },
+  { value: 'GOLD_24K', label: '24K Gold' },
+  { value: 'GOLD_22K', label: '22K Gold' },
+  { value: 'GOLD_18K', label: '18K Gold' },
+  { value: 'GOLD_14K', label: '14K Gold' },
+  { value: 'SILVER_999', label: 'Silver 999' },
+  { value: 'SILVER_925', label: 'Silver 925' },
+  { value: 'PLATINUM_950', label: 'Platinum 950' },
+];
+
+const PURITY_LABELS: Record<string, string> = {
+  GOLD_24K: '24K',
+  GOLD_22K: '22K',
+  GOLD_18K: '18K',
+  GOLD_14K: '14K',
+  SILVER_999: 'Ag 999',
+  SILVER_925: 'Ag 925',
+  PLATINUM_950: 'Pt 950',
+};
+
+const PURITY_HUE: Record<string, string> = {
+  GOLD_24K: '#B8860B',
+  GOLD_22K: '#C8961C',
+  GOLD_18K: '#D4A02A',
+  GOLD_14K: '#D9AE3A',
+  SILVER_999: '#A0A8B0',
+  SILVER_925: '#8E9AA4',
+  PLATINUM_950: '#7B8FA0',
+};
+
+const PAGE_SIZE = 20;
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface CatalogueItem {
+  id: string;
+  name: string;
+  purity: string;
+  netWeightG: string | number;
+  indicativePrice?: number | null;
+  category?: { id: string; name: string } | null;
+  imageUrl?: string | null;
+}
+
+interface Meta {
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+interface CatalogueItemsResponse {
+  items: CatalogueItem[];
+  meta: Meta;
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function ImagePlaceholder({ name }: { name: string }) {
+  const initials = name
+    .split(' ')
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase();
+
+  return (
+    <div
+      style={{
+        background: 'linear-gradient(135deg, hsl(38 60% 92%) 0%, hsl(38 40% 85%) 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        aspectRatio: '1',
+      }}
+    >
+      <span
+        style={{
+          fontSize: '1.75rem',
+          fontWeight: 600,
+          color: 'hsl(38 89% 30%)',
+          letterSpacing: '0.05em',
+          userSelect: 'none',
+        }}
+      >
+        {initials}
+      </span>
+    </div>
+  );
+}
+
+function PurityBadge({ purity }: { purity: string }) {
+  const label = PURITY_LABELS[purity] ?? purity;
+  const color = PURITY_HUE[purity] ?? '#A0A0A0';
+
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
+        fontSize: '0.7rem',
+        fontWeight: 600,
+        letterSpacing: '0.06em',
+        textTransform: 'uppercase',
+        color,
+        background: `${color}18`,
+        border: `1px solid ${color}40`,
+        borderRadius: '4px',
+        padding: '2px 7px',
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
+function ItemCard({
+  item,
+  isAuthenticated,
+  onReserve,
+}: {
+  item: CatalogueItem;
+  isAuthenticated: boolean;
+  onReserve: (item: CatalogueItem) => void;
+}) {
+  return (
+    <article
+      style={{
+        background: '#fff',
+        border: '1px solid hsl(214 32% 91%)',
+        borderRadius: '10px',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        transition: 'box-shadow 0.18s ease, transform 0.18s ease',
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.boxShadow =
+          '0 6px 24px hsla(38,60%,30%,0.12)';
+        (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+        (e.currentTarget as HTMLElement).style.transform = 'none';
+      }}
+    >
+      {/* Image area */}
+      <div style={{ position: 'relative', overflow: 'hidden' }}>
+        {item.imageUrl ? (
+          <img
+            src={item.imageUrl}
+            alt={item.name}
+            style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }}
+          />
+        ) : (
+          <ImagePlaceholder name={item.name} />
+        )}
+        {/* Purity badge overlay */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '8px',
+            right: '8px',
+          }}
+        >
+          <PurityBadge purity={item.purity} />
+        </div>
+      </div>
+
+      {/* Content */}
+      <div
+        style={{
+          padding: '14px 14px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px',
+          flex: 1,
+        }}
+      >
+        {item.category?.name && (
+          <p
+            style={{
+              fontSize: '0.68rem',
+              fontWeight: 600,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: 'hsl(215 16% 57%)',
+              margin: 0,
+            }}
+          >
+            {item.category.name}
+          </p>
+        )}
+
+        <h3
+          style={{
+            fontSize: '0.95rem',
+            fontWeight: 600,
+            color: 'hsl(222 84% 5%)',
+            margin: 0,
+            lineHeight: 1.35,
+          }}
+        >
+          {item.name}
+        </h3>
+
+        <p
+          style={{
+            fontSize: '0.78rem',
+            color: 'hsl(215 16% 55%)',
+            margin: 0,
+          }}
+        >
+          Net wt: {Number(item.netWeightG).toFixed(3)} g
+        </p>
+
+        {/* Price row */}
+        <div style={{ marginTop: '6px', minHeight: '1.5rem' }}>
+          {item.indicativePrice != null ? (
+            <p
+              style={{
+                fontSize: '1.05rem',
+                fontWeight: 700,
+                color: 'hsl(38 89% 32%)',
+                margin: 0,
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              ₹{item.indicativePrice.toLocaleString('en-IN')}
+              <span
+                style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 400,
+                  color: 'hsl(215 16% 57%)',
+                  marginLeft: '4px',
+                  letterSpacing: '0.02em',
+                }}
+              >
+                indicative
+              </span>
+            </p>
+          ) : (
+            <p
+              style={{
+                fontSize: '0.78rem',
+                color: 'hsl(215 16% 65%)',
+                fontStyle: 'italic',
+                margin: 0,
+              }}
+            >
+              Price on request
+            </p>
+          )}
+        </div>
+
+        {/* Reserve button */}
+        <div style={{ marginTop: 'auto', paddingTop: '12px' }}>
+          {isAuthenticated ? (
+            <button
+              onClick={() => onReserve(item)}
+              style={{
+                width: '100%',
+                padding: '8px 0',
+                background: 'hsl(38 89% 38%)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                letterSpacing: '0.03em',
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = 'hsl(38 89% 31%)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = 'hsl(38 89% 38%)';
+              }}
+            >
+              Reserve
+            </button>
+          ) : (
+            <Link
+              to="/auth/login"
+              style={{
+                display: 'block',
+                textAlign: 'center',
+                width: '100%',
+                padding: '8px 0',
+                background: 'transparent',
+                color: 'hsl(38 89% 38%)',
+                border: '1px solid hsl(38 89% 70%)',
+                borderRadius: '6px',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                letterSpacing: '0.03em',
+                textDecoration: 'none',
+                boxSizing: 'border-box',
+              }}
+            >
+              Login to Reserve
+            </Link>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function SkeletonCard() {
+  return (
+    <div
+      style={{
+        background: '#fff',
+        border: '1px solid hsl(214 32% 91%)',
+        borderRadius: '10px',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          aspectRatio: '1',
+          background: 'linear-gradient(90deg, hsl(210 40% 96%) 25%, hsl(210 40% 92%) 50%, hsl(210 40% 96%) 75%)',
+          backgroundSize: '200% 100%',
+          animation: 'shimmer 1.4s infinite',
+        }}
+      />
+      <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ height: '10px', width: '50%', background: 'hsl(210 40% 93%)', borderRadius: '4px' }} />
+        <div style={{ height: '14px', width: '80%', background: 'hsl(210 40% 91%)', borderRadius: '4px' }} />
+        <div style={{ height: '10px', width: '40%', background: 'hsl(210 40% 93%)', borderRadius: '4px' }} />
+        <div style={{ height: '32px', width: '100%', background: 'hsl(38 60% 90%)', borderRadius: '6px', marginTop: '8px' }} />
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
+export default function CatalogueBrowsePage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  // Derive filter state from URL search params
+  const categoryId = searchParams.get('categoryId') ?? '';
+  const [purity, setPurity] = useState(searchParams.get('purity') ?? '');
+  const [search, setSearch] = useState(searchParams.get('search') ?? '');
+  const [page, setPage] = useState(Number(searchParams.get('page') ?? '1'));
+
+  // Debounced search value
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Sync filter changes back to URL
+  useEffect(() => {
+    const params: Record<string, string> = {};
+    if (categoryId) params.categoryId = categoryId;
+    if (purity) params.purity = purity;
+    if (debouncedSearch) params.search = debouncedSearch;
+    if (page > 1) params.page = String(page);
+    setSearchParams(params, { replace: true });
+  }, [categoryId, purity, debouncedSearch, page, setSearchParams]);
+
+  const { data, isLoading, isError } = useQuery<CatalogueItemsResponse>({
+    queryKey: ['catalogue-items', categoryId, purity, debouncedSearch, page],
+    queryFn: () => {
+      const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
+      if (categoryId) params.set('categoryId', categoryId);
+      if (purity) params.set('purity', purity);
+      if (debouncedSearch) params.set('search', debouncedSearch);
+      return api.get(`/catalogue/items?${params}`).then((r: any) => r.data);
+    },
+    placeholderData: keepPreviousData,
+  });
+
+  const items: CatalogueItem[] = data?.items ?? [];
+  const meta: Meta | undefined = data?.meta;
+
+  function handleReserve(item: CatalogueItem) {
+    // Reservation flow — placeholder for phase implementation
+    alert(`Reserve request for "${item.name}" noted. Our team will contact you shortly.`);
+  }
+
+  function handlePurityChange(v: string) {
+    setPurity(v);
+    setPage(1);
+  }
+
+  function handleSearchChange(v: string) {
+    setSearch(v);
+    setPage(1);
+  }
+
+  const totalPages = meta?.totalPages ?? 1;
+  const total = meta?.total ?? 0;
+  const rangeStart = (page - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(page * PAGE_SIZE, total);
+
+  return (
+    <>
+      {/* Shimmer keyframe */}
+      <style>{`
+        @keyframes shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
+
+      <div
+        style={{
+          minHeight: '100vh',
+          background: 'hsl(38 30% 97%)',
+          paddingBottom: '48px',
+        }}
+      >
+        {/* Header strip */}
+        <div
+          style={{
+            background: '#fff',
+            borderBottom: '1px solid hsl(214 32% 91%)',
+            padding: '20px 24px',
+          }}
+        >
+          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            <h1
+              style={{
+                fontSize: '1.5rem',
+                fontWeight: 700,
+                color: 'hsl(222 84% 5%)',
+                margin: '0 0 2px',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              Jewellery Catalogue
+            </h1>
+            {categoryId && (
+              <p style={{ fontSize: '0.82rem', color: 'hsl(215 16% 55%)', margin: 0 }}>
+                Filtered by category
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 24px 0' }}>
+          {/* Filter bar */}
+          <div
+            style={{
+              background: '#fff',
+              border: '1px solid hsl(214 32% 91%)',
+              borderRadius: '10px',
+              padding: '14px 16px',
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '12px',
+              alignItems: 'center',
+              marginBottom: '24px',
+            }}
+          >
+            {/* Search */}
+            <div style={{ position: 'relative', flex: '1 1 220px', minWidth: '180px', maxWidth: '320px' }}>
+              <svg
+                style={{
+                  position: 'absolute',
+                  left: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'hsl(215 16% 60%)',
+                  pointerEvents: 'none',
+                }}
+                width="15"
+                height="15"
+                viewBox="0 0 15 15"
+                fill="none"
+              >
+                <path
+                  d="M10 6.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Zm-.657 3.757 2.9 2.9-.707.707-2.9-2.9a4.5 4.5 0 1 1 .707-.707Z"
+                  fill="currentColor"
+                />
+              </svg>
+              <input
+                type="search"
+                placeholder="Search by name…"
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                style={{
+                  width: '100%',
+                  paddingLeft: '32px',
+                  paddingRight: '12px',
+                  paddingTop: '8px',
+                  paddingBottom: '8px',
+                  border: '1px solid hsl(214 32% 88%)',
+                  borderRadius: '6px',
+                  fontSize: '0.85rem',
+                  color: 'hsl(222 84% 5%)',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  background: 'hsl(210 40% 98%)',
+                }}
+              />
+            </div>
+
+            {/* Purity select */}
+            <select
+              value={purity}
+              onChange={(e) => handlePurityChange(e.target.value)}
+              style={{
+                flex: '0 0 auto',
+                padding: '8px 12px',
+                border: '1px solid hsl(214 32% 88%)',
+                borderRadius: '6px',
+                fontSize: '0.85rem',
+                color: purity ? 'hsl(222 84% 5%)' : 'hsl(215 16% 55%)',
+                background: 'hsl(210 40% 98%)',
+                outline: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              {PURITY_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+
+            {/* Active filters summary */}
+            {(purity || debouncedSearch || categoryId) && (
+              <button
+                onClick={() => {
+                  setPurity('');
+                  setSearch('');
+                  setPage(1);
+                  setSearchParams({}, { replace: true });
+                }}
+                style={{
+                  marginLeft: 'auto',
+                  fontSize: '0.78rem',
+                  color: 'hsl(215 16% 55%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  padding: '0 4px',
+                }}
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+
+          {/* Result count */}
+          {!isLoading && !isError && total > 0 && (
+            <p
+              style={{
+                fontSize: '0.8rem',
+                color: 'hsl(215 16% 55%)',
+                marginBottom: '16px',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              Showing {rangeStart}–{rangeEnd} of {total} items
+            </p>
+          )}
+
+          {/* Error state */}
+          {isError && (
+            <div
+              style={{
+                padding: '32px',
+                textAlign: 'center',
+                color: 'hsl(0 72% 45%)',
+                background: '#fff',
+                border: '1px solid hsl(0 72% 88%)',
+                borderRadius: '10px',
+              }}
+            >
+              Failed to load catalogue. Please try again later.
+            </div>
+          )}
+
+          {/* Grid */}
+          {!isError && (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
+                gap: '20px',
+                marginBottom: '32px',
+              }}
+            >
+              {isLoading
+                ? Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
+                : items.length === 0
+                ? null
+                : items.map((item) => (
+                    <ItemCard
+                      key={item.id}
+                      item={item}
+                      isAuthenticated={isAuthenticated}
+                      onReserve={handleReserve}
+                    />
+                  ))}
+            </div>
+          )}
+
+          {/* Empty state */}
+          {!isLoading && !isError && items.length === 0 && (
+            <div
+              style={{
+                padding: '64px 32px',
+                textAlign: 'center',
+                color: 'hsl(215 16% 60%)',
+                background: '#fff',
+                border: '1px solid hsl(214 32% 91%)',
+                borderRadius: '10px',
+              }}
+            >
+              <div style={{ fontSize: '2rem', marginBottom: '12px', opacity: 0.5 }}>◇</div>
+              <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>
+                No items match your filters.
+              </p>
+              <p style={{ margin: '6px 0 0', fontSize: '0.82rem' }}>
+                Try clearing the search or selecting a different purity.
+              </p>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {!isLoading && totalPages > 1 && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '0.8rem',
+                  color: 'hsl(215 16% 55%)',
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                Page {page} of {totalPages}
+              </span>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => setPage((p) => p - 1)}
+                  disabled={page === 1}
+                  style={{
+                    padding: '7px 16px',
+                    border: '1px solid hsl(214 32% 88%)',
+                    borderRadius: '6px',
+                    background: '#fff',
+                    fontSize: '0.83rem',
+                    fontWeight: 500,
+                    cursor: page === 1 ? 'not-allowed' : 'pointer',
+                    opacity: page === 1 ? 0.4 : 1,
+                    color: 'hsl(222 84% 5%)',
+                  }}
+                >
+                  ← Prev
+                </button>
+
+                {/* Page number chips — show up to 5 around current */}
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(
+                    (p) =>
+                      p === 1 ||
+                      p === totalPages ||
+                      Math.abs(p - page) <= 1
+                  )
+                  .reduce<(number | 'ellipsis')[]>((acc, p, idx, arr) => {
+                    if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('ellipsis');
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, idx) =>
+                    p === 'ellipsis' ? (
+                      <span
+                        key={`ell-${idx}`}
+                        style={{
+                          padding: '7px 4px',
+                          fontSize: '0.83rem',
+                          color: 'hsl(215 16% 60%)',
+                        }}
+                      >
+                        …
+                      </span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => setPage(p as number)}
+                        style={{
+                          padding: '7px 12px',
+                          border: '1px solid',
+                          borderColor:
+                            page === p ? 'hsl(38 89% 38%)' : 'hsl(214 32% 88%)',
+                          borderRadius: '6px',
+                          background: page === p ? 'hsl(38 89% 38%)' : '#fff',
+                          color: page === p ? '#fff' : 'hsl(222 84% 5%)',
+                          fontSize: '0.83rem',
+                          fontWeight: page === p ? 600 : 400,
+                          cursor: 'pointer',
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        {p}
+                      </button>
+                    )
+                  )}
+
+                <button
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={page >= totalPages}
+                  style={{
+                    padding: '7px 16px',
+                    border: '1px solid hsl(214 32% 88%)',
+                    borderRadius: '6px',
+                    background: '#fff',
+                    fontSize: '0.83rem',
+                    fontWeight: 500,
+                    cursor: page >= totalPages ? 'not-allowed' : 'pointer',
+                    opacity: page >= totalPages ? 0.4 : 1,
+                    color: 'hsl(222 84% 5%)',
+                  }}
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}

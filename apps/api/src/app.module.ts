@@ -1,9 +1,20 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from './prisma/prisma.module';
+import { RedisModule } from './modules/redis/redis.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
+import { RateSyncModule } from './modules/rate-sync/rate-sync.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
+import { BillingModule } from './modules/billing/billing.module';
+import { OrdersModule } from './modules/orders/orders.module';
+import { CatalogueModule } from './modules/catalogue/catalogue.module';
+import { RegistersModule } from './modules/registers/registers.module';
+import { SettingsModule } from './modules/settings/settings.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import appConfig from './config/app.config';
 
 @Module({
@@ -20,9 +31,20 @@ import appConfig from './config/app.config';
         limit: 100,
       },
     ]),
+    ScheduleModule.forRoot(),
     PrismaModule,
+    RedisModule,
     AuthModule,
     HealthModule,
+    RateSyncModule,
+    InventoryModule,
+    BillingModule,
+    OrdersModule,
+    CatalogueModule,
+    RegistersModule,
+    SettingsModule,
+    NotificationsModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}
