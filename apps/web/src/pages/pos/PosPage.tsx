@@ -646,7 +646,7 @@ export function PosPage() {
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
 
           {/* ── Customer section ── */}
-          <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <section className="bg-white rounded-xl border border-slate-200">
             <div className="px-4 py-2.5 border-b border-slate-100 flex items-center gap-2">
               <User size={14} className="text-slate-400" />
               <h3 className="text-sm font-semibold text-slate-700">Customer</h3>
