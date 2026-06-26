@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import { downloadInvoicePdf } from '../../lib/download-pdf';
 import { useAuthStore } from '../../stores/auth.store';
 import { toast } from 'sonner';
 import { Role } from '@svarna/shared-types';
@@ -88,7 +89,7 @@ export default function InvoiceDetailPage() {
   if (isLoading) return <div className="p-6 text-gray-400">Loading…</div>;
   if (!invoice) return <div className="p-6 text-red-500">Invoice not found</div>;
 
-  const lineItems: any[] = invoice.lineItems ?? invoice.items ?? [];
+  const lineItems: any[] = invoice.lines ?? invoice.lineItems ?? invoice.items ?? [];
   const payments: any[] = invoice.payments ?? [];
   const gst = invoice.gstBreakdown ?? invoice.taxBreakdown ?? null;
   const isOwner = user?.role === Role.OWNER;
@@ -123,7 +124,7 @@ export default function InvoiceDetailPage() {
         </div>
         <div className="flex gap-2 flex-wrap justify-end">
           <button
-            onClick={() => window.open(`/api/v1/billing/invoices/${id}/pdf`, '_blank')}
+            onClick={() => downloadInvoicePdf(id!, (invoice as any).invoiceNumber)}
             className="border rounded-lg px-4 py-2 text-sm font-medium text-amber-700 border-amber-200 hover:bg-amber-50"
           >
             View PDF

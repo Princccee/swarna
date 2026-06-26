@@ -9,13 +9,15 @@ export class InvoiceLineDto {
 }
 
 export class CreateInvoiceDto {
-  @IsUUID() customerId: string;
+  @IsOptional() @IsUUID() customerId?: string;
   @IsArray() @ValidateNested({ each: true }) @Type(() => InvoiceLineDto)
   lines: InvoiceLineDto[];
   @IsOptional() @IsNumber() @Min(0) oldGoldWeightG?: number;
   @IsOptional() @IsNumber() @Min(0) oldGoldRatePerGram?: number;
   @IsOptional() @IsString() notes?: string;
   @IsOptional() isInterstate?: boolean;
+  @IsOptional() @IsEnum(PaymentMode) paymentMode?: PaymentMode;
+  @IsOptional() @IsNumber() @Min(0) paymentAmount?: number;
 }
 
 export class RecordPaymentDto {
@@ -36,5 +38,6 @@ export class CreateCustomerDto {
   @IsString() name: string;
   @IsString() phone: string;
   @IsOptional() @IsString() email?: string;
+  @IsOptional() @IsString() address?: string;
   @IsOptional() @IsString() panNumber?: string;
 }

@@ -16,7 +16,7 @@ export class BillingController {
   @Post('invoices')
   @Roles(Role.OWNER, Role.STAFF)
   createInvoice(@Body() dto: CreateInvoiceDto, @Req() req: any) {
-    return this.billing.createInvoice(dto, req.user.userId);
+    return this.billing.createInvoice(dto, req.user.id);
   }
 
   @Get('invoices')
@@ -48,15 +48,21 @@ export class BillingController {
   @Post('invoices/:id/cancel')
   @Roles(Role.OWNER)
   cancelInvoice(@Param('id') id: string, @Req() req: any) {
-    return this.billing.cancelInvoice(id, req.user.userId);
+    return this.billing.cancelInvoice(id, req.user.id);
   }
 
   @Get('invoices/:id/pdf')
   @Roles(Role.OWNER, Role.STAFF, Role.ACCOUNTANT)
   async getInvoicePdf(@Param('id') id: string, @Res() res: Response) {
+    const invoice = await this.billing.getInvoice(id);
+    const filename = `invoice-${(invoice as any).invoiceNumber ?? id}.pdf`;
     const pdf = await this.billing.getInvoicePdf(id);
-    res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': 'inline; filename="invoice.pdf"' });
-    res.send(pdf);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': pdf.length,
+    });
+    res.end(pdf);
   }
 
   // Preview

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
+import { downloadInvoicePdf } from '../../lib/download-pdf';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
@@ -60,9 +61,9 @@ export default function InvoiceListPage() {
     setPage(1);
   };
 
-  const openPdf = (e: React.MouseEvent, invoiceId: string) => {
+  const openPdf = (e: React.MouseEvent, invoiceId: string, invoiceNumber?: string) => {
     e.stopPropagation();
-    window.open(`/api/v1/billing/invoices/${invoiceId}/pdf`, '_blank');
+    downloadInvoicePdf(invoiceId, invoiceNumber);
   };
 
   return (
@@ -164,7 +165,7 @@ export default function InvoiceListPage() {
                     </td>
                     <td className="px-4 py-3">
                       <button
-                        onClick={(e) => openPdf(e, inv.id)}
+                        onClick={(e) => openPdf(e, inv.id, inv.invoiceNumber)}
                         className="text-xs text-amber-700 hover:text-amber-900 hover:underline font-medium"
                       >
                         PDF

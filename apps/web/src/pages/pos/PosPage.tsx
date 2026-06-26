@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { downloadInvoicePdf } from '../../lib/download-pdf';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -48,6 +49,8 @@ interface Customer {
   id: string;
   name: string;
   phone?: string;
+  address?: string;
+  email?: string;
 }
 
 type GstMode = 'intra' | 'inter';
@@ -184,6 +187,10 @@ export function PosPage() {
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('CASH');
   const [paymentAmount, setPaymentAmount] = useState('');
 
+  // New customer form state
+  const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({ name: '', phone: '', email: '', address: '' });
+
   // Search state
   const [itemSearch, setItemSearch] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
@@ -226,9 +233,26 @@ export function PosPage() {
   const previewMutation = useMutation({
     mutationFn: (payload: object) =>
       api.post('/billing/preview', payload).then((r: any) => r.data),
-    onSuccess: (data: BillPreview) => {
+    onSuccess: (raw: any) => {
+      // Normalise: API returns Prisma Decimal strings + "totalAmount" not "grandTotal"
+      const data: BillPreview = {
+        subtotal:         Number(raw.subtotal),
+        makingTotal:      Number(raw.makingTotal),
+        stoneTotal:       Number(raw.stoneTotal),
+        oldGoldDeduction: Number(raw.oldGoldDeduction),
+        taxableAmount:    Number(raw.taxableAmount),
+        cgst:             Number(raw.cgst),
+        sgst:             Number(raw.sgst),
+        igst:             Number(raw.igst),
+        grandTotal:       Number(raw.totalAmount ?? raw.grandTotal),
+        lines: (raw.lines ?? []).map((l: any) => ({
+          itemId:      l.itemId,
+          ratePerGram: Number(l.ratePerGram),
+          lineTotal:   Number(l.lineTotal),
+        })),
+      };
       setPreview(data);
-      // Merge ratePerGram back into lines
+      // Merge ratePerGram + lineTotal back into bill lines
       setLines((prev) =>
         prev.map((line) => {
           const match = data.lines?.find((l) => l.itemId === line.itemId);
@@ -239,7 +263,6 @@ export function PosPage() {
       );
     },
     onError: () => {
-      // Silently fail preview — don't toast
       setPreview(null);
     },
   });
@@ -254,8 +277,7 @@ export function PosPage() {
         description: 'Bill has been saved successfully.',
         action: {
           label: 'View PDF',
-          onClick: () =>
-            window.open(`/api/v1/billing/invoices/${data.id}/pdf`, '_blank'),
+          onClick: () => downloadInvoicePdf(data.id, data.invoiceNumber),
         },
       });
       setCreatedInvoiceId(data?.id ?? null);
@@ -268,23 +290,51 @@ export function PosPage() {
     },
   });
 
-  // ── Build preview payload ─────────────────────────────────────────────────
+  // ── Create customer mutation ──────────────────────────────────────────────
+  const createCustomerMutation = useMutation({
+    mutationFn: (payload: object) =>
+      api.post('/billing/customers', payload).then((r: any) => r.data),
+    onSuccess: (data: any) => {
+      setCustomer({ id: data.id, name: data.name, phone: data.phone, email: data.email, address: data.address });
+      setShowNewCustomerForm(false);
+      setNewCustomer({ name: '', phone: '', email: '', address: '' });
+      setCustomerSearch('');
+      toast.success(`Customer "${data.name}" registered`);
+    },
+    onError: (err: any) => {
+      toast.error('Failed to create customer', {
+        description: err?.response?.data?.message ?? 'Please try again.',
+      });
+    },
+  });
+
+  function handleCreateCustomer(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newCustomer.name.trim() || !newCustomer.phone.trim()) {
+      toast.error('Name and phone are required');
+      return;
+    }
+    createCustomerMutation.mutate({
+      name: newCustomer.name.trim(),
+      phone: newCustomer.phone.trim(),
+      ...(newCustomer.email.trim() ? { email: newCustomer.email.trim() } : {}),
+      ...(newCustomer.address.trim() ? { address: newCustomer.address.trim() } : {}),
+    });
+  }
+
+  // ── Build preview payload (no customerId — preview doesn't need it) ────────
   const buildPayload = useCallback(() => {
     return {
       lines: lines.map((l) => ({
         itemId: l.itemId,
         qty: l.qty,
         netWeightG: l.netWeightG,
-        makingPct: l.makingPct,
-        makingPerGram: l.makingPerGram,
-        stoneValue: l.stoneValue,
       })),
-      oldGoldWeightG: oldGold.weightG ? parseFloat(oldGold.weightG) : null,
-      oldGoldRatePerGram: oldGold.ratePerGram ? parseFloat(oldGold.ratePerGram) : null,
-      customerId: !isWalkIn && customer ? customer.id : null,
+      oldGoldWeightG: oldGold.weightG ? parseFloat(oldGold.weightG) : 0,
+      oldGoldRatePerGram: oldGold.ratePerGram ? parseFloat(oldGold.ratePerGram) : 0,
       isInterstate: gstMode === 'inter',
     };
-  }, [lines, oldGold, customer, isWalkIn, gstMode]);
+  }, [lines, oldGold, gstMode]);
 
   // ── Auto-trigger preview when bill changes ────────────────────────────────
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -374,8 +424,13 @@ export function PosPage() {
       toast.error('Add at least one item to the bill');
       return;
     }
+    if (!isWalkIn && !customer) {
+      toast.error('Please select a customer before generating the invoice');
+      return;
+    }
     const payload = {
       ...buildPayload(),
+      ...(customer && !isWalkIn ? { customerId: customer.id } : {}),
       paymentMode,
       paymentAmount: paymentAmount ? parseFloat(paymentAmount) : preview?.grandTotal ?? 0,
     };
@@ -388,6 +443,8 @@ export function PosPage() {
     setCustomer(null);
     setIsWalkIn(true);
     setCustomerSearch('');
+    setShowNewCustomerForm(false);
+    setNewCustomer({ name: '', phone: '', email: '', address: '' });
     setGstMode('intra');
     setPaymentMode('CASH');
     setPaymentAmount('');
@@ -609,6 +666,8 @@ export function PosPage() {
                     setIsWalkIn((v) => !v);
                     setCustomer(null);
                     setCustomerSearch('');
+                    setShowNewCustomerForm(false);
+                    setNewCustomer({ name: '', phone: '', email: '', address: '' });
                   }}
                   className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer ${
                     isWalkIn ? 'bg-amber-500' : 'bg-slate-200'
@@ -626,25 +685,110 @@ export function PosPage() {
               </label>
 
               {!isWalkIn && (
-                <div ref={customerDropdownRef} className="relative">
+                <div ref={customerDropdownRef} className="space-y-3">
+                  {/* ── Selected customer chip ── */}
                   {customer ? (
-                    <div className="flex items-center gap-3 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg">
-                      <UserCheck size={16} className="text-amber-600 shrink-0" />
+                    <div className="flex items-start gap-3 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+                      <UserCheck size={16} className="text-amber-600 shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-slate-800">{customer.name}</p>
                         {customer.phone && (
                           <p className="text-xs text-slate-500">{customer.phone}</p>
                         )}
+                        {customer.address && (
+                          <p className="text-xs text-slate-400 truncate">{customer.address}</p>
+                        )}
                       </div>
                       <button
-                        onClick={() => { setCustomer(null); setCustomerSearch(''); }}
-                        className="text-slate-400 hover:text-slate-600"
+                        onClick={() => {
+                          setCustomer(null);
+                          setCustomerSearch('');
+                          setShowNewCustomerForm(false);
+                        }}
+                        className="text-slate-400 hover:text-slate-600 shrink-0"
                       >
                         <X size={14} />
                       </button>
                     </div>
+                  ) : showNewCustomerForm ? (
+                    /* ── New customer inline form ── */
+                    <form onSubmit={handleCreateCustomer} className="space-y-2.5 border border-amber-200 rounded-lg p-3 bg-amber-50/40">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">New Customer</p>
+                        <button
+                          type="button"
+                          onClick={() => { setShowNewCustomerForm(false); setNewCustomer({ name: '', phone: '', email: '', address: '' }); }}
+                          className="text-slate-400 hover:text-slate-600"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="col-span-2">
+                          <label className="block text-xs font-medium text-slate-500 mb-1">
+                            Name <span className="text-red-400">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={newCustomer.name}
+                            onChange={(e) => setNewCustomer((p) => ({ ...p, name: e.target.value }))}
+                            placeholder="Full name"
+                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition-all"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">
+                            Phone <span className="text-red-400">*</span>
+                          </label>
+                          <input
+                            type="tel"
+                            required
+                            value={newCustomer.phone}
+                            onChange={(e) => setNewCustomer((p) => ({ ...p, phone: e.target.value }))}
+                            placeholder="10-digit mobile"
+                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition-all font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Email</label>
+                          <input
+                            type="email"
+                            value={newCustomer.email}
+                            onChange={(e) => setNewCustomer((p) => ({ ...p, email: e.target.value }))}
+                            placeholder="optional"
+                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition-all"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <label className="block text-xs font-medium text-slate-500 mb-1">Address</label>
+                          <textarea
+                            rows={2}
+                            value={newCustomer.address}
+                            onChange={(e) => setNewCustomer((p) => ({ ...p, address: e.target.value }))}
+                            placeholder="Street, city, pin code…"
+                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition-all resize-none"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          type="submit"
+                          disabled={createCustomerMutation.isPending}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-slate-200 disabled:text-slate-400 text-white text-sm font-semibold rounded-lg transition-colors"
+                        >
+                          {createCustomerMutation.isPending ? (
+                            <Loader2 size={13} className="animate-spin" />
+                          ) : (
+                            <UserCheck size={13} />
+                          )}
+                          {createCustomerMutation.isPending ? 'Saving…' : 'Save & Select'}
+                        </button>
+                      </div>
+                    </form>
                   ) : (
-                    <>
+                    /* ── Search box + dropdown ── */
+                    <div className="relative">
                       <div className="relative">
                         <Search
                           size={14}
@@ -658,7 +802,7 @@ export function PosPage() {
                             setShowCustomerDropdown(true);
                           }}
                           onFocus={() => setShowCustomerDropdown(true)}
-                          placeholder="Search customer by name or phone…"
+                          placeholder="Search by name or phone…"
                           className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition-all"
                         />
                         {customerSearching && (
@@ -669,37 +813,70 @@ export function PosPage() {
                         )}
                       </div>
 
-                      {showCustomerDropdown && debouncedCustomerSearch.length > 1 && customers.length > 0 && (
-                        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden max-h-48 overflow-y-auto">
-                          {customers.map((c: any) => (
-                            <button
-                              key={c.id}
-                              onClick={() => {
-                                setCustomer({ id: c.id, name: c.name, phone: c.phone });
-                                setShowCustomerDropdown(false);
-                                setCustomerSearch('');
-                              }}
-                              className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-amber-50 text-left"
-                            >
-                              <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                                <span className="text-xs font-bold text-slate-500">
-                                  {c.name?.[0]?.toUpperCase()}
-                                </span>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-slate-800">{c.name}</p>
-                                {c.phone && <p className="text-xs text-slate-400">{c.phone}</p>}
-                              </div>
-                            </button>
-                          ))}
+                      {/* Results dropdown */}
+                      {showCustomerDropdown && debouncedCustomerSearch.length > 1 && (
+                        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
+                          {customers.length > 0 && (
+                            <div className="max-h-40 overflow-y-auto">
+                              {customers.map((c: any) => (
+                                <button
+                                  key={c.id}
+                                  onClick={() => {
+                                    setCustomer({ id: c.id, name: c.name, phone: c.phone, email: c.email, address: c.address });
+                                    setShowCustomerDropdown(false);
+                                    setCustomerSearch('');
+                                  }}
+                                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-amber-50 text-left border-b border-slate-50 last:border-0"
+                                >
+                                  <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                                    <span className="text-xs font-bold text-slate-500">
+                                      {c.name?.[0]?.toUpperCase()}
+                                    </span>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-slate-800">{c.name}</p>
+                                    {c.phone && <p className="text-xs text-slate-400">{c.phone}</p>}
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {!customerSearching && customers.length === 0 && (
+                            <div className="px-3 py-2.5 text-sm text-slate-400">
+                              No customers found for "{debouncedCustomerSearch}"
+                            </div>
+                          )}
+                          {/* Always show New Customer option at bottom of dropdown */}
+                          <button
+                            onClick={() => {
+                              setShowCustomerDropdown(false);
+                              setShowNewCustomerForm(true);
+                              setNewCustomer((p) => ({
+                                ...p,
+                                name: /^\d/.test(customerSearch) ? '' : customerSearch,
+                                phone: /^\d/.test(customerSearch) ? customerSearch : '',
+                              }));
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-amber-700 font-medium hover:bg-amber-50 border-t border-slate-100"
+                          >
+                            <Plus size={14} className="shrink-0" />
+                            New customer
+                            {customerSearch && ` "${customerSearch}"`}
+                          </button>
                         </div>
                       )}
-                      {showCustomerDropdown && debouncedCustomerSearch.length > 1 && !customerSearching && customers.length === 0 && (
-                        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-sm px-3 py-2.5 text-sm text-slate-400">
-                          No customers found
-                        </div>
+
+                      {/* New customer button when search is empty */}
+                      {!showCustomerDropdown && !customerSearch && (
+                        <button
+                          onClick={() => setShowNewCustomerForm(true)}
+                          className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 text-sm text-amber-700 font-medium border border-dashed border-amber-300 rounded-lg hover:bg-amber-50 transition-colors"
+                        >
+                          <Plus size={13} />
+                          Register new customer
+                        </button>
                       )}
-                    </>
+                    </div>
                   )}
                 </div>
               )}
@@ -902,15 +1079,13 @@ export function PosPage() {
         {/* ── Bottom action bar ── */}
         <div className="shrink-0 px-5 py-3 border-t border-slate-200 bg-white flex items-center gap-3">
           {createdInvoiceId && (
-            <a
-              href={`/api/v1/billing/invoices/${createdInvoiceId}/pdf`}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => downloadInvoicePdf(createdInvoiceId)}
               className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-700 font-medium transition-colors"
             >
               <ExternalLink size={14} />
-              Preview PDF
-            </a>
+              Download PDF
+            </button>
           )}
           <div className="flex-1" />
 

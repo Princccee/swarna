@@ -78,6 +78,16 @@ export class BillingService {
   // Private helpers
   // -------------------------------------------------------------------------
 
+  /** Get or create the generic walk-in customer used when no customerId is supplied. */
+  private async getWalkInCustomer() {
+    const WALK_IN_PHONE = '0000000000';
+    const existing = await this.prisma.customer.findUnique({ where: { phone: WALK_IN_PHONE } });
+    if (existing) return existing;
+    return this.prisma.customer.create({
+      data: { name: 'Walk-in Customer', phone: WALK_IN_PHONE },
+    });
+  }
+
   /** Fetch rate from Redis for a given purity. Throws BadRequestException if missing. */
   private async fetchRate(metal: Metal, purity: Purity): Promise<Prisma.Decimal> {
     const key = `rate:${metal}:${purity}`;
@@ -188,8 +198,10 @@ export class BillingService {
     // Generate invoice number
     const invoiceNumber = await this.nextInvoiceNumber();
 
-    // Verify customer exists
-    const customer = await this.prisma.customer.findUnique({ where: { id: dto.customerId } });
+    // Resolve customer — use walk-in placeholder when none supplied
+    const customer = dto.customerId
+      ? await this.prisma.customer.findUnique({ where: { id: dto.customerId } })
+      : await this.getWalkInCustomer();
     if (!customer) throw new NotFoundException(`Customer ${dto.customerId} not found.`);
 
     // Create one RateSnapshot per unique purity (use the first purity's snapshot as the invoice's primary snapshot)
@@ -216,9 +228,9 @@ export class BillingService {
       // Create the invoice
       const created = await tx.invoice.create({
         data: {
-          customerId: dto.customerId,
-          rateSnapshotId: primarySnapshotId,
-          createdById: userId,
+          customer: { connect: { id: customer.id } },
+          rateSnapshot: { connect: { id: primarySnapshotId } },
+          createdBy: { connect: { id: userId } },
           invoiceNumber,
           subtotal: calc.subtotal,
           makingTotal: calc.makingTotal,
@@ -239,7 +251,7 @@ export class BillingService {
           invoicedAt: new Date(),
           lines: {
             create: calc.lines.map((l) => ({
-              itemId: l.itemId,
+              item: { connect: { id: l.itemId } },
               qty: l.qty,
               netWeightG: l.netWeightG,
               ratePerGram: l.ratePerGram,
@@ -267,12 +279,25 @@ export class BillingService {
 
         await tx.stockMovement.create({
           data: {
-            itemId: lineDto.itemId,
+            item: { connect: { id: lineDto.itemId } },
             type: 'OUT',
             qty: lineDto.qty,
             reason: 'Sale',
             refId: created.id,
           },
+        });
+      }
+
+      // Create Payment record if paymentMode supplied
+      if (dto.paymentMode) {
+        const paid = new Prisma.Decimal(String(dto.paymentAmount ?? calc.totalAmount));
+        const balanceDue = calc.totalAmount.sub(paid).toDecimalPlaces(2);
+        await tx.payment.create({
+          data: { invoice: { connect: { id: created.id } }, amount: paid, mode: dto.paymentMode },
+        });
+        await tx.invoice.update({
+          where: { id: created.id },
+          data: { amountPaid: paid, balanceDue },
         });
       }
 
@@ -287,13 +312,17 @@ export class BillingService {
         },
       });
 
-      return created;
+      // Re-fetch so response includes payment + updated amounts
+      return tx.invoice.findUniqueOrThrow({
+        where: { id: created.id },
+        include: { customer: true, lines: { include: { item: true } }, payments: true, rateSnapshot: true },
+      });
     });
 
     // Update customer totalSpent (outside transaction — non-critical)
     this.prisma.customer
       .update({
-        where: { id: dto.customerId },
+        where: { id: customer.id },
         data: { totalSpent: { increment: calc.totalAmount } },
       })
       .catch((err: Error) => this.logger.warn('Failed to update customer totalSpent: ' + err.message));
@@ -561,6 +590,7 @@ export class BillingService {
         name: dto.name,
         phone: dto.phone,
         email: dto.email,
+        address: dto.address,
         panNumber: dto.panNumber,
       },
     });
