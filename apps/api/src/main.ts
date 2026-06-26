@@ -22,10 +22,13 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // Global prefix — must match frontend's axios baseURL (/api/v1)
+  app.setGlobalPrefix('api/v1');
+
   // Global pipes
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
 
-  // Health check (lightweight — no extra module)
+  // Health check — outside global prefix so nginx /health probe works
   const httpAdapter = app.getHttpAdapter();
   httpAdapter.get('/health', async (req: any, res: any) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
