@@ -9,9 +9,10 @@ interface Props {
   categories: Category[];
   activeCategoryId: string;
   onChange: (id: string) => void;
+  dark?: boolean;
 }
 
-export function CategoryRail({ categories, activeCategoryId, onChange }: Props) {
+export function CategoryRail({ categories, activeCategoryId, onChange, dark = false }: Props) {
   const { t } = useTranslation();
 
   const chips = [{ id: '', name: t('common.all') ?? 'All' }, ...categories];
@@ -26,9 +27,7 @@ export function CategoryRail({ categories, activeCategoryId, onChange }: Props) 
         scrollbarWidth: 'none',
       }}
     >
-      <style>{`
-        .cat-rail::-webkit-scrollbar { display: none; }
-      `}</style>
+      <style>{`.cat-rail::-webkit-scrollbar { display: none; }`}</style>
       <div className="cat-rail" style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
         {chips.map((cat) => {
           const active = cat.id === activeCategoryId;
@@ -40,9 +39,11 @@ export function CategoryRail({ categories, activeCategoryId, onChange }: Props) 
                 flexShrink: 0,
                 padding: '6px 16px',
                 borderRadius: '99px',
-                border: active ? '1.5px solid hsl(38 89% 38%)' : '1.5px solid hsl(214 32% 88%)',
-                background: active ? 'hsl(38 89% 38%)' : '#fff',
-                color: active ? '#fff' : 'hsl(38 30% 40%)',
+                border: active
+                  ? '1.5px solid #c8860a'
+                  : dark ? '1.5px solid #3a3228' : '1.5px solid hsl(214 32% 88%)',
+                background: active ? '#c8860a' : dark ? '#201c17' : '#fff',
+                color: active ? '#fff' : dark ? '#ede0c8' : 'hsl(38 30% 40%)',
                 fontSize: '0.82rem',
                 fontWeight: active ? 600 : 500,
                 cursor: 'pointer',

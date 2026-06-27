@@ -78,7 +78,7 @@ function ImagePlaceholder({ name }: { name: string }) {
   return (
     <div
       style={{
-        background: 'linear-gradient(135deg, hsl(38 60% 92%) 0%, hsl(38 40% 85%) 100%)',
+        background: 'linear-gradient(135deg, #2a2018 0%, #1e1610 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -90,7 +90,7 @@ function ImagePlaceholder({ name }: { name: string }) {
         style={{
           fontSize: '1.75rem',
           fontWeight: 600,
-          color: 'hsl(38 89% 30%)',
+          color: '#c8860a',
           letterSpacing: '0.05em',
           userSelect: 'none',
         }}
@@ -142,25 +142,24 @@ function ItemCard({
     <article
       onClick={() => navigate(`/catalogue/items/${item.id}`)}
       style={{
-        background: '#fff',
-        border: '1px solid hsl(214 32% 91%)',
+        background: '#181411',
+        border: '1px solid #2e2720',
         borderRadius: '10px',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        transition: 'box-shadow 0.18s ease, transform 0.18s ease',
+        transition: 'box-shadow 0.18s ease, transform 0.18s ease, border-color 0.18s ease',
         cursor: 'pointer',
       }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.boxShadow =
-          '0 6px 24px hsla(38,60%,30%,0.15)';
+        (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 28px rgba(0,0,0,0.5)';
         (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)';
-        (e.currentTarget as HTMLElement).style.borderColor = 'hsl(38 89% 70%)';
+        (e.currentTarget as HTMLElement).style.borderColor = '#c8860a';
       }}
       onMouseLeave={(e) => {
         (e.currentTarget as HTMLElement).style.boxShadow = 'none';
         (e.currentTarget as HTMLElement).style.transform = 'none';
-        (e.currentTarget as HTMLElement).style.borderColor = 'hsl(214 32% 91%)';
+        (e.currentTarget as HTMLElement).style.borderColor = '#2e2720';
       }}
     >
       {/* Image area */}
@@ -174,14 +173,7 @@ function ItemCard({
         ) : (
           <ImagePlaceholder name={item.name} />
         )}
-        {/* Purity badge overlay */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '8px',
-            right: '8px',
-          }}
-        >
+        <div style={{ position: 'absolute', top: '8px', right: '8px' }}>
           <PurityBadge purity={item.purity} />
         </div>
       </div>
@@ -203,7 +195,7 @@ function ItemCard({
               fontWeight: 600,
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
-              color: 'hsl(215 16% 57%)',
+              color: '#7a6a55',
               margin: 0,
             }}
           >
@@ -215,7 +207,7 @@ function ItemCard({
           style={{
             fontSize: '0.95rem',
             fontWeight: 600,
-            color: 'hsl(222 84% 5%)',
+            color: '#ede0c8',
             margin: 0,
             lineHeight: 1.35,
           }}
@@ -223,13 +215,7 @@ function ItemCard({
           {item.name}
         </h3>
 
-        <p
-          style={{
-            fontSize: '0.78rem',
-            color: 'hsl(215 16% 55%)',
-            margin: 0,
-          }}
-        >
+        <p style={{ fontSize: '0.78rem', color: '#7a6a55', margin: 0 }}>
           {t('catalogue.browse.net_wt')} {Number(item.netWeightG).toFixed(3)} g
         </p>
 
@@ -240,7 +226,7 @@ function ItemCard({
               style={{
                 fontSize: '1.05rem',
                 fontWeight: 700,
-                color: 'hsl(38 89% 32%)',
+                color: '#e8a030',
                 margin: 0,
                 fontVariantNumeric: 'tabular-nums',
               }}
@@ -250,7 +236,7 @@ function ItemCard({
                 style={{
                   fontSize: '0.68rem',
                   fontWeight: 400,
-                  color: 'hsl(215 16% 57%)',
+                  color: '#7a6a55',
                   marginLeft: '4px',
                   letterSpacing: '0.02em',
                 }}
@@ -259,14 +245,7 @@ function ItemCard({
               </span>
             </p>
           ) : (
-            <p
-              style={{
-                fontSize: '0.78rem',
-                color: 'hsl(215 16% 65%)',
-                fontStyle: 'italic',
-                margin: 0,
-              }}
-            >
+            <p style={{ fontSize: '0.78rem', color: '#5a4e40', fontStyle: 'italic', margin: 0 }}>
               {t('catalogue.browse.price_on_request')}
             </p>
           )}
@@ -280,7 +259,7 @@ function ItemCard({
               style={{
                 width: '100%',
                 padding: '8px 0',
-                background: 'hsl(38 89% 38%)',
+                background: '#c8860a',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '6px',
@@ -291,10 +270,10 @@ function ItemCard({
                 transition: 'background 0.15s',
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'hsl(38 89% 31%)';
+                (e.currentTarget as HTMLButtonElement).style.background = '#a86e08';
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'hsl(38 89% 38%)';
+                (e.currentTarget as HTMLButtonElement).style.background = '#c8860a';
               }}
             >
               {t('catalogue.browse.reserve')}
@@ -309,8 +288,8 @@ function ItemCard({
                 width: '100%',
                 padding: '8px 0',
                 background: 'transparent',
-                color: 'hsl(38 89% 38%)',
-                border: '1px solid hsl(38 89% 70%)',
+                color: '#e8a030',
+                border: '1px solid #5a3e10',
                 borderRadius: '6px',
                 fontSize: '0.82rem',
                 fontWeight: 600,
@@ -333,8 +312,8 @@ function SkeletonCard() {
   return (
     <div
       style={{
-        background: '#fff',
-        border: '1px solid hsl(214 32% 91%)',
+        background: '#181411',
+        border: '1px solid #2e2720',
         borderRadius: '10px',
         overflow: 'hidden',
       }}
@@ -343,16 +322,16 @@ function SkeletonCard() {
         style={{
           width: '100%',
           aspectRatio: '1',
-          background: 'linear-gradient(90deg, hsl(210 40% 96%) 25%, hsl(210 40% 92%) 50%, hsl(210 40% 96%) 75%)',
+          background: 'linear-gradient(90deg, #201c17 25%, #2a2318 50%, #201c17 75%)',
           backgroundSize: '200% 100%',
           animation: 'shimmer 1.4s infinite',
         }}
       />
       <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <div style={{ height: '10px', width: '50%', background: 'hsl(210 40% 93%)', borderRadius: '4px' }} />
-        <div style={{ height: '14px', width: '80%', background: 'hsl(210 40% 91%)', borderRadius: '4px' }} />
-        <div style={{ height: '10px', width: '40%', background: 'hsl(210 40% 93%)', borderRadius: '4px' }} />
-        <div style={{ height: '32px', width: '100%', background: 'hsl(38 60% 90%)', borderRadius: '6px', marginTop: '8px' }} />
+        <div style={{ height: '10px', width: '50%', background: '#2e2720', borderRadius: '4px' }} />
+        <div style={{ height: '14px', width: '80%', background: '#251f18', borderRadius: '4px' }} />
+        <div style={{ height: '10px', width: '40%', background: '#2e2720', borderRadius: '4px' }} />
+        <div style={{ height: '32px', width: '100%', background: '#3a2a10', borderRadius: '6px', marginTop: '8px' }} />
       </div>
     </div>
   );
@@ -452,15 +431,15 @@ export default function CatalogueBrowsePage() {
       <div
         style={{
           minHeight: '100vh',
-          background: 'hsl(38 30% 97%)',
+          background: '#0c0a08',
           paddingBottom: '48px',
         }}
       >
         {/* Header strip */}
         <div
           style={{
-            background: '#fff',
-            borderBottom: '1px solid hsl(214 32% 91%)',
+            background: '#181411',
+            borderBottom: '1px solid #2e2720',
             padding: '20px 24px',
           }}
         >
@@ -470,7 +449,7 @@ export default function CatalogueBrowsePage() {
                 style={{
                   fontSize: '1.5rem',
                   fontWeight: 700,
-                  color: 'hsl(222 84% 5%)',
+                  color: '#ede0c8',
                   margin: '0 0 2px',
                   letterSpacing: '-0.01em',
                 }}
@@ -478,23 +457,24 @@ export default function CatalogueBrowsePage() {
                 {t('catalogue.browse.title')}
               </h1>
               {categoryId && (
-                <p style={{ fontSize: '0.82rem', color: 'hsl(215 16% 55%)', margin: 0 }}>
+                <p style={{ fontSize: '0.82rem', color: '#7a6a55', margin: 0 }}>
                   {t('catalogue.browse.filtered')}
                 </p>
               )}
             </div>
-            <LanguageToggle />
+            <LanguageToggle dark />
           </div>
         </div>
 
         {/* Category rail — only shown when categories exist */}
         {categories.length > 0 && (
-          <div style={{ background: '#fff', borderBottom: '1px solid hsl(214 32% 91%)', padding: '0 24px' }}>
+          <div style={{ background: '#181411', borderBottom: '1px solid #2e2720', padding: '0 24px' }}>
             <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '12px 0' }}>
               <CategoryRail
                 categories={categories}
                 activeCategoryId={categoryId}
                 onChange={handleCategoryChange}
+                dark
               />
             </div>
           </div>
@@ -504,8 +484,8 @@ export default function CatalogueBrowsePage() {
           {/* Filter bar */}
           <div
             style={{
-              background: '#fff',
-              border: '1px solid hsl(214 32% 91%)',
+              background: '#181411',
+              border: '1px solid #2e2720',
               borderRadius: '10px',
               padding: '14px 16px',
               display: 'flex',
@@ -523,7 +503,7 @@ export default function CatalogueBrowsePage() {
                   left: '10px',
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  color: 'hsl(215 16% 60%)',
+                  color: '#7a6a55',
                   pointerEvents: 'none',
                 }}
                 width="15"
@@ -547,13 +527,13 @@ export default function CatalogueBrowsePage() {
                   paddingRight: '12px',
                   paddingTop: '8px',
                   paddingBottom: '8px',
-                  border: '1px solid hsl(214 32% 88%)',
+                  border: '1px solid #3a3228',
                   borderRadius: '6px',
                   fontSize: '0.85rem',
-                  color: 'hsl(222 84% 5%)',
+                  color: '#ede0c8',
                   outline: 'none',
                   boxSizing: 'border-box',
-                  background: 'hsl(210 40% 98%)',
+                  background: '#201c17',
                 }}
               />
             </div>
@@ -565,11 +545,11 @@ export default function CatalogueBrowsePage() {
               style={{
                 flex: '0 0 auto',
                 padding: '8px 12px',
-                border: '1px solid hsl(214 32% 88%)',
+                border: '1px solid #3a3228',
                 borderRadius: '6px',
                 fontSize: '0.85rem',
-                color: purity ? 'hsl(222 84% 5%)' : 'hsl(215 16% 55%)',
-                background: 'hsl(210 40% 98%)',
+                color: purity ? '#ede0c8' : '#7a6a55',
+                background: '#201c17',
                 outline: 'none',
                 cursor: 'pointer',
               }}
@@ -593,7 +573,7 @@ export default function CatalogueBrowsePage() {
                 style={{
                   marginLeft: 'auto',
                   fontSize: '0.78rem',
-                  color: 'hsl(215 16% 55%)',
+                  color: '#7a6a55',
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
@@ -611,7 +591,7 @@ export default function CatalogueBrowsePage() {
             <p
               style={{
                 fontSize: '0.8rem',
-                color: 'hsl(215 16% 55%)',
+                color: '#7a6a55',
                 marginBottom: '16px',
                 fontVariantNumeric: 'tabular-nums',
               }}
@@ -626,9 +606,9 @@ export default function CatalogueBrowsePage() {
               style={{
                 padding: '32px',
                 textAlign: 'center',
-                color: 'hsl(0 72% 45%)',
-                background: '#fff',
-                border: '1px solid hsl(0 72% 88%)',
+                color: '#e07070',
+                background: '#1a1010',
+                border: '1px solid #4a2020',
                 borderRadius: '10px',
               }}
             >
@@ -667,14 +647,14 @@ export default function CatalogueBrowsePage() {
               style={{
                 padding: '64px 32px',
                 textAlign: 'center',
-                color: 'hsl(215 16% 60%)',
-                background: '#fff',
-                border: '1px solid hsl(214 32% 91%)',
+                color: '#7a6a55',
+                background: '#181411',
+                border: '1px solid #2e2720',
                 borderRadius: '10px',
               }}
             >
-              <div style={{ fontSize: '2rem', marginBottom: '12px', opacity: 0.5 }}>◇</div>
-              <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>
+              <div style={{ fontSize: '2rem', marginBottom: '12px', opacity: 0.4 }}>◇</div>
+              <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500, color: '#ede0c8' }}>
                 {t('catalogue.browse.no_items')}
               </p>
               <p style={{ margin: '6px 0 0', fontSize: '0.82rem' }}>
@@ -697,7 +677,7 @@ export default function CatalogueBrowsePage() {
               <span
                 style={{
                   fontSize: '0.8rem',
-                  color: 'hsl(215 16% 55%)',
+                  color: '#7a6a55',
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
@@ -710,14 +690,14 @@ export default function CatalogueBrowsePage() {
                   disabled={page === 1}
                   style={{
                     padding: '7px 16px',
-                    border: '1px solid hsl(214 32% 88%)',
+                    border: '1px solid #3a3228',
                     borderRadius: '6px',
-                    background: '#fff',
+                    background: '#201c17',
                     fontSize: '0.83rem',
                     fontWeight: 500,
                     cursor: page === 1 ? 'not-allowed' : 'pointer',
                     opacity: page === 1 ? 0.4 : 1,
-                    color: 'hsl(222 84% 5%)',
+                    color: '#ede0c8',
                   }}
                 >
                   {t('catalogue.browse.prev')}
@@ -743,7 +723,7 @@ export default function CatalogueBrowsePage() {
                         style={{
                           padding: '7px 4px',
                           fontSize: '0.83rem',
-                          color: 'hsl(215 16% 60%)',
+                          color: '#7a6a55',
                         }}
                       >
                         …
@@ -755,11 +735,10 @@ export default function CatalogueBrowsePage() {
                         style={{
                           padding: '7px 12px',
                           border: '1px solid',
-                          borderColor:
-                            page === p ? 'hsl(38 89% 38%)' : 'hsl(214 32% 88%)',
+                          borderColor: page === p ? '#c8860a' : '#3a3228',
                           borderRadius: '6px',
-                          background: page === p ? 'hsl(38 89% 38%)' : '#fff',
-                          color: page === p ? '#fff' : 'hsl(222 84% 5%)',
+                          background: page === p ? '#c8860a' : '#201c17',
+                          color: page === p ? '#fff' : '#ede0c8',
                           fontSize: '0.83rem',
                           fontWeight: page === p ? 600 : 400,
                           cursor: 'pointer',
@@ -776,14 +755,14 @@ export default function CatalogueBrowsePage() {
                   disabled={page >= totalPages}
                   style={{
                     padding: '7px 16px',
-                    border: '1px solid hsl(214 32% 88%)',
+                    border: '1px solid #3a3228',
                     borderRadius: '6px',
-                    background: '#fff',
+                    background: '#201c17',
                     fontSize: '0.83rem',
                     fontWeight: 500,
                     cursor: page >= totalPages ? 'not-allowed' : 'pointer',
                     opacity: page >= totalPages ? 0.4 : 1,
-                    color: 'hsl(222 84% 5%)',
+                    color: '#ede0c8',
                   }}
                 >
                   {t('catalogue.browse.next')}
