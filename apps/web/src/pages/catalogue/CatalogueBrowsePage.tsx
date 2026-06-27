@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../stores/auth.store';
+import { LanguageToggle } from '../../components/shared/LanguageToggle';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -133,6 +135,7 @@ function ItemCard({
   isAuthenticated: boolean;
   onReserve: (item: CatalogueItem) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <article
       style={{
@@ -221,7 +224,7 @@ function ItemCard({
             margin: 0,
           }}
         >
-          Net wt: {Number(item.netWeightG).toFixed(3)} g
+          {t('catalogue.browse.net_wt')} {Number(item.netWeightG).toFixed(3)} g
         </p>
 
         {/* Price row */}
@@ -246,7 +249,7 @@ function ItemCard({
                   letterSpacing: '0.02em',
                 }}
               >
-                indicative
+                {t('catalogue.browse.indicative')}
               </span>
             </p>
           ) : (
@@ -258,7 +261,7 @@ function ItemCard({
                 margin: 0,
               }}
             >
-              Price on request
+              {t('catalogue.browse.price_on_request')}
             </p>
           )}
         </div>
@@ -288,7 +291,7 @@ function ItemCard({
                 (e.currentTarget as HTMLButtonElement).style.background = 'hsl(38 89% 38%)';
               }}
             >
-              Reserve
+              {t('catalogue.browse.reserve')}
             </button>
           ) : (
             <Link
@@ -310,7 +313,7 @@ function ItemCard({
                 boxSizing: 'border-box',
               }}
             >
-              Login to Reserve
+              {t('catalogue.browse.login_to_reserve')}
             </Link>
           )}
         </div>
@@ -351,6 +354,7 @@ function SkeletonCard() {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function CatalogueBrowsePage() {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
@@ -437,23 +441,26 @@ export default function CatalogueBrowsePage() {
             padding: '20px 24px',
           }}
         >
-          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-            <h1
-              style={{
-                fontSize: '1.5rem',
-                fontWeight: 700,
-                color: 'hsl(222 84% 5%)',
-                margin: '0 0 2px',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              Jewellery Catalogue
-            </h1>
-            {categoryId && (
-              <p style={{ fontSize: '0.82rem', color: 'hsl(215 16% 55%)', margin: 0 }}>
-                Filtered by category
-              </p>
-            )}
+          <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
+            <div>
+              <h1
+                style={{
+                  fontSize: '1.5rem',
+                  fontWeight: 700,
+                  color: 'hsl(222 84% 5%)',
+                  margin: '0 0 2px',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                {t('catalogue.browse.title')}
+              </h1>
+              {categoryId && (
+                <p style={{ fontSize: '0.82rem', color: 'hsl(215 16% 55%)', margin: 0 }}>
+                  {t('catalogue.browse.filtered')}
+                </p>
+              )}
+            </div>
+            <LanguageToggle />
           </div>
         </div>
 
@@ -495,7 +502,7 @@ export default function CatalogueBrowsePage() {
               </svg>
               <input
                 type="search"
-                placeholder="Search by name…"
+                placeholder={t('catalogue.browse.search_placeholder')}
                 value={search}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 style={{
@@ -558,7 +565,7 @@ export default function CatalogueBrowsePage() {
                   padding: '0 4px',
                 }}
               >
-                Clear filters
+                {t('catalogue.browse.clear_filters')}
               </button>
             )}
           </div>
@@ -573,7 +580,7 @@ export default function CatalogueBrowsePage() {
                 fontVariantNumeric: 'tabular-nums',
               }}
             >
-              Showing {rangeStart}–{rangeEnd} of {total} items
+              {t('catalogue.browse.showing', { start: rangeStart, end: rangeEnd, total })}
             </p>
           )}
 
@@ -589,7 +596,7 @@ export default function CatalogueBrowsePage() {
                 borderRadius: '10px',
               }}
             >
-              Failed to load catalogue. Please try again later.
+              {t('catalogue.browse.load_error')}
             </div>
           )}
 
@@ -632,10 +639,10 @@ export default function CatalogueBrowsePage() {
             >
               <div style={{ fontSize: '2rem', marginBottom: '12px', opacity: 0.5 }}>◇</div>
               <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500 }}>
-                No items match your filters.
+                {t('catalogue.browse.no_items')}
               </p>
               <p style={{ margin: '6px 0 0', fontSize: '0.82rem' }}>
-                Try clearing the search or selecting a different purity.
+                {t('catalogue.browse.no_items_hint')}
               </p>
             </div>
           )}
@@ -658,7 +665,7 @@ export default function CatalogueBrowsePage() {
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
-                Page {page} of {totalPages}
+                {t('catalogue.browse.page_of', { page, total: totalPages })}
               </span>
 
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -677,7 +684,7 @@ export default function CatalogueBrowsePage() {
                     color: 'hsl(222 84% 5%)',
                   }}
                 >
-                  ← Prev
+                  {t('catalogue.browse.prev')}
                 </button>
 
                 {/* Page number chips — show up to 5 around current */}
@@ -743,7 +750,7 @@ export default function CatalogueBrowsePage() {
                     color: 'hsl(222 84% 5%)',
                   }}
                 >
-                  Next →
+                  {t('catalogue.browse.next')}
                 </button>
               </div>
             </div>
