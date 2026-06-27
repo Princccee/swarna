@@ -62,7 +62,7 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<OwnerDashboard />} />
+          <Route index element={<Navigate to="/owner/dashboard" replace />} />
           <Route path="dashboard" element={<OwnerDashboard />} />
           <Route path="inventory" element={<InventoryListPage />} />
           <Route path="inventory/new" element={<InventoryNewPage />} />
