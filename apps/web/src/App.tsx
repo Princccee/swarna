@@ -72,6 +72,8 @@ export default function App() {
           <Route path="orders" element={<OrdersPage />} />
           <Route path="orders/new" element={<OrderNewPage />} />
           <Route path="orders/:id" element={<OrderDetailPage />} />
+          <Route path="invoices" element={<InvoiceListPage />} />
+          <Route path="invoices/:id" element={<InvoiceDetailPage />} />
           <Route path="karigar" element={<KarigarPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
