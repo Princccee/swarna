@@ -51,7 +51,7 @@ interface CatalogueItem {
   netWeightG: string | number;
   indicativePrice?: number | null;
   category?: { id: string; name: string } | null;
-  imageUrl?: string | null;
+  imageUrls?: string[];
 }
 
 interface Meta {
@@ -164,9 +164,9 @@ function ItemCard({
     >
       {/* Image area */}
       <div style={{ position: 'relative', overflow: 'hidden' }}>
-        {item.imageUrl ? (
+        {item.imageUrls?.[0] ? (
           <img
-            src={item.imageUrl}
+            src={item.imageUrls[0]}
             alt={item.name}
             style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }}
           />
