@@ -1,6 +1,8 @@
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
+import { LanguageToggle } from '../../components/shared/LanguageToggle';
 
 const STATUS_STYLES: Record<string, string> = {
   PENDING: 'bg-yellow-100 text-yellow-700',
@@ -22,17 +24,14 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function MyOrdersPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const token = localStorage.getItem('catalogue_token');
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['catalogue-my-orders'],
     queryFn: () =>
-      api
-        .get('/catalogue/my-orders', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        .then((r: any) => r.data),
+      api.get('/catalogue/my-orders', { headers: { Authorization: `Bearer ${token}` } }).then((r: any) => r.data),
     enabled: !!token,
   });
 
@@ -42,24 +41,17 @@ export default function MyOrdersPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center px-4">
         <div className="text-center">
+          <div className="flex justify-end mb-4"><LanguageToggle /></div>
           <div className="text-4xl mb-4">🔒</div>
-          <h2 className="text-xl font-bold text-foreground mb-2">Sign in to view your orders</h2>
-          <p className="text-muted-foreground text-sm mb-6 max-w-xs mx-auto">
-            You need to be logged in to see your reservations and order history.
-          </p>
-          <Link
-            to="/catalogue/login"
-            className="inline-block bg-amber-700 hover:bg-amber-800 text-white font-semibold px-6 py-2.5 rounded-lg text-sm transition-colors"
-          >
-            Sign In
+          <h2 className="text-xl font-bold text-foreground mb-2">{t('catalogue.orders.signin_title')}</h2>
+          <p className="text-muted-foreground text-sm mb-6 max-w-xs mx-auto">{t('catalogue.orders.signin_desc')}</p>
+          <Link to="/catalogue/login" className="inline-block bg-amber-700 hover:bg-amber-800 text-white font-semibold px-6 py-2.5 rounded-lg text-sm transition-colors">
+            {t('common.signIn')}
           </Link>
           <p className="mt-4 text-sm text-muted-foreground/60">
-            No account?{' '}
-            <Link
-              to="/catalogue/register"
-              className="text-amber-700 underline underline-offset-2 hover:text-amber-900"
-            >
-              Register here
+            {t('catalogue.orders.no_account')}{' '}
+            <Link to="/catalogue/register" className="text-amber-700 underline underline-offset-2 hover:text-amber-900">
+              {t('catalogue.orders.register')}
             </Link>
           </p>
         </div>
@@ -76,59 +68,45 @@ export default function MyOrdersPage() {
             onClick={() => navigate('/catalogue/browse')}
             className="flex items-center gap-1.5 text-sm text-amber-700 hover:text-amber-900 transition-colors"
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               <path d="M10 13L5 8l5-5" />
             </svg>
-            Browse
+            {t('common.browse')}
           </button>
-          <span className="text-sm font-semibold text-primary">Svarna Jewels</span>
-          <button
-            onClick={() => {
-              localStorage.removeItem('catalogue_token');
-              navigate('/catalogue/login');
-            }}
-            className="text-sm text-muted-foreground hover:text-foreground/80 transition-colors"
-          >
-            Sign out
-          </button>
+          <span className="text-sm font-semibold text-primary">{t('common.brand')}</span>
+          <div className="flex items-center gap-3">
+            <LanguageToggle />
+            <button
+              onClick={() => { localStorage.removeItem('catalogue_token'); navigate('/catalogue/login'); }}
+              className="text-sm text-muted-foreground hover:text-foreground/80 transition-colors"
+            >
+              {t('common.signOut')}
+            </button>
+          </div>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold text-foreground mb-6">My Orders</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-6">{t('catalogue.orders.title')}</h1>
 
         {isLoading && (
-          <div className="text-center py-16 text-amber-700 text-sm">Loading your orders…</div>
+          <div className="text-center py-16 text-amber-700 text-sm">{t('catalogue.orders.loading')}</div>
         )}
 
         {isError && (
           <div className="text-center py-16">
-            <p className="text-red-500 font-medium mb-2">Could not load orders.</p>
-            <p className="text-muted-foreground/60 text-sm">Please check your connection and try again.</p>
+            <p className="text-red-500 font-medium mb-2">{t('catalogue.orders.load_error')}</p>
+            <p className="text-muted-foreground/60 text-sm">{t('catalogue.orders.load_error_hint')}</p>
           </div>
         )}
 
         {!isLoading && !isError && orders.length === 0 && (
           <div className="text-center py-16">
             <div className="text-5xl mb-4">📋</div>
-            <p className="text-muted-foreground font-medium">No orders yet</p>
-            <p className="text-muted-foreground/60 text-sm mt-2 mb-6">
-              Browse our collection and reserve an item to get started.
-            </p>
-            <Link
-              to="/catalogue/browse"
-              className="inline-block bg-amber-700 hover:bg-amber-800 text-white font-semibold px-6 py-2.5 rounded-lg text-sm transition-colors"
-            >
-              Browse Catalogue
+            <p className="text-muted-foreground font-medium">{t('catalogue.orders.empty')}</p>
+            <p className="text-muted-foreground/60 text-sm mt-2 mb-6">{t('catalogue.orders.empty_hint')}</p>
+            <Link to="/catalogue/browse" className="inline-block bg-amber-700 hover:bg-amber-800 text-white font-semibold px-6 py-2.5 rounded-lg text-sm transition-colors">
+              {t('catalogue.orders.browse_catalogue')}
             </Link>
           </div>
         )}
@@ -141,16 +119,18 @@ export default function MyOrdersPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-amber-50 border-b border-amber-100">
                     <tr>
-                      {['Order #', 'Type', 'Status', 'Expected Ready', 'Est. Value', 'Balance Due'].map(
-                        (h) => (
-                          <th
-                            key={h}
-                            className="px-4 py-3 text-left text-xs font-semibold text-amber-800 uppercase tracking-wider whitespace-nowrap"
-                          >
-                            {h}
-                          </th>
-                        ),
-                      )}
+                      {[
+                        t('catalogue.orders.col_order'),
+                        t('catalogue.orders.col_type'),
+                        t('catalogue.orders.col_status'),
+                        t('catalogue.orders.col_ready'),
+                        t('catalogue.orders.col_value'),
+                        t('catalogue.orders.col_balance'),
+                      ].map((h) => (
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-amber-800 uppercase tracking-wider whitespace-nowrap">
+                          {h}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-amber-50">
@@ -167,30 +147,18 @@ export default function MyOrdersPage() {
                         </td>
                         <td className="px-4 py-3.5 text-muted-foreground whitespace-nowrap tabular-nums">
                           {order.expectedReadyDate
-                            ? new Date(order.expectedReadyDate).toLocaleDateString('en-IN', {
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric',
-                              })
+                            ? new Date(order.expectedReadyDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
                             : '—'}
                         </td>
                         <td className="px-4 py-3.5 text-foreground/80 font-medium tabular-nums whitespace-nowrap">
-                          {order.estimatedValue != null
-                            ? `₹${Number(order.estimatedValue).toLocaleString('en-IN')}`
-                            : '—'}
+                          {order.estimatedValue != null ? `₹${Number(order.estimatedValue).toLocaleString('en-IN')}` : '—'}
                         </td>
                         <td className="px-4 py-3.5 tabular-nums whitespace-nowrap">
                           {order.balanceDue != null ? (
-                            <span
-                              className={
-                                Number(order.balanceDue) > 0
-                                  ? 'text-amber-700 font-semibold'
-                                  : 'text-green-700 font-medium'
-                              }
-                            >
+                            <span className={Number(order.balanceDue) > 0 ? 'text-amber-700 font-semibold' : 'text-green-700 font-medium'}>
                               {Number(order.balanceDue) > 0
                                 ? `₹${Number(order.balanceDue).toLocaleString('en-IN')}`
-                                : 'Paid'}
+                                : t('catalogue.orders.paid')}
                             </span>
                           ) : (
                             <span className="text-muted-foreground/60">—</span>
@@ -206,10 +174,7 @@ export default function MyOrdersPage() {
             {/* Mobile cards */}
             <div className="md:hidden space-y-3">
               {orders.map((order: any) => (
-                <div
-                  key={order.id}
-                  className="bg-card rounded-xl border border-amber-100 shadow-sm p-4 space-y-3"
-                >
+                <div key={order.id} className="bg-card rounded-xl border border-amber-100 shadow-sm p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-sm text-foreground/80 font-semibold">
                       #{order.orderNumber ?? order.id?.slice(0, 8).toUpperCase()}
@@ -218,50 +183,31 @@ export default function MyOrdersPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                     <div>
-                      <p className="text-xs text-muted-foreground/60 uppercase tracking-wide mb-0.5">Type</p>
-                      <p className="text-foreground/80 capitalize">
-                        {order.type?.replace(/_/g, ' ').toLowerCase() ?? '—'}
-                      </p>
+                      <p className="text-xs text-muted-foreground/60 uppercase tracking-wide mb-0.5">{t('catalogue.orders.col_type')}</p>
+                      <p className="text-foreground/80 capitalize">{order.type?.replace(/_/g, ' ').toLowerCase() ?? '—'}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground/60 uppercase tracking-wide mb-0.5">
-                        Expected Ready
-                      </p>
+                      <p className="text-xs text-muted-foreground/60 uppercase tracking-wide mb-0.5">{t('catalogue.orders.col_ready')}</p>
                       <p className="text-foreground/80">
                         {order.expectedReadyDate
-                          ? new Date(order.expectedReadyDate).toLocaleDateString('en-IN', {
-                              day: 'numeric',
-                              month: 'short',
-                            })
+                          ? new Date(order.expectedReadyDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
                           : '—'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground/60 uppercase tracking-wide mb-0.5">
-                        Est. Value
-                      </p>
+                      <p className="text-xs text-muted-foreground/60 uppercase tracking-wide mb-0.5">{t('catalogue.orders.col_value')}</p>
                       <p className="text-foreground/80 font-medium tabular-nums">
-                        {order.estimatedValue != null
-                          ? `₹${Number(order.estimatedValue).toLocaleString('en-IN')}`
-                          : '—'}
+                        {order.estimatedValue != null ? `₹${Number(order.estimatedValue).toLocaleString('en-IN')}` : '—'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground/60 uppercase tracking-wide mb-0.5">
-                        Balance Due
-                      </p>
+                      <p className="text-xs text-muted-foreground/60 uppercase tracking-wide mb-0.5">{t('catalogue.orders.col_balance')}</p>
                       <p className="tabular-nums">
                         {order.balanceDue != null ? (
-                          <span
-                            className={
-                              Number(order.balanceDue) > 0
-                                ? 'text-amber-700 font-semibold'
-                                : 'text-green-700 font-medium'
-                            }
-                          >
+                          <span className={Number(order.balanceDue) > 0 ? 'text-amber-700 font-semibold' : 'text-green-700 font-medium'}>
                             {Number(order.balanceDue) > 0
                               ? `₹${Number(order.balanceDue).toLocaleString('en-IN')}`
-                              : 'Paid'}
+                              : t('catalogue.orders.paid')}
                           </span>
                         ) : (
                           <span className="text-muted-foreground/60">—</span>

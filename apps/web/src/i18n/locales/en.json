@@ -1,0 +1,163 @@
+{
+  "common": {
+    "brand": "Svarna Jewels",
+    "signIn": "Sign In",
+    "login": "Login",
+    "browse": "Browse",
+    "myOrders": "My Orders",
+    "home": "Home",
+    "explore": "Explore",
+    "catalogue": "Catalogue",
+    "staffLogin": "Staff Login",
+    "signOut": "Sign Out"
+  },
+  "home": {
+    "pretitle": "Est. Mumbai · Fine Indian Jewellery",
+    "jewels": "J E W E L S",
+    "tagline": "Where Heritage Meets Craft",
+    "cta_explore": "Explore Collection",
+    "cta_signin": "Sign In",
+    "scroll": "Scroll",
+    "collections": {
+      "pretitle": "Handcrafted in India",
+      "title": "Our Collections"
+    },
+    "categories": {
+      "necklaces": { "name": "Necklaces", "desc": "Layered chains, temple pendants, and kundan sets crafted in 22K gold." },
+      "rings": { "name": "Rings", "desc": "Solitaires, bands, and statement rings set with precious gemstones." },
+      "bangles": { "name": "Bangles", "desc": "Handcrafted gold and diamond bangles in traditional and modern styles." },
+      "earrings": { "name": "Earrings", "desc": "Chandbali, jhumka, and stud earrings in gold, pearl, and enamel." },
+      "maangTikka": { "name": "Maang Tikka", "desc": "Elegant forehead ornaments for weddings and festive occasions." },
+      "anklets": { "name": "Anklets", "desc": "Sterling silver and gold anklets with traditional ghungroo charms." }
+    },
+    "promise": {
+      "pretitle": "Our Commitment",
+      "title": "The Svarna Promise",
+      "purity_unit": "BIS Hallmark",
+      "purity_label": "Purity Certified",
+      "purity_desc": "Every piece carries a Bureau of Indian Standards hallmark — guaranteed 22K purity you can trust.",
+      "rates_label": "Live Metal Rates",
+      "rates_desc": "Gold and silver prices update in real time from international bullion markets — no hidden markups.",
+      "bespoke_label": "Bespoke Orders",
+      "bespoke_desc": "Work directly with our karigar team to design custom jewellery for weddings, anniversaries, or gifting."
+    },
+    "heritage": {
+      "pretitle": "Our Legacy",
+      "title_line1": "A Thousand Years",
+      "title_line2": "of Indian Craft",
+      "para1": "Indian jewellery is one of the oldest art forms on earth — worn by royalty, offered at temples, and passed down through generations as heirlooms of love. At Svarna, we honour that tradition with every piece that leaves our workshop.",
+      "para2": "Each ornament is crafted by master karigars trained in techniques that trace their roots to Mughal and Rajput ateliers. From meenakari enamel to kundan stone-setting and jadau inlay — we make jewellery that carries a story.",
+      "stat1_val": "22K & 18K",
+      "stat1_label": "Gold purity",
+      "stat2_val": "BIS 916",
+      "stat2_label": "Hallmarked",
+      "stat3_val": "HUID",
+      "stat3_label": "Tracked items"
+    },
+    "metals": {
+      "gold24k_sub": "Pure · Investment",
+      "gold24k_label": "Gold 24K",
+      "gold24k_fineness": "Fineness 999.9",
+      "gold22k_sub": "Jewellery · BIS 916",
+      "gold22k_label": "Gold 22K",
+      "gold22k_fineness": "Fineness 916.7",
+      "gold18k_sub": "Versatile · Modern",
+      "gold18k_label": "Gold 18K",
+      "gold18k_fineness": "Fineness 750.0",
+      "silver_sub": "Fine Silver",
+      "silver_label": "Silver 999",
+      "silver_fineness": "Fineness 999.0"
+    },
+    "cta": {
+      "pretitle": "Begin Your Journey",
+      "title_line1": "Discover Your",
+      "title_line2": "Perfect Ornament",
+      "desc": "Browse our full catalogue, check today's live rates, or visit our showroom for a personal consultation with our jewellery experts.",
+      "browse": "Browse Catalogue",
+      "staff": "Staff Login"
+    },
+    "footer": {
+      "tagline": "BIS Hallmarked · Live Rates · Bespoke Orders"
+    }
+  },
+  "catalogue": {
+    "home": {
+      "pretitle": "Handcrafted in India",
+      "title": "Discover Timeless Jewellery",
+      "subtitle": "Curated gold and silver pieces crafted for every occasion — from bridal sets to everyday elegance.",
+      "cta": "Shop All Collections",
+      "categories_title": "Shop by Category",
+      "categories_subtitle": "Select a category to explore our collection.",
+      "explore": "Explore",
+      "loading_error": "Could not load categories.",
+      "empty": "No categories available yet. Check back soon.",
+      "footer_copy": "© {{year}} Svarna Jewels. All rights reserved."
+    },
+    "browse": {
+      "title": "Jewellery Catalogue",
+      "filtered": "Filtered by category",
+      "search_placeholder": "Search by name…",
+      "all_purities": "All Purities",
+      "clear_filters": "Clear filters",
+      "showing": "Showing {{start}}–{{end}} of {{total}} items",
+      "net_wt": "Net wt:",
+      "indicative": "indicative",
+      "price_on_request": "Price on request",
+      "reserve": "Reserve",
+      "login_to_reserve": "Login to Reserve",
+      "load_error": "Failed to load catalogue. Please try again later.",
+      "no_items": "No items match your filters.",
+      "no_items_hint": "Try clearing the search or selecting a different purity.",
+      "page_of": "Page {{page}} of {{total}}",
+      "prev": "← Prev",
+      "next": "Next →"
+    },
+    "login": {
+      "subtitle": "Sign in to browse & reserve",
+      "phone": "Phone Number",
+      "password": "Password",
+      "submitting": "Signing in…",
+      "submit": "Sign In",
+      "new_customer": "New customer?",
+      "register": "Register here",
+      "continue_browsing": "Continue browsing without signing in"
+    },
+    "register": {
+      "subtitle": "Create your account",
+      "full_name": "Full Name",
+      "phone": "Phone Number",
+      "email": "Email",
+      "optional": "(optional)",
+      "password": "Password",
+      "password_hint": "At least 6 characters",
+      "confirm_password": "Confirm Password",
+      "confirm_placeholder": "Re-enter your password",
+      "submitting": "Creating account…",
+      "submit": "Create Account",
+      "have_account": "Already have an account?",
+      "err_mismatch": "Passwords do not match.",
+      "err_short": "Password must be at least 6 characters.",
+      "err_default": "Registration failed. Please check your details and try again."
+    },
+    "orders": {
+      "signin_title": "Sign in to view your orders",
+      "signin_desc": "You need to be logged in to see your reservations and order history.",
+      "no_account": "No account?",
+      "register": "Register here",
+      "title": "My Orders",
+      "loading": "Loading your orders…",
+      "load_error": "Could not load orders.",
+      "load_error_hint": "Please check your connection and try again.",
+      "empty": "No orders yet",
+      "empty_hint": "Browse our collection and reserve an item to get started.",
+      "browse_catalogue": "Browse Catalogue",
+      "col_order": "Order #",
+      "col_type": "Type",
+      "col_status": "Status",
+      "col_ready": "Expected Ready",
+      "col_value": "Est. Value",
+      "col_balance": "Balance Due",
+      "paid": "Paid"
+    }
+  }
+}
