@@ -51,6 +51,12 @@ export class BillingController {
     return this.billing.cancelInvoice(id, req.user.id);
   }
 
+  @Post('invoices/:id/irn')
+  @Roles(Role.OWNER)
+  retryIrn(@Param('id') id: string) {
+    return this.billing.retryIrn(id);
+  }
+
   @Get('invoices/:id/pdf')
   @Roles(Role.OWNER, Role.STAFF, Role.ACCOUNTANT)
   async getInvoicePdf(@Param('id') id: string, @Res() res: Response) {

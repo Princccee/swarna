@@ -549,7 +549,42 @@ export class BillingService {
   }
 
   // -------------------------------------------------------------------------
-  // 7. getInvoicePdf
+  // 7. retryIrn
+  // -------------------------------------------------------------------------
+  async retryIrn(invoiceId: string) {
+    const invoice = await this.prisma.invoice.findUnique({ where: { id: invoiceId } });
+    if (!invoice) throw new NotFoundException(`Invoice ${invoiceId} not found.`);
+
+    if (
+      invoice.status !== InvoiceStatus.IRN_PENDING &&
+      invoice.status !== InvoiceStatus.CONFIRMED
+    ) {
+      throw new BadRequestException(
+        `IRN retry is only allowed for CONFIRMED or IRN_PENDING invoices. Current status: ${invoice.status}`,
+      );
+    }
+
+    await this.prisma.invoice.update({
+      where: { id: invoiceId },
+      data: { status: InvoiceStatus.IRN_PENDING },
+    });
+
+    this.irn.registerIrn(invoice.id, invoice.invoiceNumber).then((result) => {
+      this.prisma.invoice
+        .update({
+          where: { id: invoice.id },
+          data: { irn: result.irn, irnQrUrl: result.signedQrCode, status: InvoiceStatus.IRN_REGISTERED },
+        })
+        .catch((err: Error) => this.logger.error('Failed to persist IRN on retry: ' + err.message));
+    }).catch((err: Error) => {
+      this.logger.error('IRN retry failed for ' + invoice.invoiceNumber + ': ' + err.message);
+    });
+
+    return { message: 'IRN registration queued', invoiceId };
+  }
+
+  // -------------------------------------------------------------------------
+  // 8. getInvoicePdf
   // -------------------------------------------------------------------------
   async getInvoicePdf(invoiceId: string): Promise<Buffer> {
     const invoice = await this.getInvoice(invoiceId);
