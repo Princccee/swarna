@@ -36,6 +36,7 @@ const StockAuditPage = lazy(() => import('@/pages/accountant/StockAuditPage'));
 const AuditTrailPage = lazy(() => import('@/pages/accountant/AuditTrailPage'));
 const KycRegisterPage = lazy(() => import('@/pages/accountant/KycRegisterPage'));
 const SettingsPage = lazy(() => import('@/pages/owner/SettingsPage'));
+const HomePage = lazy(() => import('@/pages/home/HomePage'));
 
 const Spin = () => <div className="flex items-center justify-center h-full p-8 text-gray-400">Loading…</div>;
 
@@ -110,8 +111,8 @@ export default function App() {
           <Route path="audit" element={<AuditTrailPage />} />
         </Route>
 
-        <Route path="/" element={<Navigate to="/auth/login" replace />} />
-        <Route path="*" element={<Navigate to="/auth/login" replace />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
   );
