@@ -65,7 +65,7 @@ function StatCard({
 }) {
   return (
     <div
-      className={`rounded-xl border p-5 shadow-sm flex flex-col gap-3 ${
+      className={`rounded-xl border p-5 shadow-sm flex flex-col gap-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${
         accent ? 'bg-amber-50 border-amber-200' : 'bg-card'
       }`}
     >
@@ -95,12 +95,14 @@ function StatCard({
 
 function SectionHeader({ title }: { title: string }) {
   return (
-    <h3 className="text-sm font-semibold text-foreground mb-3 pb-2 border-b">{title}</h3>
+    <h3 className="text-[11px] font-bold uppercase tracking-[0.1em] text-stone-400 mb-3 pb-2 border-b">
+      {title}
+    </h3>
   );
 }
 
 function SkeletonLine({ w = 'w-full' }: { w?: string }) {
-  return <div className={`h-4 rounded bg-muted animate-pulse ${w}`} />;
+  return <div className={`h-4 skeleton ${w}`} />;
 }
 
 // ── IRN Retry button ──────────────────────────────────────────────────────────
@@ -198,31 +200,20 @@ export function OwnerDashboard() {
           ))
         ) : (
           <>
-            <StatCard
-              label="Today's Sales"
-              value={formatRupees(todaySalesAmount)}
-              sub={`${todaySalesCount} invoice${todaySalesCount !== 1 ? 's' : ''} today`}
-              icon={TrendingUp}
-              accent
-            />
-            <StatCard
-              label="Outstanding Dues"
-              value={formatRupees(outstandingDues)}
-              sub="Sum of all balance due"
-              icon={AlertTriangle}
-            />
-            <StatCard
-              label="Pending Orders"
-              value={pendingOrders}
-              sub="Confirmed · Making · Ready"
-              icon={ShoppingBag}
-            />
-            <StatCard
-              label="Low Stock Items"
-              value={lowStockCount}
-              sub="Items at or below threshold"
-              icon={Package}
-            />
+            {[
+              { label: "Today's Sales", value: formatRupees(todaySalesAmount), sub: `${todaySalesCount} invoice${todaySalesCount !== 1 ? 's' : ''} today`, icon: TrendingUp, accent: true },
+              { label: 'Outstanding Dues', value: formatRupees(outstandingDues), sub: 'Sum of all balance due', icon: AlertTriangle, accent: false },
+              { label: 'Pending Orders', value: pendingOrders, sub: 'Confirmed · Making · Ready', icon: ShoppingBag, accent: false },
+              { label: 'Low Stock Items', value: lowStockCount, sub: 'Items at or below threshold', icon: Package, accent: false },
+            ].map((card, i) => (
+              <div
+                key={card.label}
+                className="animate-fade-in"
+                style={{ animationDelay: `${i * 80}ms` }}
+              >
+                <StatCard {...card} />
+              </div>
+            ))}
           </>
         )}
       </div>
