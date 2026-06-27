@@ -41,7 +41,7 @@ export default function InventoryDetailPage() {
     onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Cannot delete'),
   });
 
-  if (isLoading) return <div className="p-6 text-gray-400">Loading…</div>;
+  if (isLoading) return <div className="p-6 text-muted-foreground/60">Loading…</div>;
   if (!item) return <div className="p-6 text-red-500">Item not found</div>;
 
   const val = valuationData?.valuation;
@@ -51,10 +51,10 @@ export default function InventoryDetailPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold">{item.name}</h1>
-          <p className="text-gray-500 font-mono text-sm mt-1">{item.sku}</p>
+          <p className="text-muted-foreground font-mono text-sm mt-1">{item.sku}</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => setShowStockDrawer(true)} className="border rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50">
+          <button onClick={() => setShowStockDrawer(true)} className="border rounded-lg px-4 py-2 text-sm font-medium hover:bg-muted/50">
             Adjust Stock
           </button>
           <button onClick={() => deleteMutation.mutate()} className="border border-red-200 text-red-600 rounded-lg px-4 py-2 text-sm font-medium hover:bg-red-50">
@@ -65,8 +65,8 @@ export default function InventoryDetailPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Details Card */}
-        <div className="bg-white rounded-xl border p-5 space-y-3">
-          <h2 className="font-semibold text-gray-700">Item Details</h2>
+        <div className="bg-card rounded-xl border p-5 space-y-3">
+          <h2 className="font-semibold text-foreground/80">Item Details</h2>
           <Row label="Category" value={item.category?.name} />
           <Row label="Purity" value={PURITY_LABELS[item.purity] ?? item.purity} />
           <Row label="Gross Weight" value={`${Number(item.grossWeightG).toFixed(3)} g`} />
@@ -82,8 +82,8 @@ export default function InventoryDetailPage() {
         </div>
 
         {/* Valuation Card */}
-        <div className="bg-white rounded-xl border p-5 space-y-3">
-          <h2 className="font-semibold text-gray-700">Live Valuation</h2>
+        <div className="bg-card rounded-xl border p-5 space-y-3">
+          <h2 className="font-semibold text-foreground/80">Live Valuation</h2>
           {val ? (
             <>
               <Row label="Rate/g" value={`₹${val.ratePerGram.toLocaleString('en-IN')}`} />
@@ -93,23 +93,23 @@ export default function InventoryDetailPage() {
               <div className="border-t pt-2 mt-2">
                 <Row label="Total Value" value={<span className="text-lg font-bold text-amber-700">₹{val.totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>} />
               </div>
-              <p className="text-xs text-gray-400">Rate as of {new Date(val.snappedAt).toLocaleTimeString()}</p>
+              <p className="text-xs text-muted-foreground/60">Rate as of {new Date(val.snappedAt).toLocaleTimeString()}</p>
             </>
           ) : (
-            <p className="text-gray-400 text-sm">{valuationData?.reason ?? 'Rate unavailable'}</p>
+            <p className="text-muted-foreground/60 text-sm">{valuationData?.reason ?? 'Rate unavailable'}</p>
           )}
         </div>
       </div>
 
       {/* Stock History */}
-      <div className="bg-white rounded-xl border p-5">
-        <h2 className="font-semibold text-gray-700 mb-4">Stock History</h2>
+      <div className="bg-card rounded-xl border p-5">
+        <h2 className="font-semibold text-foreground/80 mb-4">Stock History</h2>
         {stockHistory?.rows?.length ? (
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-muted/50 border-b">
               <tr>
                 {['Type', 'Qty', 'Reason', 'Date'].map((h) => (
-                  <th key={h} className="px-3 py-2 text-left font-medium text-gray-500">{h}</th>
+                  <th key={h} className="px-3 py-2 text-left font-medium text-muted-foreground">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -123,13 +123,13 @@ export default function InventoryDetailPage() {
                     }`}>{mv.type}</span>
                   </td>
                   <td className="px-3 py-2 font-mono">{mv.qty}</td>
-                  <td className="px-3 py-2 text-gray-500">{mv.reason ?? '—'}</td>
-                  <td className="px-3 py-2 text-gray-400 text-xs">{new Date(mv.createdAt).toLocaleDateString()}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{mv.reason ?? '—'}</td>
+                  <td className="px-3 py-2 text-muted-foreground/60 text-xs">{new Date(mv.createdAt).toLocaleDateString()}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        ) : <p className="text-gray-400 text-sm">No movements yet</p>}
+        ) : <p className="text-muted-foreground/60 text-sm">No movements yet</p>}
       </div>
 
       {showStockDrawer && (
@@ -145,7 +145,7 @@ export default function InventoryDetailPage() {
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex justify-between items-center">
-      <span className="text-sm text-gray-500">{label}</span>
+      <span className="text-sm text-muted-foreground">{label}</span>
       <span className="text-sm">{value}</span>
     </div>
   );

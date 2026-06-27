@@ -11,6 +11,7 @@ const DEFAULTS: Record<string, string> = {
   irnAutoRegister: 'false',
   wastagePct: '0',
   bullionFeedUrl: '',
+  goldApiKey: '',
 };
 
 @Injectable()

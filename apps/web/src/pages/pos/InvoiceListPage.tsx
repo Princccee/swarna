@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
+import { downloadInvoicePdf } from '../../lib/download-pdf';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
@@ -13,7 +14,7 @@ const STATUS_OPTIONS = [
 ];
 
 const STATUS_STYLES: Record<string, string> = {
-  DRAFT: 'bg-gray-100 text-gray-600',
+  DRAFT: 'bg-muted text-muted-foreground',
   CONFIRMED: 'bg-blue-100 text-blue-700',
   IRN_PENDING: 'bg-amber-100 text-amber-700',
   IRN_REGISTERED: 'bg-green-100 text-green-700',
@@ -60,19 +61,19 @@ export default function InvoiceListPage() {
     setPage(1);
   };
 
-  const openPdf = (e: React.MouseEvent, invoiceId: string) => {
+  const openPdf = (e: React.MouseEvent, invoiceId: string, invoiceNumber?: string) => {
     e.stopPropagation();
-    window.open(`/api/v1/billing/invoices/${invoiceId}/pdf`, '_blank');
+    downloadInvoicePdf(invoiceId, invoiceNumber);
   };
 
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
+        <h1 className="text-2xl font-bold text-foreground">Invoices</h1>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 bg-white p-4 rounded-xl border">
+      <div className="flex flex-wrap gap-3 bg-card p-4 rounded-xl border">
         <input
           type="search"
           placeholder="Invoice number…"
@@ -90,7 +91,7 @@ export default function InvoiceListPage() {
           ))}
         </select>
         <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-500 font-medium">From</label>
+          <label className="text-xs text-muted-foreground font-medium">From</label>
           <input
             type="date"
             value={dateFrom}
@@ -99,7 +100,7 @@ export default function InvoiceListPage() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-500 font-medium">To</label>
+          <label className="text-xs text-muted-foreground font-medium">To</label>
           <input
             type="date"
             value={dateTo}
@@ -110,7 +111,7 @@ export default function InvoiceListPage() {
         {(search || status || dateFrom || dateTo) && (
           <button
             onClick={() => { setSearch(''); setStatus(''); setDateFrom(''); setDateTo(''); setPage(1); }}
-            className="text-xs text-gray-400 hover:text-gray-700 px-2 py-2 underline"
+            className="text-xs text-muted-foreground/60 hover:text-foreground/80 px-2 py-2 underline"
           >
             Clear
           </button>
@@ -118,16 +119,16 @@ export default function InvoiceListPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border overflow-hidden">
+      <div className="bg-card rounded-xl border overflow-hidden">
         <div className="overflow-x-auto">
           {isLoading ? (
-            <div className="p-8 text-center text-gray-400">Loading…</div>
+            <div className="p-8 text-center text-muted-foreground/60">Loading…</div>
           ) : (
             <table className="w-full text-sm" style={{ fontVariantNumeric: 'tabular-nums' }}>
-              <thead className="bg-gray-50 border-b">
+              <thead className="bg-muted/50 border-b">
                 <tr>
                   {['Invoice #', 'Customer', 'Date', 'Total', 'Status', 'Balance Due', ''].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left font-medium text-gray-600 whitespace-nowrap">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -136,24 +137,24 @@ export default function InvoiceListPage() {
                   <tr
                     key={inv.id}
                     onClick={() => navigate(`/pos/invoices/${inv.id}`)}
-                    className="hover:bg-gray-50 cursor-pointer"
+                    className="hover:bg-muted/50 cursor-pointer"
                   >
                     <td className="px-4 py-3 font-mono text-xs text-amber-700 font-semibold">
                       {inv.invoiceNumber ?? inv.id?.slice(0, 8).toUpperCase()}
                     </td>
-                    <td className="px-4 py-3 font-medium text-gray-900">
+                    <td className="px-4 py-3 font-medium text-foreground">
                       {inv.customer?.name ?? inv.customerName ?? '—'}
                     </td>
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                       {inv.invoiceDate
                         ? new Date(inv.invoiceDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
                         : new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </td>
-                    <td className="px-4 py-3 text-gray-900">
+                    <td className="px-4 py-3 text-foreground">
                       {fmt(inv.totalAmount ?? inv.grandTotal ?? 0)}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATUS_STYLES[inv.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATUS_STYLES[inv.status] ?? 'bg-muted text-muted-foreground'}`}>
                         {STATUS_LABELS[inv.status] ?? inv.status}
                       </span>
                     </td>
@@ -164,7 +165,7 @@ export default function InvoiceListPage() {
                     </td>
                     <td className="px-4 py-3">
                       <button
-                        onClick={(e) => openPdf(e, inv.id)}
+                        onClick={(e) => openPdf(e, inv.id, inv.invoiceNumber)}
                         className="text-xs text-amber-700 hover:text-amber-900 hover:underline font-medium"
                       >
                         PDF
@@ -174,7 +175,7 @@ export default function InvoiceListPage() {
                 ))}
                 {invoices.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
+                    <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground/60">
                       No invoices found
                     </td>
                   </tr>
@@ -188,21 +189,21 @@ export default function InvoiceListPage() {
       {/* Pagination */}
       {meta && meta.totalPages > 1 && (
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-500">
+          <span className="text-muted-foreground">
             Showing {(page - 1) * 20 + 1}–{Math.min(page * 20, meta.total)} of {meta.total}
           </span>
           <div className="flex gap-2">
             <button
               onClick={() => setPage((p) => p - 1)}
               disabled={page === 1}
-              className="px-3 py-1 border rounded disabled:opacity-40 hover:bg-gray-50"
+              className="px-3 py-1 border rounded disabled:opacity-40 hover:bg-muted/50"
             >
               Prev
             </button>
             <button
               onClick={() => setPage((p) => p + 1)}
               disabled={page >= meta.totalPages}
-              className="px-3 py-1 border rounded disabled:opacity-40 hover:bg-gray-50"
+              className="px-3 py-1 border rounded disabled:opacity-40 hover:bg-muted/50"
             >
               Next
             </button>

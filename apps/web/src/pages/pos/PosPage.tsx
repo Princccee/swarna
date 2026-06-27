@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { downloadInvoicePdf } from '../../lib/download-pdf';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -48,6 +49,8 @@ interface Customer {
   id: string;
   name: string;
   phone?: string;
+  address?: string;
+  email?: string;
 }
 
 type GstMode = 'intra' | 'inter';
@@ -114,7 +117,7 @@ function RatePill({ label, rateKey }: { label: string; rateKey: string }) {
   return (
     <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-1">
       <span
-        className={`w-1.5 h-1.5 rounded-full shrink-0 ${connected ? 'bg-emerald-500' : 'bg-slate-300'}`}
+        className={`w-1.5 h-1.5 rounded-full shrink-0 ${connected ? 'bg-emerald-500' : 'bg-muted-foreground/40'}`}
       />
       <span className="text-xs text-amber-700 font-medium">{label}</span>
       <span className="font-mono text-xs font-semibold text-amber-900 tabular-nums">
@@ -142,26 +145,26 @@ function SummaryRow({
   return (
     <div
       className={`flex items-baseline justify-between py-1.5 ${
-        bold ? 'border-t border-slate-200 mt-1 pt-2.5' : ''
+        bold ? 'border-t  mt-1 pt-2.5' : ''
       }`}
     >
       <span
         className={`text-sm ${
-          bold ? 'font-semibold text-slate-800' : 'text-slate-500'
+          bold ? 'font-semibold text-foreground' : 'text-muted-foreground'
         }`}
       >
         {label}
-        {sub && <span className="text-xs ml-1 text-slate-400">{sub}</span>}
+        {sub && <span className="text-xs ml-1 text-muted-foreground/60">{sub}</span>}
       </span>
       <span
         className={`font-mono text-sm tabular-nums ${
           accent
             ? 'text-amber-700 font-bold text-base'
             : bold
-            ? 'font-bold text-slate-900'
+            ? 'font-bold text-foreground'
             : deduction
             ? 'text-emerald-600 font-medium'
-            : 'text-slate-700'
+            : 'text-foreground/80'
         }`}
       >
         {deduction ? `− ₹${value}` : `₹${value}`}
@@ -183,6 +186,10 @@ export function PosPage() {
   const [gstMode, setGstMode] = useState<GstMode>('intra');
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('CASH');
   const [paymentAmount, setPaymentAmount] = useState('');
+
+  // New customer form state
+  const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({ name: '', phone: '', email: '', address: '' });
 
   // Search state
   const [itemSearch, setItemSearch] = useState('');
@@ -226,9 +233,26 @@ export function PosPage() {
   const previewMutation = useMutation({
     mutationFn: (payload: object) =>
       api.post('/billing/preview', payload).then((r: any) => r.data),
-    onSuccess: (data: BillPreview) => {
+    onSuccess: (raw: any) => {
+      // Normalise: API returns Prisma Decimal strings + "totalAmount" not "grandTotal"
+      const data: BillPreview = {
+        subtotal:         Number(raw.subtotal),
+        makingTotal:      Number(raw.makingTotal),
+        stoneTotal:       Number(raw.stoneTotal),
+        oldGoldDeduction: Number(raw.oldGoldDeduction),
+        taxableAmount:    Number(raw.taxableAmount),
+        cgst:             Number(raw.cgst),
+        sgst:             Number(raw.sgst),
+        igst:             Number(raw.igst),
+        grandTotal:       Number(raw.totalAmount ?? raw.grandTotal),
+        lines: (raw.lines ?? []).map((l: any) => ({
+          itemId:      l.itemId,
+          ratePerGram: Number(l.ratePerGram),
+          lineTotal:   Number(l.lineTotal),
+        })),
+      };
       setPreview(data);
-      // Merge ratePerGram back into lines
+      // Merge ratePerGram + lineTotal back into bill lines
       setLines((prev) =>
         prev.map((line) => {
           const match = data.lines?.find((l) => l.itemId === line.itemId);
@@ -239,7 +263,6 @@ export function PosPage() {
       );
     },
     onError: () => {
-      // Silently fail preview — don't toast
       setPreview(null);
     },
   });
@@ -254,8 +277,7 @@ export function PosPage() {
         description: 'Bill has been saved successfully.',
         action: {
           label: 'View PDF',
-          onClick: () =>
-            window.open(`/api/v1/billing/invoices/${data.id}/pdf`, '_blank'),
+          onClick: () => downloadInvoicePdf(data.id, data.invoiceNumber),
         },
       });
       setCreatedInvoiceId(data?.id ?? null);
@@ -267,6 +289,40 @@ export function PosPage() {
       });
     },
   });
+
+
+  // ── Create customer mutation ──────────────────────────────────────────────
+  const createCustomerMutation = useMutation({
+    mutationFn: (payload: object) =>
+      api.post('/billing/customers', payload).then((r: any) => r.data),
+    onSuccess: (data: any) => {
+      setCustomer({ id: data.id, name: data.name, phone: data.phone, email: data.email, address: data.address });
+      setShowNewCustomerForm(false);
+      setNewCustomer({ name: '', phone: '', email: '', address: '' });
+      setCustomerSearch('');
+      toast.success(`Customer "${data.name}" registered`);
+    },
+    onError: (err: any) => {
+      toast.error('Failed to create customer', {
+        description: err?.response?.data?.message ?? 'Please try again.',
+      });
+    },
+  });
+
+  function handleCreateCustomer(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newCustomer.name.trim() || !newCustomer.phone.trim()) {
+      toast.error('Name and phone are required');
+      return;
+    }
+    createCustomerMutation.mutate({
+      name: newCustomer.name.trim(),
+      phone: newCustomer.phone.trim(),
+      ...(newCustomer.email.trim() ? { email: newCustomer.email.trim() } : {}),
+      ...(newCustomer.address.trim() ? { address: newCustomer.address.trim() } : {}),
+    });
+  }
+
 
   // ── Build preview payload (no customerId — preview doesn't need it) ────────
   const buildPayload = useCallback(() => {
@@ -389,6 +445,8 @@ export function PosPage() {
     setCustomer(null);
     setIsWalkIn(true);
     setCustomerSearch('');
+    setShowNewCustomerForm(false);
+    setNewCustomer({ name: '', phone: '', email: '', address: '' });
     setGstMode('intra');
     setPaymentMode('CASH');
     setPaymentAmount('');
@@ -401,13 +459,13 @@ export function PosPage() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="flex h-full overflow-hidden bg-slate-50">
+    <div className="flex h-full overflow-hidden bg-muted/50">
       {/* ── LEFT: Item search + bill lines ── */}
-      <div className="flex flex-col w-[42%] shrink-0 border-r border-slate-200 bg-white overflow-hidden">
+      <div className="flex flex-col w-[42%] shrink-0 border-r  bg-card overflow-hidden">
         {/* Header */}
-        <div className="shrink-0 px-4 pt-4 pb-3 border-b border-slate-100">
+        <div className="shrink-0 px-4 pt-4 pb-3 border-b ">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
+            <h2 className="text-sm font-semibold text-foreground/80 uppercase tracking-wide">
               Add Items
             </h2>
             <div className="flex items-center gap-2">
@@ -421,7 +479,7 @@ export function PosPage() {
             <div className="relative">
               <Search
                 size={15}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 pointer-events-none"
               />
               <input
                 type="search"
@@ -432,7 +490,7 @@ export function PosPage() {
                 }}
                 onFocus={() => setShowItemDropdown(true)}
                 placeholder="Search by name, SKU, or HUID…"
-                className="w-full pl-9 pr-10 py-2.5 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition-all placeholder:text-slate-400"
+                className="w-full pl-9 pr-10 py-2.5 text-sm border  rounded-lg bg-muted/50 focus:bg-card focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all placeholder:text-muted-foreground/60"
               />
               {itemSearching && (
                 <Loader2
@@ -443,7 +501,7 @@ export function PosPage() {
               {itemSearch && !itemSearching && (
                 <button
                   onClick={() => { setItemSearch(''); setShowItemDropdown(false); }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-muted-foreground"
                 >
                   <X size={14} />
                 </button>
@@ -452,7 +510,7 @@ export function PosPage() {
 
             {/* Item results dropdown */}
             {showItemDropdown && debouncedItemSearch.length > 1 && items.length > 0 && (
-              <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden max-h-72 overflow-y-auto">
+              <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-card border  rounded-lg shadow-lg overflow-hidden max-h-72 overflow-y-auto">
                 {items.map((item: any) => (
                   <button
                     key={item.id}
@@ -465,10 +523,10 @@ export function PosPage() {
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-800 truncate group-hover:text-amber-800">
+                      <p className="text-sm font-medium text-foreground truncate group-hover:text-amber-800">
                         {item.name}
                       </p>
-                      <p className="text-xs text-slate-400 tabular-nums">
+                      <p className="text-xs text-muted-foreground/60 tabular-nums">
                         {item.sku} · {fmtWt(Number(item.netWeightG))}g
                       </p>
                     </div>
@@ -486,7 +544,7 @@ export function PosPage() {
               </div>
             )}
             {showItemDropdown && debouncedItemSearch.length > 1 && !itemSearching && items.length === 0 && (
-              <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-sm px-4 py-3 text-sm text-slate-400">
+              <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-card border  rounded-lg shadow-sm px-4 py-3 text-sm text-muted-foreground/60">
                 No items found
               </div>
             )}
@@ -496,7 +554,7 @@ export function PosPage() {
         {/* Bill lines */}
         <div className="flex-1 overflow-y-auto">
           {lines.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full gap-2 text-slate-300 py-16">
+            <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground/40 py-16">
               <FileText size={40} strokeWidth={1} />
               <p className="text-sm">Search and add items above</p>
             </div>
@@ -513,16 +571,16 @@ export function PosPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-slate-800 truncate leading-tight">
+                          <p className="text-sm font-semibold text-foreground truncate leading-tight">
                             {line.name}
                           </p>
-                          <p className="text-xs text-slate-400 mt-0.5">
+                          <p className="text-xs text-muted-foreground/60 mt-0.5">
                             {line.sku} · {PURITY_LABELS[line.purity] ?? line.purity} · {fmtWt(line.netWeightG)}g/pc
                           </p>
                         </div>
                         <button
                           onClick={() => removeLine(line.itemId)}
-                          className="shrink-0 text-slate-300 hover:text-red-400 transition-colors p-1 -mr-1 opacity-0 group-hover:opacity-100"
+                          className="shrink-0 text-muted-foreground/40 hover:text-red-400 transition-colors p-1 -mr-1 opacity-0 group-hover:opacity-100"
                           title="Remove"
                         >
                           <Trash2 size={14} />
@@ -532,10 +590,10 @@ export function PosPage() {
                       {/* Qty + weight + rate + total */}
                       <div className="mt-2 flex items-center gap-3 flex-wrap">
                         {/* Qty control */}
-                        <div className="flex items-center gap-1 bg-slate-50 rounded-md border border-slate-200">
+                        <div className="flex items-center gap-1 bg-muted/50 rounded-md border ">
                           <button
                             onClick={() => updateQty(line.itemId, -1)}
-                            className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-l-md transition-colors"
+                            className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-l-md transition-colors"
                           >
                             <Minus size={12} />
                           </button>
@@ -544,22 +602,22 @@ export function PosPage() {
                             min={1}
                             value={line.qty}
                             onChange={(e) => setQtyDirect(line.itemId, e.target.value)}
-                            className="w-8 h-7 text-center text-sm font-semibold text-slate-800 bg-transparent outline-none tabular-nums"
+                            className="w-8 h-7 text-center text-sm font-semibold text-foreground bg-transparent outline-none tabular-nums"
                           />
                           <button
                             onClick={() => updateQty(line.itemId, 1)}
-                            className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-r-md transition-colors"
+                            className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-r-md transition-colors"
                           >
                             <Plus size={12} />
                           </button>
                         </div>
 
                         <div className="flex items-center gap-3 text-xs tabular-nums">
-                          <span className="text-slate-400">
+                          <span className="text-muted-foreground/60">
                             {fmtWt(line.netWeightG * line.qty)}g total
                           </span>
                           {line.ratePerGram !== undefined && (
-                            <span className="text-slate-400">
+                            <span className="text-muted-foreground/60">
                               @₹{fmt(line.ratePerGram)}/g
                             </span>
                           )}
@@ -580,7 +638,7 @@ export function PosPage() {
 
         {/* Bottom stat */}
         {lines.length > 0 && (
-          <div className="shrink-0 px-4 py-2 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
+          <div className="shrink-0 px-4 py-2 border-t  bg-muted/50 flex items-center justify-between text-xs text-muted-foreground">
             <span>{lines.length} item type{lines.length !== 1 ? 's' : ''} · {totalLines} pc{totalLines !== 1 ? 's' : ''}</span>
             <button
               onClick={resetForm}
@@ -597,10 +655,10 @@ export function PosPage() {
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
 
           {/* ── Customer section ── */}
-          <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-slate-100 flex items-center gap-2">
-              <User size={14} className="text-slate-400" />
-              <h3 className="text-sm font-semibold text-slate-700">Customer</h3>
+          <section className="bg-card rounded-xl border ">
+            <div className="px-4 py-2.5 border-b  flex items-center gap-2">
+              <User size={14} className="text-muted-foreground/60" />
+              <h3 className="text-sm font-semibold text-foreground/80">Customer</h3>
             </div>
             <div className="px-4 py-3 space-y-3">
               {/* Walk-in toggle */}
@@ -610,46 +668,133 @@ export function PosPage() {
                     setIsWalkIn((v) => !v);
                     setCustomer(null);
                     setCustomerSearch('');
+                    setShowNewCustomerForm(false);
+                    setNewCustomer({ name: '', phone: '', email: '', address: '' });
                   }}
                   className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer ${
-                    isWalkIn ? 'bg-amber-500' : 'bg-slate-200'
+                    isWalkIn ? 'bg-amber-500' : 'bg-muted'
                   }`}
                 >
                   <span
-                    className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 bg-card rounded-full shadow transition-transform ${
                       isWalkIn ? 'translate-x-4' : 'translate-x-0'
                     }`}
                   />
                 </div>
-                <span className="text-sm text-slate-600 group-hover:text-slate-800">
+                <span className="text-sm text-muted-foreground group-hover:text-foreground">
                   Walk-in customer
                 </span>
               </label>
 
               {!isWalkIn && (
-                <div ref={customerDropdownRef} className="relative">
+                <div ref={customerDropdownRef} className="space-y-3">
+                  {/* ── Selected customer chip ── */}
                   {customer ? (
-                    <div className="flex items-center gap-3 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg">
-                      <UserCheck size={16} className="text-amber-600 shrink-0" />
+                    <div className="flex items-start gap-3 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+                      <UserCheck size={16} className="text-amber-600 shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-800">{customer.name}</p>
+                        <p className="text-sm font-semibold text-foreground">{customer.name}</p>
                         {customer.phone && (
-                          <p className="text-xs text-slate-500">{customer.phone}</p>
+                          <p className="text-xs text-muted-foreground">{customer.phone}</p>
+                        )}
+                        {customer.address && (
+                          <p className="text-xs text-muted-foreground/60 truncate">{customer.address}</p>
                         )}
                       </div>
                       <button
-                        onClick={() => { setCustomer(null); setCustomerSearch(''); }}
-                        className="text-slate-400 hover:text-slate-600"
+                        onClick={() => {
+                          setCustomer(null);
+                          setCustomerSearch('');
+                          setShowNewCustomerForm(false);
+                        }}
+                        className="text-muted-foreground/60 hover:text-muted-foreground shrink-0"
                       >
                         <X size={14} />
                       </button>
                     </div>
+                  ) : showNewCustomerForm ? (
+                    /* ── New customer inline form ── */
+                    <form onSubmit={handleCreateCustomer} className="space-y-2.5 border border-amber-200 rounded-lg p-3 bg-amber-50/40">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">New Customer</p>
+                        <button
+                          type="button"
+                          onClick={() => { setShowNewCustomerForm(false); setNewCustomer({ name: '', phone: '', email: '', address: '' }); }}
+                          className="text-muted-foreground/60 hover:text-muted-foreground"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="col-span-2">
+                          <label className="block text-xs font-medium text-muted-foreground mb-1">
+                            Name <span className="text-red-400">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={newCustomer.name}
+                            onChange={(e) => setNewCustomer((p) => ({ ...p, name: e.target.value }))}
+                            placeholder="Full name"
+                            className="w-full px-3 py-2 text-sm border  rounded-lg bg-card focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-muted-foreground mb-1">
+                            Phone <span className="text-red-400">*</span>
+                          </label>
+                          <input
+                            type="tel"
+                            required
+                            value={newCustomer.phone}
+                            onChange={(e) => setNewCustomer((p) => ({ ...p, phone: e.target.value }))}
+                            placeholder="10-digit mobile"
+                            className="w-full px-3 py-2 text-sm border  rounded-lg bg-card focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-muted-foreground mb-1">Email</label>
+                          <input
+                            type="email"
+                            value={newCustomer.email}
+                            onChange={(e) => setNewCustomer((p) => ({ ...p, email: e.target.value }))}
+                            placeholder="optional"
+                            className="w-full px-3 py-2 text-sm border  rounded-lg bg-card focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <label className="block text-xs font-medium text-muted-foreground mb-1">Address</label>
+                          <textarea
+                            rows={2}
+                            value={newCustomer.address}
+                            onChange={(e) => setNewCustomer((p) => ({ ...p, address: e.target.value }))}
+                            placeholder="Street, city, pin code…"
+                            className="w-full px-3 py-2 text-sm border  rounded-lg bg-card focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all resize-none"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          type="submit"
+                          disabled={createCustomerMutation.isPending}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-muted disabled:text-muted-foreground/60 text-white text-sm font-semibold rounded-lg transition-colors"
+                        >
+                          {createCustomerMutation.isPending ? (
+                            <Loader2 size={13} className="animate-spin" />
+                          ) : (
+                            <UserCheck size={13} />
+                          )}
+                          {createCustomerMutation.isPending ? 'Saving…' : 'Save & Select'}
+                        </button>
+                      </div>
+                    </form>
                   ) : (
-                    <>
+                    /* ── Search box + dropdown ── */
+                    <div className="relative">
                       <div className="relative">
                         <Search
                           size={14}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 pointer-events-none"
                         />
                         <input
                           type="search"
@@ -659,8 +804,8 @@ export function PosPage() {
                             setShowCustomerDropdown(true);
                           }}
                           onFocus={() => setShowCustomerDropdown(true)}
-                          placeholder="Search customer by name or phone…"
-                          className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition-all"
+                          placeholder="Search by name or phone…"
+                          className="w-full pl-9 pr-3 py-2 text-sm border  rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all"
                         />
                         {customerSearching && (
                           <Loader2
@@ -670,37 +815,70 @@ export function PosPage() {
                         )}
                       </div>
 
-                      {showCustomerDropdown && debouncedCustomerSearch.length > 1 && customers.length > 0 && (
-                        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden max-h-48 overflow-y-auto">
-                          {customers.map((c: any) => (
-                            <button
-                              key={c.id}
-                              onClick={() => {
-                                setCustomer({ id: c.id, name: c.name, phone: c.phone });
-                                setShowCustomerDropdown(false);
-                                setCustomerSearch('');
-                              }}
-                              className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-amber-50 text-left"
-                            >
-                              <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                                <span className="text-xs font-bold text-slate-500">
-                                  {c.name?.[0]?.toUpperCase()}
-                                </span>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-slate-800">{c.name}</p>
-                                {c.phone && <p className="text-xs text-slate-400">{c.phone}</p>}
-                              </div>
-                            </button>
-                          ))}
+                      {/* Results dropdown */}
+                      {showCustomerDropdown && debouncedCustomerSearch.length > 1 && (
+                        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-card border  rounded-lg shadow-lg overflow-hidden">
+                          {customers.length > 0 && (
+                            <div className="max-h-40 overflow-y-auto">
+                              {customers.map((c: any) => (
+                                <button
+                                  key={c.id}
+                                  onClick={() => {
+                                    setCustomer({ id: c.id, name: c.name, phone: c.phone, email: c.email, address: c.address });
+                                    setShowCustomerDropdown(false);
+                                    setCustomerSearch('');
+                                  }}
+                                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-amber-50 text-left border-b  last:border-0"
+                                >
+                                  <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0">
+                                    <span className="text-xs font-bold text-muted-foreground">
+                                      {c.name?.[0]?.toUpperCase()}
+                                    </span>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-foreground">{c.name}</p>
+                                    {c.phone && <p className="text-xs text-muted-foreground/60">{c.phone}</p>}
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {!customerSearching && customers.length === 0 && (
+                            <div className="px-3 py-2.5 text-sm text-muted-foreground/60">
+                              No customers found for "{debouncedCustomerSearch}"
+                            </div>
+                          )}
+                          {/* Always show New Customer option at bottom of dropdown */}
+                          <button
+                            onClick={() => {
+                              setShowCustomerDropdown(false);
+                              setShowNewCustomerForm(true);
+                              setNewCustomer((p) => ({
+                                ...p,
+                                name: /^\d/.test(customerSearch) ? '' : customerSearch,
+                                phone: /^\d/.test(customerSearch) ? customerSearch : '',
+                              }));
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-amber-700 font-medium hover:bg-amber-50 border-t "
+                          >
+                            <Plus size={14} className="shrink-0" />
+                            New customer
+                            {customerSearch && ` "${customerSearch}"`}
+                          </button>
                         </div>
                       )}
-                      {showCustomerDropdown && debouncedCustomerSearch.length > 1 && !customerSearching && customers.length === 0 && (
-                        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-sm px-3 py-2.5 text-sm text-slate-400">
-                          No customers found
-                        </div>
+
+                      {/* New customer button when search is empty */}
+                      {!showCustomerDropdown && !customerSearch && (
+                        <button
+                          onClick={() => setShowNewCustomerForm(true)}
+                          className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 text-sm text-amber-700 font-medium border border-dashed border-amber-300 rounded-lg hover:bg-amber-50 transition-colors"
+                        >
+                          <Plus size={13} />
+                          Register new customer
+                        </button>
                       )}
-                    </>
+                    </div>
                   )}
                 </div>
               )}
@@ -708,16 +886,16 @@ export function PosPage() {
           </section>
 
           {/* ── Old Gold Exchange ── */}
-          <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-slate-100 flex items-center gap-2">
-              <Scale size={14} className="text-slate-400" />
-              <h3 className="text-sm font-semibold text-slate-700">Old Gold Exchange</h3>
-              <span className="text-xs text-slate-400 ml-1">(optional)</span>
+          <section className="bg-card rounded-xl border  overflow-hidden">
+            <div className="px-4 py-2.5 border-b  flex items-center gap-2">
+              <Scale size={14} className="text-muted-foreground/60" />
+              <h3 className="text-sm font-semibold text-foreground/80">Old Gold Exchange</h3>
+              <span className="text-xs text-muted-foreground/60 ml-1">(optional)</span>
             </div>
             <div className="px-4 py-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1.5">
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                     Weight (grams)
                   </label>
                   <input
@@ -727,11 +905,11 @@ export function PosPage() {
                     value={oldGold.weightG}
                     onChange={(e) => setOldGold((p) => ({ ...p, weightG: e.target.value }))}
                     placeholder="0.000"
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition-all tabular-nums font-mono"
+                    className="w-full px-3 py-2 text-sm border  rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all tabular-nums font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1.5">
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                     Rate / gram (₹)
                   </label>
                   <input
@@ -741,7 +919,7 @@ export function PosPage() {
                     value={oldGold.ratePerGram}
                     onChange={(e) => setOldGold((p) => ({ ...p, ratePerGram: e.target.value }))}
                     placeholder="0.00"
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition-all tabular-nums font-mono"
+                    className="w-full px-3 py-2 text-sm border  rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all tabular-nums font-mono"
                   />
                 </div>
               </div>
@@ -754,9 +932,9 @@ export function PosPage() {
           </section>
 
           {/* ── GST mode ── */}
-          <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-slate-100">
-              <h3 className="text-sm font-semibold text-slate-700">Tax</h3>
+          <section className="bg-card rounded-xl border  overflow-hidden">
+            <div className="px-4 py-2.5 border-b ">
+              <h3 className="text-sm font-semibold text-foreground/80">Tax</h3>
             </div>
             <div className="px-4 py-3 flex items-center gap-3">
               <button
@@ -764,11 +942,11 @@ export function PosPage() {
                 className={`flex-1 py-2 text-sm font-medium rounded-lg border transition-all ${
                   gstMode === 'intra'
                     ? 'bg-amber-500 border-amber-500 text-white shadow-sm'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                    : 'bg-card  text-muted-foreground hover:'
                 }`}
               >
                 Intra-state
-                <span className={`block text-xs font-normal mt-0.5 ${gstMode === 'intra' ? 'text-amber-100' : 'text-slate-400'}`}>
+                <span className={`block text-xs font-normal mt-0.5 ${gstMode === 'intra' ? 'text-amber-100' : 'text-muted-foreground/60'}`}>
                   CGST + SGST
                 </span>
               </button>
@@ -777,11 +955,11 @@ export function PosPage() {
                 className={`flex-1 py-2 text-sm font-medium rounded-lg border transition-all ${
                   gstMode === 'inter'
                     ? 'bg-amber-500 border-amber-500 text-white shadow-sm'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                    : 'bg-card  text-muted-foreground hover:'
                 }`}
               >
                 Inter-state
-                <span className={`block text-xs font-normal mt-0.5 ${gstMode === 'inter' ? 'text-amber-100' : 'text-slate-400'}`}>
+                <span className={`block text-xs font-normal mt-0.5 ${gstMode === 'inter' ? 'text-amber-100' : 'text-muted-foreground/60'}`}>
                   IGST
                 </span>
               </button>
@@ -789,9 +967,9 @@ export function PosPage() {
           </section>
 
           {/* ── Bill summary ── */}
-          <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-700">Bill Summary</h3>
+          <section className="bg-card rounded-xl border  overflow-hidden">
+            <div className="px-4 py-2.5 border-b  flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground/80">Bill Summary</h3>
               {previewMutation.isPending && (
                 <Loader2 size={13} className="text-amber-400 animate-spin" />
               )}
@@ -803,7 +981,7 @@ export function PosPage() {
             </div>
             <div className="px-4 py-3">
               {!preview && lines.length === 0 && (
-                <p className="text-sm text-slate-400 text-center py-2">
+                <p className="text-sm text-muted-foreground/60 text-center py-2">
                   Add items to see the bill summary
                 </p>
               )}
@@ -842,21 +1020,21 @@ export function PosPage() {
           </section>
 
           {/* ── Payment ── */}
-          <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-slate-100 flex items-center gap-2">
-              <CreditCard size={14} className="text-slate-400" />
-              <h3 className="text-sm font-semibold text-slate-700">Payment</h3>
+          <section className="bg-card rounded-xl border  overflow-hidden">
+            <div className="px-4 py-2.5 border-b  flex items-center gap-2">
+              <CreditCard size={14} className="text-muted-foreground/60" />
+              <h3 className="text-sm font-semibold text-foreground/80">Payment</h3>
             </div>
             <div className="px-4 py-3 space-y-3">
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1.5">
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                   Payment mode
                 </label>
                 <div className="relative">
                   <select
                     value={paymentMode}
                     onChange={(e) => setPaymentMode(e.target.value as PaymentMode)}
-                    className="w-full appearance-none px-3 py-2 text-sm border border-slate-200 rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none bg-white transition-all"
+                    className="w-full appearance-none px-3 py-2 text-sm border  rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none bg-card transition-all"
                   >
                     {(Object.keys(PAYMENT_LABELS) as PaymentMode[]).map((mode) => (
                       <option key={mode} value={mode}>
@@ -866,13 +1044,13 @@ export function PosPage() {
                   </select>
                   <ChevronDown
                     size={14}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 pointer-events-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1.5">
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                   Amount received (₹)
                 </label>
                 <input
@@ -882,7 +1060,7 @@ export function PosPage() {
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
                   placeholder={preview ? fmt(preview.grandTotal) : '0.00'}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition-all font-mono tabular-nums"
+                  className="w-full px-3 py-2 text-sm border  rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all font-mono tabular-nums"
                 />
                 {paymentAmount && preview && (
                   <p className={`mt-1.5 text-xs font-medium tabular-nums ${
@@ -901,33 +1079,37 @@ export function PosPage() {
         </div>
 
         {/* ── Bottom action bar ── */}
-        <div className="shrink-0 px-5 py-3 border-t border-slate-200 bg-white flex items-center gap-3">
+        <div className="shrink-0 px-5 py-3 border-t  bg-card flex items-center gap-3">
           {createdInvoiceId && (
-            <a
-              href={`/api/v1/billing/invoices/${createdInvoiceId}/pdf`}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => downloadInvoicePdf(createdInvoiceId)}
               className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-700 font-medium transition-colors"
             >
               <ExternalLink size={14} />
-              Preview PDF
-            </a>
+              Download PDF
+            </button>
           )}
           <div className="flex-1" />
 
           {preview && lines.length > 0 && (
             <div className="text-right mr-2">
-              <p className="text-xs text-slate-400">Grand Total</p>
+              <p className="text-xs text-muted-foreground/60">Grand Total</p>
               <p className="text-lg font-bold text-amber-700 font-mono tabular-nums leading-tight">
                 ₹{fmt(preview.grandTotal)}
               </p>
             </div>
           )}
 
+          {!isWalkIn && !customer && lines.length > 0 && (
+            <p className="text-xs text-amber-600 font-medium">
+              Select or register a customer to continue
+            </p>
+          )}
+
           <button
             onClick={handleGenerateInvoice}
-            disabled={lines.length === 0 || invoiceMutation.isPending}
-            className="flex items-center gap-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-semibold text-sm rounded-lg transition-colors shadow-sm disabled:shadow-none"
+            disabled={lines.length === 0 || (!isWalkIn && !customer) || invoiceMutation.isPending}
+            className="flex items-center gap-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:bg-muted disabled:text-muted-foreground/60 text-white font-semibold text-sm rounded-lg transition-colors shadow-sm disabled:shadow-none"
           >
             {invoiceMutation.isPending ? (
               <>

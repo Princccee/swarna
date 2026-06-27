@@ -12,7 +12,7 @@ type SettingsForm = {
   stateCode: string;
   isInterstate: 'false' | 'true';
   wastagePercent: string;
-  bullionFeedUrl: string;
+  goldApiKey: string;
   irnAutoRegister: boolean;
 };
 
@@ -31,7 +31,7 @@ export default function SettingsPage() {
       stateCode: '',
       isInterstate: 'false',
       wastagePercent: '',
-      bullionFeedUrl: '',
+      goldApiKey: '',
       irnAutoRegister: false,
     },
   });
@@ -52,7 +52,7 @@ export default function SettingsPage() {
       stateCode: s.stateCode ?? '',
       isInterstate: s.isInterstate === 'true' ? 'true' : 'false',
       wastagePercent: s.wastagePercent ?? '',
-      bullionFeedUrl: s.bullionFeedUrl ?? '',
+      goldApiKey: s.goldApiKey ?? '',
       irnAutoRegister: s.irnAutoRegister === 'true',
     });
   }, [settingsData, reset]);
@@ -66,7 +66,7 @@ export default function SettingsPage() {
       stateCode: values.stateCode,
       isInterstate: values.isInterstate,
       wastagePercent: values.wastagePercent,
-      bullionFeedUrl: values.bullionFeedUrl,
+      goldApiKey: values.goldApiKey,
       irnAutoRegister: values.irnAutoRegister ? 'true' : 'false',
     };
 
@@ -89,7 +89,7 @@ export default function SettingsPage() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Shop Details */}
-        <section className="bg-white rounded-xl border p-5 space-y-4">
+        <section className="bg-card rounded-xl border p-5 space-y-4">
           <h2 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
             Shop Details
           </h2>
@@ -133,7 +133,7 @@ export default function SettingsPage() {
         </section>
 
         {/* GST Settings */}
-        <section className="bg-white rounded-xl border p-5 space-y-4">
+        <section className="bg-card rounded-xl border p-5 space-y-4">
           <h2 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
             GST Configuration
           </h2>
@@ -192,7 +192,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Billing & Rates */}
-        <section className="bg-white rounded-xl border p-5 space-y-4">
+        <section className="bg-card rounded-xl border p-5 space-y-4">
           <h2 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
             Billing &amp; Rates
           </h2>
@@ -214,23 +214,25 @@ export default function SettingsPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium" htmlFor="bullionFeedUrl">
-              Bullion Feed URL
+            <label className="text-sm font-medium" htmlFor="goldApiKey">
+              goldapi.io API Key
             </label>
             <input
-              id="bullionFeedUrl"
-              {...register('bullionFeedUrl')}
+              id="goldApiKey"
+              type="password"
+              autoComplete="off"
+              {...register('goldApiKey')}
               className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring font-mono"
-              placeholder="https://feed.example.com/rates"
+              placeholder="goldapi-xxxxxxxxxxxxxxxx"
             />
             <p className="text-xs text-muted-foreground">
-              The endpoint polled for live gold and silver rates.
+              Live gold &amp; silver rates are fetched from goldapi.io every 15 minutes. Leave blank to use mock rates.
             </p>
           </div>
         </section>
 
         {/* E-Invoicing */}
-        <section className="bg-white rounded-xl border p-5 space-y-4">
+        <section className="bg-card rounded-xl border p-5 space-y-4">
           <h2 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
             E-Invoicing
           </h2>
@@ -250,7 +252,7 @@ export default function SettingsPage() {
                 className="sr-only peer"
               />
               <div className="w-10 h-6 rounded-full bg-muted peer-checked:bg-primary transition-colors duration-200 peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2" />
-              <div className="absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-4" />
+              <div className="absolute top-1 left-1 w-4 h-4 rounded-full bg-card shadow transition-transform duration-200 peer-checked:translate-x-4" />
             </div>
           </label>
         </section>

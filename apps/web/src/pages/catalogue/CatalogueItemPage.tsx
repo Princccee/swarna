@@ -83,7 +83,7 @@ export default function CatalogueItemPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50">
       {/* Top nav */}
-      <header className="bg-white/80 backdrop-blur border-b border-amber-100 sticky top-0 z-10">
+      <header className="bg-card/80 backdrop-blur border-b border-amber-100 sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <button
             onClick={() => navigate('/catalogue/browse')}
@@ -117,7 +117,7 @@ export default function CatalogueItemPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
           {/* Image gallery */}
           <div className="space-y-3">
-            <div className="aspect-square rounded-2xl overflow-hidden bg-white border border-amber-100 shadow-sm flex items-center justify-center">
+            <div className="aspect-square rounded-2xl overflow-hidden bg-card border border-amber-100 shadow-sm flex items-center justify-center">
               {images.length > 0 ? (
                 <img
                   src={images[activeImage]}
@@ -172,14 +172,14 @@ export default function CatalogueItemPage() {
                   {item.category.name}
                 </p>
               )}
-              <h1 className="text-2xl font-bold text-gray-900 leading-snug">{item.name}</h1>
+              <h1 className="text-2xl font-bold text-foreground leading-snug">{item.name}</h1>
               {item.sku && (
-                <p className="text-xs text-gray-400 font-mono mt-1">{item.sku}</p>
+                <p className="text-xs text-muted-foreground/60 font-mono mt-1">{item.sku}</p>
               )}
             </div>
 
             {/* Specs */}
-            <div className="bg-white rounded-xl border border-amber-100 divide-y divide-amber-50">
+            <div className="bg-card rounded-xl border border-amber-100 divide-y divide-amber-50">
               <SpecRow label="Purity" value={PURITY_LABELS[item.purity] ?? item.purity ?? '—'} />
               <SpecRow
                 label="Gross Weight"
@@ -190,7 +190,7 @@ export default function CatalogueItemPage() {
                 value={item.netWeightG ? `${Number(item.netWeightG).toFixed(3)} g` : '—'}
               />
               <div className="px-4 py-3 flex justify-between items-center">
-                <span className="text-sm text-gray-500">HUID</span>
+                <span className="text-sm text-muted-foreground">HUID</span>
                 <HuidBadge huid={item.huid} />
               </div>
             </div>
@@ -262,7 +262,7 @@ export default function CatalogueItemPage() {
               </p>
             )}
 
-            <p className="text-xs text-gray-400 text-center leading-relaxed">
+            <p className="text-xs text-muted-foreground/60 text-center leading-relaxed">
               Reservations hold the item for 48 hours. Price shown is indicative and may vary at billing.
             </p>
           </div>
@@ -275,8 +275,8 @@ export default function CatalogueItemPage() {
 function SpecRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="px-4 py-3 flex justify-between items-center">
-      <span className="text-sm text-gray-500">{label}</span>
-      <span className="text-sm font-medium text-gray-800">{value}</span>
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium text-foreground">{value}</span>
     </div>
   );
 }

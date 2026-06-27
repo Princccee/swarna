@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import { downloadInvoicePdf } from '../../lib/download-pdf';
 import { useAuthStore } from '../../stores/auth.store';
 import { toast } from 'sonner';
 import { Role } from '@svarna/shared-types';
 
 const STATUS_STYLES: Record<string, string> = {
-  DRAFT: 'bg-gray-100 text-gray-600',
+  DRAFT: 'bg-muted text-muted-foreground',
   CONFIRMED: 'bg-blue-100 text-blue-700',
   IRN_PENDING: 'bg-amber-100 text-amber-700',
   IRN_REGISTERED: 'bg-green-100 text-green-700',
@@ -31,8 +32,8 @@ function fmt(amount: number | string) {
 function Row({ label, value, bold }: { label: string; value: React.ReactNode; bold?: boolean }) {
   return (
     <div className="flex justify-between items-center">
-      <span className="text-sm text-gray-500">{label}</span>
-      <span className={`text-sm ${bold ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>{value}</span>
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className={`text-sm ${bold ? 'font-semibold text-foreground' : 'text-foreground/80'}`}>{value}</span>
     </div>
   );
 }
@@ -85,10 +86,10 @@ export default function InvoiceDetailPage() {
     addPaymentMutation.mutate({ amount, mode: payMode, note: payNote || undefined });
   };
 
-  if (isLoading) return <div className="p-6 text-gray-400">Loading…</div>;
+  if (isLoading) return <div className="p-6 text-muted-foreground/60">Loading…</div>;
   if (!invoice) return <div className="p-6 text-red-500">Invoice not found</div>;
 
-  const lineItems: any[] = invoice.lineItems ?? invoice.items ?? [];
+  const lineItems: any[] = invoice.lines ?? invoice.lineItems ?? invoice.items ?? [];
   const payments: any[] = invoice.payments ?? [];
   const gst = invoice.gstBreakdown ?? invoice.taxBreakdown ?? null;
   const isOwner = user?.role === Role.OWNER;
@@ -103,18 +104,18 @@ export default function InvoiceDetailPage() {
         <div>
           <button
             onClick={() => navigate('/pos/invoices')}
-            className="text-xs text-gray-400 hover:text-gray-700 mb-2 flex items-center gap-1"
+            className="text-xs text-muted-foreground/60 hover:text-foreground/80 mb-2 flex items-center gap-1"
           >
             ← Invoices
           </button>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-foreground">
             {invoice.invoiceNumber ?? `INV-${id?.slice(0, 8).toUpperCase()}`}
           </h1>
           <div className="flex items-center gap-3 mt-1">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATUS_STYLES[invoice.status] ?? 'bg-gray-100 text-gray-600'}`}>
+            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATUS_STYLES[invoice.status] ?? 'bg-muted text-muted-foreground'}`}>
               {STATUS_LABELS[invoice.status] ?? invoice.status}
             </span>
-            <span className="text-sm text-gray-400">
+            <span className="text-sm text-muted-foreground/60">
               {invoice.invoiceDate
                 ? new Date(invoice.invoiceDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
                 : new Date(invoice.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
@@ -123,7 +124,7 @@ export default function InvoiceDetailPage() {
         </div>
         <div className="flex gap-2 flex-wrap justify-end">
           <button
-            onClick={() => window.open(`/api/v1/billing/invoices/${id}/pdf`, '_blank')}
+            onClick={() => downloadInvoicePdf(id!, (invoice as any).invoiceNumber)}
             className="border rounded-lg px-4 py-2 text-sm font-medium text-amber-700 border-amber-200 hover:bg-amber-50"
           >
             View PDF
@@ -140,8 +141,8 @@ export default function InvoiceDetailPage() {
       </div>
 
       {/* Customer Info */}
-      <div className="bg-white rounded-xl border p-5 space-y-3">
-        <h2 className="font-semibold text-gray-700">Customer</h2>
+      <div className="bg-card rounded-xl border p-5 space-y-3">
+        <h2 className="font-semibold text-foreground/80">Customer</h2>
         <Row label="Name" value={invoice.customer?.name ?? invoice.customerName ?? '—'} bold />
         {(invoice.customer?.phone ?? invoice.customerPhone) && (
           <Row label="Phone" value={invoice.customer?.phone ?? invoice.customerPhone} />
@@ -158,42 +159,42 @@ export default function InvoiceDetailPage() {
       </div>
 
       {/* Line Items */}
-      <div className="bg-white rounded-xl border overflow-hidden">
+      <div className="bg-card rounded-xl border overflow-hidden">
         <div className="px-5 py-4 border-b">
-          <h2 className="font-semibold text-gray-700">Items</h2>
+          <h2 className="font-semibold text-foreground/80">Items</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm" style={{ fontVariantNumeric: 'tabular-nums' }}>
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-muted/50 border-b">
               <tr>
                 {['Item', 'Qty', 'Net Wt (g)', 'Rate/g', 'Making', 'Line Total'].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left font-medium text-gray-600 whitespace-nowrap">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y">
               {lineItems.map((item: any, idx: number) => (
-                <tr key={item.id ?? idx} className="hover:bg-gray-50">
+                <tr key={item.id ?? idx} className="hover:bg-muted/50">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900">{item.name ?? item.itemName ?? item.item?.name}</div>
-                    {item.sku && <div className="text-xs text-gray-400 font-mono">{item.sku}</div>}
+                    <div className="font-medium text-foreground">{item.name ?? item.itemName ?? item.item?.name}</div>
+                    {item.sku && <div className="text-xs text-muted-foreground/60 font-mono">{item.sku}</div>}
                   </td>
-                  <td className="px-4 py-3 text-gray-700">{item.qty ?? item.quantity ?? 1}</td>
-                  <td className="px-4 py-3 text-gray-700">{Number(item.netWeightG ?? item.netWeight ?? 0).toFixed(3)}</td>
-                  <td className="px-4 py-3 text-gray-700">{fmt(item.ratePerGram ?? item.rate ?? 0)}</td>
-                  <td className="px-4 py-3 text-gray-700">
+                  <td className="px-4 py-3 text-foreground/80">{item.qty ?? item.quantity ?? 1}</td>
+                  <td className="px-4 py-3 text-foreground/80">{Number(item.netWeightG ?? item.netWeight ?? 0).toFixed(3)}</td>
+                  <td className="px-4 py-3 text-foreground/80">{fmt(item.ratePerGram ?? item.rate ?? 0)}</td>
+                  <td className="px-4 py-3 text-foreground/80">
                     {item.makingCharge != null
                       ? fmt(item.makingCharge)
                       : item.makingPct != null
                       ? `${Number(item.makingPct).toFixed(2)}%`
                       : '—'}
                   </td>
-                  <td className="px-4 py-3 font-semibold text-gray-900">{fmt(item.lineTotal ?? item.amount ?? 0)}</td>
+                  <td className="px-4 py-3 font-semibold text-foreground">{fmt(item.lineTotal ?? item.amount ?? 0)}</td>
                 </tr>
               ))}
               {lineItems.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-400">No items</td>
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground/60">No items</td>
                 </tr>
               )}
             </tbody>
@@ -203,8 +204,8 @@ export default function InvoiceDetailPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* GST Breakdown */}
-        <div className="bg-white rounded-xl border p-5 space-y-3">
-          <h2 className="font-semibold text-gray-700">GST Breakdown</h2>
+        <div className="bg-card rounded-xl border p-5 space-y-3">
+          <h2 className="font-semibold text-foreground/80">GST Breakdown</h2>
           {gst ? (
             <>
               {gst.cgst != null && <Row label={`CGST (${gst.cgstRate ?? ''}%)`} value={fmt(gst.cgst)} />}
@@ -216,7 +217,7 @@ export default function InvoiceDetailPage() {
               </div>
             </>
           ) : (
-            <p className="text-sm text-gray-400">No GST data</p>
+            <p className="text-sm text-muted-foreground/60">No GST data</p>
           )}
           <div className="border-t pt-3 space-y-2">
             <Row label="Subtotal" value={fmt(invoice.subTotal ?? invoice.subtotal ?? 0)} />
@@ -228,8 +229,8 @@ export default function InvoiceDetailPage() {
         </div>
 
         {/* Balance Summary */}
-        <div className="bg-white rounded-xl border p-5 space-y-3">
-          <h2 className="font-semibold text-gray-700">Payment Summary</h2>
+        <div className="bg-card rounded-xl border p-5 space-y-3">
+          <h2 className="font-semibold text-foreground/80">Payment Summary</h2>
           <Row label="Grand Total" value={fmt(invoice.totalAmount ?? invoice.grandTotal ?? 0)} />
           <Row label="Total Paid" value={<span className="text-green-700">{fmt(totalPaid)}</span>} bold />
           <div className="border-t pt-2">
@@ -255,12 +256,12 @@ export default function InvoiceDetailPage() {
 
       {/* Add Payment Form */}
       {showPaymentForm && (
-        <div className="bg-white rounded-xl border p-5">
-          <h2 className="font-semibold text-gray-700 mb-4">Record Payment</h2>
+        <div className="bg-card rounded-xl border p-5">
+          <h2 className="font-semibold text-foreground/80 mb-4">Record Payment</h2>
           <form onSubmit={handleAddPayment} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Amount (₹)</label>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Amount (₹)</label>
                 <input
                   type="number"
                   min="0.01"
@@ -274,7 +275,7 @@ export default function InvoiceDetailPage() {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Mode</label>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Mode</label>
                 <select
                   value={payMode}
                   onChange={(e) => setPayMode(e.target.value)}
@@ -284,7 +285,7 @@ export default function InvoiceDetailPage() {
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Note (optional)</label>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Note (optional)</label>
                 <input
                   type="text"
                   value={payNote}
@@ -305,7 +306,7 @@ export default function InvoiceDetailPage() {
               <button
                 type="button"
                 onClick={() => { setShowPaymentForm(false); setPayAmount(''); setPayNote(''); }}
-                className="border rounded-lg px-5 py-2 text-sm font-medium hover:bg-gray-50"
+                className="border rounded-lg px-5 py-2 text-sm font-medium hover:bg-muted/50"
               >
                 Cancel
               </button>
@@ -315,9 +316,9 @@ export default function InvoiceDetailPage() {
       )}
 
       {/* Payment History */}
-      <div className="bg-white rounded-xl border overflow-hidden">
+      <div className="bg-card rounded-xl border overflow-hidden">
         <div className="px-5 py-4 border-b flex items-center justify-between">
-          <h2 className="font-semibold text-gray-700">Payment History</h2>
+          <h2 className="font-semibold text-foreground/80">Payment History</h2>
           {invoice.status !== 'CANCELLED' && balanceDue > 0 && !showPaymentForm && (
             <button
               onClick={() => setShowPaymentForm(true)}
@@ -330,44 +331,44 @@ export default function InvoiceDetailPage() {
         {payments.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm" style={{ fontVariantNumeric: 'tabular-nums' }}>
-              <thead className="bg-gray-50 border-b">
+              <thead className="bg-muted/50 border-b">
                 <tr>
                   {['Date', 'Mode', 'Amount', 'Note'].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left font-medium text-gray-600">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left font-medium text-muted-foreground">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {payments.map((p: any, idx: number) => (
-                  <tr key={p.id ?? idx} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                  <tr key={p.id ?? idx} className="hover:bg-muted/50">
+                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                       {new Date(p.paidAt ?? p.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs font-medium">
+                      <span className="bg-muted text-foreground/80 px-2 py-0.5 rounded text-xs font-medium">
                         {p.mode ?? p.paymentMode}
                       </span>
                     </td>
                     <td className="px-4 py-3 font-semibold text-green-700">{fmt(p.amount)}</td>
-                    <td className="px-4 py-3 text-gray-400 text-xs">{p.note ?? p.reference ?? '—'}</td>
+                    <td className="px-4 py-3 text-muted-foreground/60 text-xs">{p.note ?? p.reference ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         ) : (
-          <p className="px-5 py-6 text-sm text-gray-400">No payments recorded</p>
+          <p className="px-5 py-6 text-sm text-muted-foreground/60">No payments recorded</p>
         )}
       </div>
 
       {/* Cancel Confirmation Modal */}
       {showCancelConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Cancel Invoice?</h3>
-            <p className="text-sm text-gray-500 mb-6">
+          <div className="bg-card rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4">
+            <h3 className="text-lg font-semibold text-foreground mb-2">Cancel Invoice?</h3>
+            <p className="text-sm text-muted-foreground mb-6">
               This will cancel invoice{' '}
-              <span className="font-mono font-semibold text-gray-800">
+              <span className="font-mono font-semibold text-foreground">
                 {invoice.invoiceNumber ?? id?.slice(0, 8).toUpperCase()}
               </span>
               . This action cannot be undone.
@@ -382,7 +383,7 @@ export default function InvoiceDetailPage() {
               </button>
               <button
                 onClick={() => setShowCancelConfirm(false)}
-                className="flex-1 border rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50"
+                className="flex-1 border rounded-lg px-4 py-2 text-sm font-medium hover:bg-muted/50"
               >
                 Go Back
               </button>
