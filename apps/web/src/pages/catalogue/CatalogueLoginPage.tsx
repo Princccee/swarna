@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
+import { LanguageToggle } from '../../components/shared/LanguageToggle';
 
 export default function CatalogueLoginPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -22,9 +25,7 @@ export default function CatalogueLoginPage() {
       localStorage.setItem('catalogue_token', token);
       navigate('/catalogue/browse', { replace: true });
     } catch (err: any) {
-      setError(
-        err?.response?.data?.message ?? 'Invalid phone number or password. Please try again.',
-      );
+      setError(err?.response?.data?.message ?? 'Invalid phone number or password. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -33,20 +34,22 @@ export default function CatalogueLoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
+        {/* Language toggle */}
+        <div className="flex justify-end mb-2">
+          <LanguageToggle />
+        </div>
+
         {/* Brand */}
         <div className="text-center mb-8">
           <div className="text-4xl mb-3">💍</div>
-          <h1 className="text-3xl font-bold text-primary">Svarna Jewels</h1>
-          <p className="text-muted-foreground mt-2 text-sm">Sign in to browse &amp; reserve</p>
+          <h1 className="text-3xl font-bold text-primary">{t('common.brand')}</h1>
+          <p className="text-muted-foreground mt-2 text-sm">{t('catalogue.login.subtitle')}</p>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="bg-card rounded-2xl border border-amber-100 shadow-sm p-6 space-y-4"
-        >
+        <form onSubmit={handleSubmit} className="bg-card rounded-2xl border border-amber-100 shadow-sm p-6 space-y-4">
           <div>
             <label className="text-sm font-medium text-foreground/80 block mb-1.5">
-              Phone Number
+              {t('catalogue.login.phone')}
             </label>
             <input
               type="tel"
@@ -55,26 +58,26 @@ export default function CatalogueLoginPage() {
               placeholder="e.g. 9876543210"
               required
               autoFocus
-              className="w-full px-3 py-2.5 border  rounded-lg text-sm bg-card focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
+              className="w-full px-3 py-2.5 border rounded-lg text-sm bg-card focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-foreground/80 block mb-1.5">Password</label>
+            <label className="text-sm font-medium text-foreground/80 block mb-1.5">
+              {t('catalogue.login.password')}
+            </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              className="w-full px-3 py-2.5 border  rounded-lg text-sm bg-card focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
+              className="w-full px-3 py-2.5 border rounded-lg text-sm bg-card focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
             />
           </div>
 
           {error && (
-            <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-              {error}
-            </p>
+            <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>
           )}
 
           <button
@@ -82,23 +85,20 @@ export default function CatalogueLoginPage() {
             disabled={loading}
             className="w-full bg-amber-700 hover:bg-amber-800 disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg text-sm tracking-wide transition-colors mt-1"
           >
-            {loading ? 'Signing in…' : 'Sign In'}
+            {loading ? t('catalogue.login.submitting') : t('catalogue.login.submit')}
           </button>
         </form>
 
         <p className="text-center text-sm text-muted-foreground mt-5">
-          New customer?{' '}
-          <Link
-            to="/catalogue/register"
-            className="text-amber-700 font-medium hover:text-amber-900 underline underline-offset-2"
-          >
-            Register here
+          {t('catalogue.login.new_customer')}{' '}
+          <Link to="/catalogue/register" className="text-amber-700 font-medium hover:text-amber-900 underline underline-offset-2">
+            {t('catalogue.login.register')}
           </Link>
         </p>
 
         <p className="text-center text-xs text-muted-foreground/60 mt-4">
           <Link to="/catalogue/browse" className="hover:text-muted-foreground underline underline-offset-2">
-            Continue browsing without signing in
+            {t('catalogue.login.continue_browsing')}
           </Link>
         </p>
       </div>
