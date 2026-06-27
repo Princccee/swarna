@@ -51,20 +51,20 @@ export default function RatesPage() {
             <div
               key={key}
               onClick={() => setSelectedPurity(purity)}
-              className={`bg-white rounded-xl border p-4 cursor-pointer transition-all ${selectedPurity === purity ? 'border-amber-500 ring-1 ring-amber-400' : 'hover:border-gray-300'}`}
+              className={`bg-card rounded-xl border p-4 cursor-pointer transition-all ${selectedPurity === purity ? 'border-amber-500 ring-1 ring-amber-400' : 'hover:'}`}
             >
-              <p className="text-xs text-gray-500 mb-1">{label}</p>
+              <p className="text-xs text-muted-foreground mb-1">{label}</p>
               <p className="text-xl font-bold text-amber-700">
                 {r ? `₹${r.ratePerGram.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—'}
               </p>
-              <p className="text-[10px] text-gray-400 mt-1">per gram</p>
+              <p className="text-[10px] text-muted-foreground/60 mt-1">per gram</p>
             </div>
           );
         })}
       </div>
 
       {/* History chart */}
-      <div className="bg-white rounded-xl border p-5">
+      <div className="bg-card rounded-xl border p-5">
         <h2 className="font-semibold mb-4">
           30-Day Rate History — {ALL_PURITIES.find((p) => p.purity === selectedPurity)?.label}
         </h2>
@@ -79,7 +79,7 @@ export default function RatesPage() {
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <p className="text-gray-400 text-sm">No history data yet — rates are collected every 5 minutes.</p>
+          <p className="text-muted-foreground/60 text-sm">No history data yet — rates are collected every 5 minutes.</p>
         )}
       </div>
     </div>

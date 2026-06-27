@@ -63,8 +63,8 @@ export default function GstRegisterPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">GST Reports</h1>
-          <p className="text-sm text-gray-500 mt-0.5">GSTR-3B summary and GSTR-1 HSN detail</p>
+          <h1 className="text-2xl font-bold text-foreground">GST Reports</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">GSTR-3B summary and GSTR-1 HSN detail</p>
         </div>
         <button
           onClick={handleDownloadGstr1}
@@ -75,9 +75,9 @@ export default function GstRegisterPage() {
       </div>
 
       {/* Month / Year selector */}
-      <div className="flex flex-wrap items-end gap-4 bg-white rounded-xl border p-4">
+      <div className="flex flex-wrap items-end gap-4 bg-card rounded-xl border p-4">
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Month</label>
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Month</label>
           <select
             value={month}
             onChange={(e) => setMonth(Number(e.target.value))}
@@ -89,7 +89,7 @@ export default function GstRegisterPage() {
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Year</label>
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Year</label>
           <select
             value={year}
             onChange={(e) => setYear(Number(e.target.value))}
@@ -100,7 +100,7 @@ export default function GstRegisterPage() {
             ))}
           </select>
         </div>
-        <span className="text-sm text-gray-400 pb-2">
+        <span className="text-sm text-muted-foreground/60 pb-2">
           {from} to {to}
         </span>
       </div>
@@ -108,21 +108,21 @@ export default function GstRegisterPage() {
       {/* GSTR-3B */}
       <section className="space-y-3">
         <div className="flex items-center gap-3">
-          <h2 className="text-base font-semibold text-gray-800">GSTR-3B Summary</h2>
+          <h2 className="text-base font-semibold text-foreground">GSTR-3B Summary</h2>
           <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">Monthly</span>
         </div>
-        <div className="bg-white rounded-xl border overflow-hidden">
+        <div className="bg-card rounded-xl border overflow-hidden">
           <div className="overflow-x-auto">
             {loading3b ? (
-              <div className="p-8 text-center text-gray-400">Loading…</div>
+              <div className="p-8 text-center text-muted-foreground/60">Loading…</div>
             ) : (
               <table className="w-full text-sm" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                <thead className="bg-gray-50 border-b">
+                <thead className="bg-muted/50 border-b">
                   <tr>
                     {['Description', 'Taxable Value', 'CGST', 'SGST', 'IGST', 'Total Tax'].map((h) => (
                       <th
                         key={h}
-                        className={`px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide ${
+                        className={`px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide ${
                           h === 'Description' ? 'text-left' : 'text-right'
                         }`}
                       >
@@ -138,23 +138,23 @@ export default function GstRegisterPage() {
                       { label: 'Zero Rated / Nil Rated', ...summary.zeroRated },
                       { label: 'Inward (RCM)', ...summary.inward },
                     ].map((row) => (
-                      <tr key={row.label} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium text-gray-800">{row.label}</td>
+                      <tr key={row.label} className="hover:bg-muted/50">
+                        <td className="px-4 py-3 font-medium text-foreground">{row.label}</td>
                         <td className="px-4 py-3 text-right">{fmt(row.taxableValue ?? 0)}</td>
                         <td className="px-4 py-3 text-right">{fmt(row.cgst ?? 0)}</td>
                         <td className="px-4 py-3 text-right">{fmt(row.sgst ?? 0)}</td>
                         <td className="px-4 py-3 text-right">{fmt(row.igst ?? 0)}</td>
-                        <td className="px-4 py-3 text-right font-semibold text-gray-900">{fmt(row.totalTax ?? 0)}</td>
+                        <td className="px-4 py-3 text-right font-semibold text-foreground">{fmt(row.totalTax ?? 0)}</td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="px-4 py-10 text-center text-gray-400">No data for this period</td>
+                      <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground/60">No data for this period</td>
                     </tr>
                   )}
                   {summary && (
                     <tr className="bg-amber-50 border-t-2 border-amber-200 font-semibold">
-                      <td className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Net Tax Payable</td>
+                      <td className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Net Tax Payable</td>
                       <td className="px-4 py-3 text-right">{fmt(summary.net?.taxableValue ?? 0)}</td>
                       <td className="px-4 py-3 text-right">{fmt(summary.net?.cgst ?? 0)}</td>
                       <td className="px-4 py-3 text-right">{fmt(summary.net?.sgst ?? 0)}</td>
@@ -172,21 +172,21 @@ export default function GstRegisterPage() {
       {/* GSTR-1 HSN */}
       <section className="space-y-3">
         <div className="flex items-center gap-3">
-          <h2 className="text-base font-semibold text-gray-800">GSTR-1 HSN Summary</h2>
+          <h2 className="text-base font-semibold text-foreground">GSTR-1 HSN Summary</h2>
           <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full font-medium">HSN 7113</span>
         </div>
-        <div className="bg-white rounded-xl border overflow-hidden">
+        <div className="bg-card rounded-xl border overflow-hidden">
           <div className="overflow-x-auto">
             {loading1 ? (
-              <div className="p-8 text-center text-gray-400">Loading…</div>
+              <div className="p-8 text-center text-muted-foreground/60">Loading…</div>
             ) : (
               <table className="w-full text-sm" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                <thead className="bg-gray-50 border-b">
+                <thead className="bg-muted/50 border-b">
                   <tr>
                     {['HSN Code', 'Description', 'UQC', 'Qty', 'Taxable Value', 'CGST Rate', 'CGST Amt', 'SGST Rate', 'SGST Amt', 'IGST Rate', 'IGST Amt'].map((h) => (
                       <th
                         key={h}
-                        className={`px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap ${
+                        className={`px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap ${
                           ['HSN Code', 'Description', 'UQC'].includes(h) ? 'text-left' : 'text-right'
                         }`}
                       >
@@ -197,22 +197,22 @@ export default function GstRegisterPage() {
                 </thead>
                 <tbody className="divide-y">
                   {hsnRows.length > 0 ? hsnRows.map((row: any, i: number) => (
-                    <tr key={i} className="hover:bg-gray-50">
+                    <tr key={i} className="hover:bg-muted/50">
                       <td className="px-4 py-3 font-mono text-xs font-semibold text-amber-700">{row.hsnCode ?? '7113'}</td>
-                      <td className="px-4 py-3 text-gray-700">{row.description ?? 'Articles of jewellery'}</td>
-                      <td className="px-4 py-3 text-gray-500">{row.uqc ?? 'NOS'}</td>
+                      <td className="px-4 py-3 text-foreground/80">{row.description ?? 'Articles of jewellery'}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{row.uqc ?? 'NOS'}</td>
                       <td className="px-4 py-3 text-right">{row.qty ?? 0}</td>
                       <td className="px-4 py-3 text-right font-medium">{fmt(row.taxableValue ?? 0)}</td>
-                      <td className="px-4 py-3 text-right text-gray-500">{row.cgstRate ?? 1.5}%</td>
+                      <td className="px-4 py-3 text-right text-muted-foreground">{row.cgstRate ?? 1.5}%</td>
                       <td className="px-4 py-3 text-right">{fmt(row.cgst ?? 0)}</td>
-                      <td className="px-4 py-3 text-right text-gray-500">{row.sgstRate ?? 1.5}%</td>
+                      <td className="px-4 py-3 text-right text-muted-foreground">{row.sgstRate ?? 1.5}%</td>
                       <td className="px-4 py-3 text-right">{fmt(row.sgst ?? 0)}</td>
-                      <td className="px-4 py-3 text-right text-gray-500">{row.igstRate ?? 0}%</td>
+                      <td className="px-4 py-3 text-right text-muted-foreground">{row.igstRate ?? 0}%</td>
                       <td className="px-4 py-3 text-right">{fmt(row.igst ?? 0)}</td>
                     </tr>
                   )) : (
                     <tr>
-                      <td colSpan={11} className="px-4 py-10 text-center text-gray-400">No HSN data for this period</td>
+                      <td colSpan={11} className="px-4 py-10 text-center text-muted-foreground/60">No HSN data for this period</td>
                     </tr>
                   )}
                 </tbody>

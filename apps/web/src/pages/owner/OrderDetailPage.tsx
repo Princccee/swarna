@@ -24,7 +24,7 @@ const PURITY_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  DRAFT: 'bg-gray-100 text-gray-600',
+  DRAFT: 'bg-muted text-muted-foreground',
   CONFIRMED: 'bg-blue-100 text-blue-700',
   MAKING: 'bg-amber-100 text-amber-700',
   READY: 'bg-green-100 text-green-700',
@@ -102,8 +102,8 @@ function fmtDate(iso: string | null | undefined) {
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex justify-between items-start gap-4 py-1.5 border-b border-gray-50 last:border-0">
-      <span className="text-sm text-gray-500 shrink-0">{label}</span>
+    <div className="flex justify-between items-start gap-4 py-1.5 border-b  last:border-0">
+      <span className="text-sm text-muted-foreground shrink-0">{label}</span>
       <span className="text-sm text-right">{value ?? '—'}</span>
     </div>
   );
@@ -119,9 +119,9 @@ function Badge({ label, colorClass }: { label: string; colorClass: string }) {
 
 function SectionCard({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
-        <h2 className="font-semibold text-gray-800 text-sm uppercase tracking-wide">{title}</h2>
+    <div className="bg-card rounded-xl border  overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-3.5 border-b ">
+        <h2 className="font-semibold text-foreground text-sm uppercase tracking-wide">{title}</h2>
         {action && <div>{action}</div>}
       </div>
       <div className="p-5">{children}</div>
@@ -180,9 +180,9 @@ function StatusTimeline({ status, orderId }: StatusTimelineProps) {
           return (
             <div key={step} className="flex items-center flex-1">
               <div className={`h-2 flex-1 rounded-sm ${i === 0 ? 'rounded-l-full' : ''} ${i === steps.length - 1 ? 'rounded-r-full' : ''} ${
-                done || active ? (status === 'CANCELLED' ? 'bg-red-300' : 'bg-amber-500') : 'bg-gray-200'
+                done || active ? (status === 'CANCELLED' ? 'bg-red-300' : 'bg-amber-500') : 'bg-muted'
               }`} />
-              {i < steps.length - 1 && <div className="w-0.5 h-2 bg-white" />}
+              {i < steps.length - 1 && <div className="w-0.5 h-2 bg-card" />}
             </div>
           );
         })}
@@ -193,7 +193,7 @@ function StatusTimeline({ status, orderId }: StatusTimelineProps) {
           const active = step === status;
           return (
             <div key={step} className="flex-1 text-center">
-              <span className={`text-xs ${active ? 'font-semibold text-amber-700' : done ? 'text-gray-500' : 'text-gray-300'}`}>
+              <span className={`text-xs ${active ? 'font-semibold text-amber-700' : done ? 'text-muted-foreground' : 'text-muted-foreground/40'}`}>
                 {step.charAt(0) + step.slice(1).toLowerCase().replace('_', ' ')}
               </span>
             </div>
@@ -263,7 +263,7 @@ function StatusTimeline({ status, orderId }: StatusTimelineProps) {
                 <input
                   {...register('invoiceId', { required: 'Invoice ID is required' })}
                   placeholder="Invoice ID"
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  className="border  rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
                 />
                 {errors.invoiceId && (
                   <p className="text-xs text-red-500 mt-1">{errors.invoiceId.message}</p>
@@ -279,7 +279,7 @@ function StatusTimeline({ status, orderId }: StatusTimelineProps) {
               <button
                 type="button"
                 onClick={() => { setShowInvoiceInput(false); reset(); }}
-                className="px-4 py-2 text-sm font-medium border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 text-sm font-medium border  text-muted-foreground rounded-lg hover:bg-muted/50 transition-colors"
               >
                 Cancel
               </button>
@@ -324,26 +324,26 @@ function AddPaymentForm({ orderId, onDone }: AddPaymentFormProps) {
   });
 
   return (
-    <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
-      <p className="text-sm font-semibold text-gray-700">Add Payment</p>
+    <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="mt-4 p-4 bg-muted/50 rounded-lg border  space-y-3">
+      <p className="text-sm font-semibold text-foreground/80">Add Payment</p>
       <div className="flex flex-wrap gap-3">
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Amount (₹)</label>
+          <label className="block text-xs text-muted-foreground mb-1">Amount (₹)</label>
           <input
             type="number"
             step="0.01"
             min="0"
             {...register('amount', { required: 'Amount is required', min: { value: 0.01, message: 'Must be > 0' } })}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-36 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            className="border  rounded-lg px-3 py-2 text-sm w-36 focus:outline-none focus:ring-2 focus:ring-amber-400"
             placeholder="0.00"
           />
           {errors.amount && <p className="text-xs text-red-500 mt-1">{errors.amount.message}</p>}
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Mode</label>
+          <label className="block text-xs text-muted-foreground mb-1">Mode</label>
           <select
             {...register('mode', { required: true })}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+            className="border  rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
           >
             {PAYMENT_MODES.map((m) => (
               <option key={m} value={m}>{m.replace('_', ' ')}</option>
@@ -362,7 +362,7 @@ function AddPaymentForm({ orderId, onDone }: AddPaymentFormProps) {
         <button
           type="button"
           onClick={onDone}
-          className="px-4 py-2 text-sm font-medium border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+          className="px-4 py-2 text-sm font-medium border  text-muted-foreground rounded-lg hover:bg-muted/50 transition-colors"
         >
           Cancel
         </button>
@@ -402,23 +402,23 @@ function KarigarLogForm({ orderId, onDone }: KarigarLogFormProps) {
   });
 
   return (
-    <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
-      <p className="text-sm font-semibold text-gray-700">Log Karigar Entry</p>
+    <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="mt-4 p-4 bg-muted/50 rounded-lg border  space-y-3">
+      <p className="text-sm font-semibold text-foreground/80">Log Karigar Entry</p>
       <div className="flex flex-wrap gap-3">
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Karigar User ID</label>
+          <label className="block text-xs text-muted-foreground mb-1">Karigar User ID</label>
           <input
             {...register('karigarUserId', { required: 'Karigar User ID is required' })}
             placeholder="UUID"
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-amber-400 font-mono"
+            className="border  rounded-lg px-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-amber-400 font-mono"
           />
           {errors.karigarUserId && <p className="text-xs text-red-500 mt-1">{errors.karigarUserId.message}</p>}
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Entry Type</label>
+          <label className="block text-xs text-muted-foreground mb-1">Entry Type</label>
           <select
             {...register('entryType', { required: true })}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+            className="border  rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
           >
             {KARIGAR_ENTRY_TYPES.map((t) => (
               <option key={t} value={t}>{t.charAt(0) + t.slice(1).toLowerCase()}</option>
@@ -426,24 +426,24 @@ function KarigarLogForm({ orderId, onDone }: KarigarLogFormProps) {
           </select>
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Gold Weight (g)</label>
+          <label className="block text-xs text-muted-foreground mb-1">Gold Weight (g)</label>
           <input
             type="number"
             step="0.001"
             min="0"
             {...register('goldWeightG', { required: 'Weight is required', min: { value: 0.001, message: 'Must be > 0' } })}
             placeholder="0.000"
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            className="border  rounded-lg px-3 py-2 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-amber-400"
           />
           {errors.goldWeightG && <p className="text-xs text-red-500 mt-1">{errors.goldWeightG.message}</p>}
         </div>
       </div>
       <div>
-        <label className="block text-xs text-gray-500 mb-1">Notes (optional)</label>
+        <label className="block text-xs text-muted-foreground mb-1">Notes (optional)</label>
         <input
           {...register('notes')}
           placeholder="Any notes…"
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-amber-400"
+          className="border  rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-amber-400"
         />
       </div>
       <div className="flex gap-2">
@@ -457,7 +457,7 @@ function KarigarLogForm({ orderId, onDone }: KarigarLogFormProps) {
         <button
           type="button"
           onClick={onDone}
-          className="px-4 py-2 text-sm font-medium border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+          className="px-4 py-2 text-sm font-medium border  text-muted-foreground rounded-lg hover:bg-muted/50 transition-colors"
         >
           Cancel
         </button>
@@ -484,7 +484,7 @@ export default function OrderDetailPage() {
     return (
       <div className="p-6 space-y-4 max-w-4xl">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="h-28 bg-gray-100 rounded-xl animate-pulse" />
+          <div key={i} className="h-28 bg-muted rounded-xl animate-pulse" />
         ))}
       </div>
     );
@@ -522,31 +522,31 @@ export default function OrderDetailPage() {
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => navigate(-1)}
-              className="text-gray-400 hover:text-gray-600 text-sm mr-1"
+              className="text-muted-foreground/60 hover:text-muted-foreground text-sm mr-1"
               aria-label="Back"
             >
               ← Back
             </button>
-            <h1 className="text-2xl font-bold text-gray-900 font-mono">{order.orderNumber}</h1>
+            <h1 className="text-2xl font-bold text-foreground font-mono">{order.orderNumber}</h1>
             <Badge
               label={ORDER_TYPE_LABELS[order.type] ?? order.type}
               colorClass="bg-violet-100 text-violet-700"
             />
             <Badge
               label={order.status}
-              colorClass={STATUS_COLORS[order.status] ?? 'bg-gray-100 text-gray-600'}
+              colorClass={STATUS_COLORS[order.status] ?? 'bg-muted text-muted-foreground'}
             />
           </div>
-          <div className="mt-1.5 text-sm text-gray-600 space-x-3">
+          <div className="mt-1.5 text-sm text-muted-foreground space-x-3">
             {order.customer && (
               <>
                 <span className="font-medium">{order.customer.name}</span>
-                <span className="text-gray-400">{order.customer.phone}</span>
+                <span className="text-muted-foreground/60">{order.customer.phone}</span>
               </>
             )}
             {order.expectedReadyDate && (
-              <span className="text-gray-400">
-                Ready by <span className="text-gray-700">{fmtDate(order.expectedReadyDate)}</span>
+              <span className="text-muted-foreground/60">
+                Ready by <span className="text-foreground/80">{fmtDate(order.expectedReadyDate)}</span>
               </span>
             )}
           </div>
@@ -592,35 +592,35 @@ export default function OrderDetailPage() {
         }
       >
         {(order.payments ?? []).length === 0 && !showPaymentForm ? (
-          <p className="text-sm text-gray-400">No payments recorded yet.</p>
+          <p className="text-sm text-muted-foreground/60">No payments recorded yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm" style={{ fontVariantNumeric: 'tabular-nums' }}>
               <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="pb-2 text-left font-medium text-gray-500 text-xs uppercase tracking-wide">Mode</th>
-                  <th className="pb-2 text-right font-medium text-gray-500 text-xs uppercase tracking-wide">Amount</th>
-                  <th className="pb-2 text-right font-medium text-gray-500 text-xs uppercase tracking-wide">Date</th>
+                <tr className="border-b ">
+                  <th className="pb-2 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide">Mode</th>
+                  <th className="pb-2 text-right font-medium text-muted-foreground text-xs uppercase tracking-wide">Amount</th>
+                  <th className="pb-2 text-right font-medium text-muted-foreground text-xs uppercase tracking-wide">Date</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {(order.payments ?? []).map((p) => (
                   <tr key={p.id}>
                     <td className="py-2.5">
-                      <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-medium">
+                      <span className="px-2 py-0.5 bg-muted text-muted-foreground rounded text-xs font-medium">
                         {p.mode.replace('_', ' ')}
                       </span>
                     </td>
                     <td className="py-2.5 text-right font-medium">₹{fmt(Number(p.amount))}</td>
-                    <td className="py-2.5 text-right text-gray-400 text-xs">{fmtDate(p.createdAt)}</td>
+                    <td className="py-2.5 text-right text-muted-foreground/60 text-xs">{fmtDate(p.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>
               {(order.payments ?? []).length > 0 && (
                 <tfoot>
-                  <tr className="border-t border-gray-200">
-                    <td className="pt-2.5 text-xs font-semibold text-gray-500 uppercase">Total Paid</td>
-                    <td className="pt-2.5 text-right font-bold text-gray-900">₹{fmt(totalPaid)}</td>
+                  <tr className="border-t ">
+                    <td className="pt-2.5 text-xs font-semibold text-muted-foreground uppercase">Total Paid</td>
+                    <td className="pt-2.5 text-right font-bold text-foreground">₹{fmt(totalPaid)}</td>
                     <td />
                   </tr>
                 </tfoot>
@@ -648,23 +648,23 @@ export default function OrderDetailPage() {
         }
       >
         {(order.karigarLogs ?? []).length === 0 && !showKarigarForm ? (
-          <p className="text-sm text-gray-400">No karigar gold entries yet.</p>
+          <p className="text-sm text-muted-foreground/60">No karigar gold entries yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm" style={{ fontVariantNumeric: 'tabular-nums' }}>
               <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="pb-2 text-left font-medium text-gray-500 text-xs uppercase tracking-wide">Karigar</th>
-                  <th className="pb-2 text-left font-medium text-gray-500 text-xs uppercase tracking-wide">Type</th>
-                  <th className="pb-2 text-right font-medium text-gray-500 text-xs uppercase tracking-wide">Weight (g)</th>
-                  <th className="pb-2 text-left font-medium text-gray-500 text-xs uppercase tracking-wide pl-4">Notes</th>
-                  <th className="pb-2 text-right font-medium text-gray-500 text-xs uppercase tracking-wide">Date</th>
+                <tr className="border-b ">
+                  <th className="pb-2 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide">Karigar</th>
+                  <th className="pb-2 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide">Type</th>
+                  <th className="pb-2 text-right font-medium text-muted-foreground text-xs uppercase tracking-wide">Weight (g)</th>
+                  <th className="pb-2 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide pl-4">Notes</th>
+                  <th className="pb-2 text-right font-medium text-muted-foreground text-xs uppercase tracking-wide">Date</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {(order.karigarLogs ?? []).map((log) => (
                   <tr key={log.id}>
-                    <td className="py-2.5 text-gray-700">{log.karigarUser?.name ?? <span className="text-gray-400 font-mono text-xs">unknown</span>}</td>
+                    <td className="py-2.5 text-foreground/80">{log.karigarUser?.name ?? <span className="text-muted-foreground/60 font-mono text-xs">unknown</span>}</td>
                     <td className="py-2.5">
                       <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                         log.entryType === 'ISSUED'
@@ -675,15 +675,15 @@ export default function OrderDetailPage() {
                       </span>
                     </td>
                     <td className="py-2.5 text-right font-mono">{Number(log.goldWeightG).toFixed(3)}</td>
-                    <td className="py-2.5 pl-4 text-gray-400 text-xs">{log.notes ?? '—'}</td>
-                    <td className="py-2.5 text-right text-gray-400 text-xs">{fmtDate(log.createdAt)}</td>
+                    <td className="py-2.5 pl-4 text-muted-foreground/60 text-xs">{log.notes ?? '—'}</td>
+                    <td className="py-2.5 text-right text-muted-foreground/60 text-xs">{fmtDate(log.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>
               {(order.karigarLogs ?? []).length > 0 && (
                 <tfoot>
-                  <tr className="border-t border-gray-200">
-                    <td colSpan={2} className="pt-2.5 text-xs font-semibold text-gray-500 uppercase">Net Gold with Karigar</td>
+                  <tr className="border-t ">
+                    <td colSpan={2} className="pt-2.5 text-xs font-semibold text-muted-foreground uppercase">Net Gold with Karigar</td>
                     <td className={`pt-2.5 text-right font-bold font-mono ${goldBalance > 0 ? 'text-orange-600' : 'text-green-600'}`}>
                       {goldBalance.toFixed(3)} g
                     </td>
@@ -710,7 +710,7 @@ export default function OrderDetailPage() {
             label="Estimated Value"
             value={`₹${fmt(estimatedValue)}`}
           />
-          <div className="border-t border-gray-100 pt-2 mt-2">
+          <div className="border-t  pt-2 mt-2">
             <Row
               label="Balance Due"
               value={

@@ -452,7 +452,7 @@ export function PosPage() {
   return (
     <div className="flex h-full overflow-hidden bg-slate-50">
       {/* ── LEFT: Item search + bill lines ── */}
-      <div className="flex flex-col w-[42%] shrink-0 border-r border-slate-200 bg-white overflow-hidden">
+      <div className="flex flex-col w-[42%] shrink-0 border-r border-slate-200 bg-card overflow-hidden">
         {/* Header */}
         <div className="shrink-0 px-4 pt-4 pb-3 border-b border-slate-100">
           <div className="flex items-center justify-between mb-3">
@@ -481,7 +481,7 @@ export function PosPage() {
                 }}
                 onFocus={() => setShowItemDropdown(true)}
                 placeholder="Search by name, SKU, or HUID…"
-                className="w-full pl-9 pr-10 py-2.5 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition-all placeholder:text-slate-400"
+                className="w-full pl-9 pr-10 py-2.5 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:bg-card focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition-all placeholder:text-slate-400"
               />
               {itemSearching && (
                 <Loader2
@@ -501,7 +501,7 @@ export function PosPage() {
 
             {/* Item results dropdown */}
             {showItemDropdown && debouncedItemSearch.length > 1 && items.length > 0 && (
-              <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden max-h-72 overflow-y-auto">
+              <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-card border border-slate-200 rounded-lg shadow-lg overflow-hidden max-h-72 overflow-y-auto">
                 {items.map((item: any) => (
                   <button
                     key={item.id}
@@ -535,7 +535,7 @@ export function PosPage() {
               </div>
             )}
             {showItemDropdown && debouncedItemSearch.length > 1 && !itemSearching && items.length === 0 && (
-              <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-sm px-4 py-3 text-sm text-slate-400">
+              <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-card border border-slate-200 rounded-lg shadow-sm px-4 py-3 text-sm text-slate-400">
                 No items found
               </div>
             )}
@@ -646,7 +646,7 @@ export function PosPage() {
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
 
           {/* ── Customer section ── */}
-          <section className="bg-white rounded-xl border border-slate-200">
+          <section className="bg-card rounded-xl border border-slate-200">
             <div className="px-4 py-2.5 border-b border-slate-100 flex items-center gap-2">
               <User size={14} className="text-slate-400" />
               <h3 className="text-sm font-semibold text-slate-700">Customer</h3>
@@ -667,7 +667,7 @@ export function PosPage() {
                   }`}
                 >
                   <span
-                    className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 bg-card rounded-full shadow transition-transform ${
                       isWalkIn ? 'translate-x-4' : 'translate-x-0'
                     }`}
                   />
@@ -727,7 +727,7 @@ export function PosPage() {
                             value={newCustomer.name}
                             onChange={(e) => setNewCustomer((p) => ({ ...p, name: e.target.value }))}
                             placeholder="Full name"
-                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition-all"
+                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-card focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition-all"
                           />
                         </div>
                         <div>
@@ -740,7 +740,7 @@ export function PosPage() {
                             value={newCustomer.phone}
                             onChange={(e) => setNewCustomer((p) => ({ ...p, phone: e.target.value }))}
                             placeholder="10-digit mobile"
-                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition-all font-mono"
+                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-card focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition-all font-mono"
                           />
                         </div>
                         <div>
@@ -750,7 +750,7 @@ export function PosPage() {
                             value={newCustomer.email}
                             onChange={(e) => setNewCustomer((p) => ({ ...p, email: e.target.value }))}
                             placeholder="optional"
-                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition-all"
+                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-card focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition-all"
                           />
                         </div>
                         <div className="col-span-2">
@@ -760,7 +760,7 @@ export function PosPage() {
                             value={newCustomer.address}
                             onChange={(e) => setNewCustomer((p) => ({ ...p, address: e.target.value }))}
                             placeholder="Street, city, pin code…"
-                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition-all resize-none"
+                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-card focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none transition-all resize-none"
                           />
                         </div>
                       </div>
@@ -808,7 +808,7 @@ export function PosPage() {
 
                       {/* Results dropdown */}
                       {showCustomerDropdown && debouncedCustomerSearch.length > 1 && (
-                        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
+                        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-card border border-slate-200 rounded-lg shadow-lg overflow-hidden">
                           {customers.length > 0 && (
                             <div className="max-h-40 overflow-y-auto">
                               {customers.map((c: any) => (
@@ -877,7 +877,7 @@ export function PosPage() {
           </section>
 
           {/* ── Old Gold Exchange ── */}
-          <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <section className="bg-card rounded-xl border border-slate-200 overflow-hidden">
             <div className="px-4 py-2.5 border-b border-slate-100 flex items-center gap-2">
               <Scale size={14} className="text-slate-400" />
               <h3 className="text-sm font-semibold text-slate-700">Old Gold Exchange</h3>
@@ -923,7 +923,7 @@ export function PosPage() {
           </section>
 
           {/* ── GST mode ── */}
-          <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <section className="bg-card rounded-xl border border-slate-200 overflow-hidden">
             <div className="px-4 py-2.5 border-b border-slate-100">
               <h3 className="text-sm font-semibold text-slate-700">Tax</h3>
             </div>
@@ -933,7 +933,7 @@ export function PosPage() {
                 className={`flex-1 py-2 text-sm font-medium rounded-lg border transition-all ${
                   gstMode === 'intra'
                     ? 'bg-amber-500 border-amber-500 text-white shadow-sm'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                    : 'bg-card border-slate-200 text-slate-600 hover:border-slate-300'
                 }`}
               >
                 Intra-state
@@ -946,7 +946,7 @@ export function PosPage() {
                 className={`flex-1 py-2 text-sm font-medium rounded-lg border transition-all ${
                   gstMode === 'inter'
                     ? 'bg-amber-500 border-amber-500 text-white shadow-sm'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                    : 'bg-card border-slate-200 text-slate-600 hover:border-slate-300'
                 }`}
               >
                 Inter-state
@@ -958,7 +958,7 @@ export function PosPage() {
           </section>
 
           {/* ── Bill summary ── */}
-          <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <section className="bg-card rounded-xl border border-slate-200 overflow-hidden">
             <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-700">Bill Summary</h3>
               {previewMutation.isPending && (
@@ -1011,7 +1011,7 @@ export function PosPage() {
           </section>
 
           {/* ── Payment ── */}
-          <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <section className="bg-card rounded-xl border border-slate-200 overflow-hidden">
             <div className="px-4 py-2.5 border-b border-slate-100 flex items-center gap-2">
               <CreditCard size={14} className="text-slate-400" />
               <h3 className="text-sm font-semibold text-slate-700">Payment</h3>
@@ -1025,7 +1025,7 @@ export function PosPage() {
                   <select
                     value={paymentMode}
                     onChange={(e) => setPaymentMode(e.target.value as PaymentMode)}
-                    className="w-full appearance-none px-3 py-2 text-sm border border-slate-200 rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none bg-white transition-all"
+                    className="w-full appearance-none px-3 py-2 text-sm border border-slate-200 rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none bg-card transition-all"
                   >
                     {(Object.keys(PAYMENT_LABELS) as PaymentMode[]).map((mode) => (
                       <option key={mode} value={mode}>
@@ -1070,7 +1070,7 @@ export function PosPage() {
         </div>
 
         {/* ── Bottom action bar ── */}
-        <div className="shrink-0 px-5 py-3 border-t border-slate-200 bg-white flex items-center gap-3">
+        <div className="shrink-0 px-5 py-3 border-t border-slate-200 bg-card flex items-center gap-3">
           {createdInvoiceId && (
             <button
               onClick={() => downloadInvoicePdf(createdInvoiceId)}

@@ -27,7 +27,7 @@ export default function CatalogueHomePage() {
   return (
     <div className="min-h-screen bg-amber-50" style={{ fontFamily: 'system-ui, sans-serif' }}>
       {/* ── Header ── */}
-      <header className="sticky top-0 z-20 bg-white border-b border-amber-200 shadow-sm">
+      <header className="sticky top-0 z-20 bg-card border-b border-amber-200 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
           <Link
             to="/catalogue"

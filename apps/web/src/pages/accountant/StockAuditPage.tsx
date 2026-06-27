@@ -25,23 +25,23 @@ export default function StockAuditPage() {
   return (
     <div className="p-6 space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Stock Audit</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Full inventory snapshot — all items, current quantities</p>
+        <h1 className="text-2xl font-bold text-foreground">Stock Audit</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Full inventory snapshot — all items, current quantities</p>
       </div>
 
       {/* Summary cards */}
       {!isLoading && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="bg-white rounded-xl border p-4">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Items</p>
-            <p className="text-3xl font-bold text-gray-900 mt-1" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          <div className="bg-card rounded-xl border p-4">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Items</p>
+            <p className="text-3xl font-bold text-foreground mt-1" style={{ fontVariantNumeric: 'tabular-nums' }}>
               {totalItems}
             </p>
           </div>
-          <div className="bg-white rounded-xl border p-4">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Low Stock</p>
+          <div className="bg-card rounded-xl border p-4">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Low Stock</p>
             <p
-              className={`text-3xl font-bold mt-1 ${lowStockCount > 0 ? 'text-red-600' : 'text-gray-900'}`}
+              className={`text-3xl font-bold mt-1 ${lowStockCount > 0 ? 'text-red-600' : 'text-foreground'}`}
               style={{ fontVariantNumeric: 'tabular-nums' }}
             >
               {lowStockCount}
@@ -50,15 +50,15 @@ export default function StockAuditPage() {
               <p className="text-xs text-red-500 mt-0.5">qty &le; 2</p>
             )}
           </div>
-          <div className="bg-white rounded-xl border p-4">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">In Stock</p>
+          <div className="bg-card rounded-xl border p-4">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">In Stock</p>
             <p className="text-3xl font-bold text-green-700 mt-1" style={{ fontVariantNumeric: 'tabular-nums' }}>
               {totalItems - lowStockCount}
             </p>
           </div>
-          <div className="bg-white rounded-xl border p-4">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Weight (g)</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          <div className="bg-card rounded-xl border p-4">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Weight (g)</p>
+            <p className="text-2xl font-bold text-foreground mt-1" style={{ fontVariantNumeric: 'tabular-nums' }}>
               {fmtWeight(items.reduce((acc: number, i: any) => acc + Number(i.netWeightG ?? 0), 0))}
             </p>
           </div>
@@ -66,18 +66,18 @@ export default function StockAuditPage() {
       )}
 
       {/* Table */}
-      <div className="bg-white rounded-xl border overflow-hidden">
+      <div className="bg-card rounded-xl border overflow-hidden">
         <div className="overflow-x-auto">
           {isLoading ? (
-            <div className="p-8 text-center text-gray-400">Loading stock data…</div>
+            <div className="p-8 text-center text-muted-foreground/60">Loading stock data…</div>
           ) : (
             <table className="w-full text-sm" style={{ fontVariantNumeric: 'tabular-nums' }}>
-              <thead className="bg-gray-50 border-b">
+              <thead className="bg-muted/50 border-b">
                 <tr>
                   {['SKU', 'Name', 'Category', 'Purity', 'Net Weight (g)', 'Stock Qty', 'Last Movement'].map((h) => (
                     <th
                       key={h}
-                      className={`px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap ${
+                      className={`px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide whitespace-nowrap ${
                         ['Net Weight (g)', 'Stock Qty'].includes(h) ? 'text-right' : 'text-left'
                       }`}
                     >
@@ -90,21 +90,21 @@ export default function StockAuditPage() {
                 {items.map((item: any) => {
                   const isLow = item.stockQty <= 2;
                   return (
-                    <tr key={item.id} className={`hover:bg-gray-50 ${isLow ? 'bg-red-50/40' : ''}`}>
-                      <td className="px-4 py-3 font-mono text-xs text-gray-500">{item.sku}</td>
-                      <td className="px-4 py-3 font-medium text-gray-900">{item.name}</td>
-                      <td className="px-4 py-3 text-gray-500">{item.category?.name ?? '—'}</td>
+                    <tr key={item.id} className={`hover:bg-muted/50 ${isLow ? 'bg-red-50/40' : ''}`}>
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{item.sku}</td>
+                      <td className="px-4 py-3 font-medium text-foreground">{item.name}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{item.category?.name ?? '—'}</td>
                       <td className="px-4 py-3">{PURITY_LABELS[item.purity] ?? item.purity}</td>
                       <td className="px-4 py-3 text-right">{fmtWeight(item.netWeightG)}</td>
                       <td className="px-4 py-3 text-right">
-                        <span className={`font-bold text-base ${isLow ? 'text-red-600' : 'text-gray-900'}`}>
+                        <span className={`font-bold text-base ${isLow ? 'text-red-600' : 'text-foreground'}`}>
                           {item.stockQty}
                         </span>
                         {isLow && (
                           <span className="ml-1.5 text-xs text-red-500 font-medium">low</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                         {fmtDate(item.lastMovement)}
                       </td>
                     </tr>
@@ -112,7 +112,7 @@ export default function StockAuditPage() {
                 })}
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-gray-400">
+                    <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground/60">
                       No inventory data
                     </td>
                   </tr>

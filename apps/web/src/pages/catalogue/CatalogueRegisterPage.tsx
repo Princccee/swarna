@@ -68,10 +68,10 @@ export default function CatalogueRegisterPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 space-y-4"
+          className="bg-card rounded-2xl border border-amber-100 shadow-sm p-6 space-y-4"
         >
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1.5">Full Name</label>
+            <label className="text-sm font-medium text-foreground/80 block mb-1.5">Full Name</label>
             <input
               type="text"
               value={form.name}
@@ -79,50 +79,50 @@ export default function CatalogueRegisterPage() {
               placeholder="Your name"
               required
               autoFocus
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
+              className="w-full px-3 py-2.5 border  rounded-lg text-sm bg-card focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1.5">Phone Number</label>
+            <label className="text-sm font-medium text-foreground/80 block mb-1.5">Phone Number</label>
             <input
               type="tel"
               value={form.phone}
               onChange={set('phone')}
               placeholder="e.g. 9876543210"
               required
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
+              className="w-full px-3 py-2.5 border  rounded-lg text-sm bg-card focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1.5">
+            <label className="text-sm font-medium text-foreground/80 block mb-1.5">
               Email{' '}
-              <span className="text-gray-400 font-normal">(optional)</span>
+              <span className="text-muted-foreground/60 font-normal">(optional)</span>
             </label>
             <input
               type="email"
               value={form.email}
               onChange={set('email')}
               placeholder="you@example.com"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
+              className="w-full px-3 py-2.5 border  rounded-lg text-sm bg-card focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1.5">Password</label>
+            <label className="text-sm font-medium text-foreground/80 block mb-1.5">Password</label>
             <input
               type="password"
               value={form.password}
               onChange={set('password')}
               placeholder="At least 6 characters"
               required
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
+              className="w-full px-3 py-2.5 border  rounded-lg text-sm bg-card focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1.5">
+            <label className="text-sm font-medium text-foreground/80 block mb-1.5">
               Confirm Password
             </label>
             <input
@@ -131,7 +131,7 @@ export default function CatalogueRegisterPage() {
               onChange={set('confirmPassword')}
               placeholder="Re-enter your password"
               required
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
+              className="w-full px-3 py-2.5 border  rounded-lg text-sm bg-card focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
             />
           </div>
 
@@ -150,7 +150,7 @@ export default function CatalogueRegisterPage() {
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-500 mt-5">
+        <p className="text-center text-sm text-muted-foreground mt-5">
           Already have an account?{' '}
           <Link
             to="/catalogue/login"

@@ -41,11 +41,11 @@ const RATE_LABELS: Record<string, string> = {
 const RATE_ORDER = ['GOLD_24K', 'GOLD_22K', 'GOLD_18K', 'SILVER_999'];
 
 const ACTION_COLORS: Record<string, string> = {
-  CREATE: 'bg-emerald-100 text-emerald-700',
-  UPDATE: 'bg-blue-100 text-blue-700',
-  DELETE: 'bg-red-100 text-red-700',
-  LOGIN: 'bg-gray-100 text-gray-600',
-  LOGOUT: 'bg-gray-100 text-gray-600',
+  CREATE: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400',
+  UPDATE: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+  DELETE: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+  LOGIN:  'bg-muted text-muted-foreground',
+  LOGOUT: 'bg-muted text-muted-foreground',
 };
 
 // ── sub-components ────────────────────────────────────────────────────────────
@@ -99,7 +99,7 @@ function StatCard({
 
 function SectionHeader({ title }: { title: string }) {
   return (
-    <h3 className="text-[11px] font-bold uppercase tracking-[0.1em] text-stone-400 mb-3 pb-2 border-b">
+    <h3 className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground/60 mb-3 pb-2 border-b">
       {title}
     </h3>
   );
@@ -183,7 +183,7 @@ export function OwnerDashboard() {
 
       {/* Error state */}
       {isError && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 rounded-xl p-4 text-sm text-red-700 dark:text-red-400">
           Could not load dashboard data. Check your connection and{' '}
           <button onClick={() => refetch()} className="underline font-medium">
             try again
@@ -250,7 +250,7 @@ export function OwnerDashboard() {
                   <div key={event.id ?? i} className="flex items-start gap-3 py-2.5">
                     <span
                       className={`mt-0.5 shrink-0 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${
-                        ACTION_COLORS[event.action] ?? 'bg-gray-100 text-gray-600'
+                        ACTION_COLORS[event.action] ?? 'bg-muted text-muted-foreground'
                       }`}
                     >
                       {event.action}

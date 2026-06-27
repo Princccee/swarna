@@ -7,7 +7,7 @@ export function ThemeToggle() {
     <button
       onClick={toggle}
       title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-      className="text-stone-500 hover:text-amber-400 transition-colors"
+      className="text-muted-foreground hover:text-amber-400 transition-colors"
     >
       {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
     </button>

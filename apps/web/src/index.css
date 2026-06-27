@@ -59,6 +59,13 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+  input, textarea, select {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+  input::placeholder, textarea::placeholder {
+    color: hsl(var(--muted-foreground) / 0.5);
+  }
 
   /* Scrollbar */
   ::-webkit-scrollbar { width: 5px; height: 5px; }
