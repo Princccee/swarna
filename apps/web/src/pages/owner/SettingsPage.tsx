@@ -12,7 +12,7 @@ type SettingsForm = {
   stateCode: string;
   isInterstate: 'false' | 'true';
   wastagePercent: string;
-  bullionFeedUrl: string;
+  goldApiKey: string;
   irnAutoRegister: boolean;
 };
 
@@ -31,7 +31,7 @@ export default function SettingsPage() {
       stateCode: '',
       isInterstate: 'false',
       wastagePercent: '',
-      bullionFeedUrl: '',
+      goldApiKey: '',
       irnAutoRegister: false,
     },
   });
@@ -52,7 +52,7 @@ export default function SettingsPage() {
       stateCode: s.stateCode ?? '',
       isInterstate: s.isInterstate === 'true' ? 'true' : 'false',
       wastagePercent: s.wastagePercent ?? '',
-      bullionFeedUrl: s.bullionFeedUrl ?? '',
+      goldApiKey: s.goldApiKey ?? '',
       irnAutoRegister: s.irnAutoRegister === 'true',
     });
   }, [settingsData, reset]);
@@ -66,7 +66,7 @@ export default function SettingsPage() {
       stateCode: values.stateCode,
       isInterstate: values.isInterstate,
       wastagePercent: values.wastagePercent,
-      bullionFeedUrl: values.bullionFeedUrl,
+      goldApiKey: values.goldApiKey,
       irnAutoRegister: values.irnAutoRegister ? 'true' : 'false',
     };
 
@@ -214,17 +214,19 @@ export default function SettingsPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium" htmlFor="bullionFeedUrl">
-              Bullion Feed URL
+            <label className="text-sm font-medium" htmlFor="goldApiKey">
+              goldapi.io API Key
             </label>
             <input
-              id="bullionFeedUrl"
-              {...register('bullionFeedUrl')}
+              id="goldApiKey"
+              type="password"
+              autoComplete="off"
+              {...register('goldApiKey')}
               className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring font-mono"
-              placeholder="https://feed.example.com/rates"
+              placeholder="goldapi-xxxxxxxxxxxxxxxx"
             />
             <p className="text-xs text-muted-foreground">
-              The endpoint polled for live gold and silver rates.
+              Live gold &amp; silver rates are fetched from goldapi.io every 15 minutes. Leave blank to use mock rates.
             </p>
           </div>
         </section>
