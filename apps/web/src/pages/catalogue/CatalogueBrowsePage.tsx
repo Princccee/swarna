@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../stores/auth.store';
 import { LanguageToggle } from '../../components/shared/LanguageToggle';
+import { CategoryRail } from '../../components/catalogue/CategoryRail';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -136,8 +137,10 @@ function ItemCard({
   onReserve: (item: CatalogueItem) => void;
 }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   return (
     <article
+      onClick={() => navigate(`/catalogue/items/${item.id}`)}
       style={{
         background: '#fff',
         border: '1px solid hsl(214 32% 91%)',
@@ -146,15 +149,18 @@ function ItemCard({
         display: 'flex',
         flexDirection: 'column',
         transition: 'box-shadow 0.18s ease, transform 0.18s ease',
+        cursor: 'pointer',
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLElement).style.boxShadow =
-          '0 6px 24px hsla(38,60%,30%,0.12)';
-        (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+          '0 6px 24px hsla(38,60%,30%,0.15)';
+        (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)';
+        (e.currentTarget as HTMLElement).style.borderColor = 'hsl(38 89% 70%)';
       }}
       onMouseLeave={(e) => {
         (e.currentTarget as HTMLElement).style.boxShadow = 'none';
         (e.currentTarget as HTMLElement).style.transform = 'none';
+        (e.currentTarget as HTMLElement).style.borderColor = 'hsl(214 32% 91%)';
       }}
     >
       {/* Image area */}
@@ -270,7 +276,7 @@ function ItemCard({
         <div style={{ marginTop: 'auto', paddingTop: '12px' }}>
           {isAuthenticated ? (
             <button
-              onClick={() => onReserve(item)}
+              onClick={(e) => { e.stopPropagation(); onReserve(item); }}
               style={{
                 width: '100%',
                 padding: '8px 0',
@@ -295,7 +301,8 @@ function ItemCard({
             </button>
           ) : (
             <Link
-              to="/auth/login"
+              to="/catalogue/login"
+              onClick={(e) => e.stopPropagation()}
               style={{
                 display: 'block',
                 textAlign: 'center',
@@ -381,6 +388,13 @@ export default function CatalogueBrowsePage() {
     setSearchParams(params, { replace: true });
   }, [categoryId, purity, debouncedSearch, page, setSearchParams]);
 
+  const { data: categoriesData } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ['catalogue-categories'],
+    queryFn: () => api.get('/catalogue/categories').then((r: any) => r.data?.categories ?? r.data ?? []),
+    staleTime: 5 * 60 * 1000,
+  });
+  const categories = categoriesData ?? [];
+
   const { data, isLoading, isError } = useQuery<CatalogueItemsResponse>({
     queryKey: ['catalogue-items', categoryId, purity, debouncedSearch, page],
     queryFn: () => {
@@ -395,6 +409,15 @@ export default function CatalogueBrowsePage() {
 
   const items: CatalogueItem[] = data?.items ?? [];
   const meta: Meta | undefined = data?.meta;
+
+  function handleCategoryChange(id: string) {
+    const params: Record<string, string> = {};
+    if (id) params.categoryId = id;
+    if (purity) params.purity = purity;
+    if (debouncedSearch) params.search = debouncedSearch;
+    setSearchParams(params, { replace: true });
+    setPage(1);
+  }
 
   function handleReserve(item: CatalogueItem) {
     // Reservation flow — placeholder for phase implementation
@@ -463,6 +486,19 @@ export default function CatalogueBrowsePage() {
             <LanguageToggle />
           </div>
         </div>
+
+        {/* Category rail — only shown when categories exist */}
+        {categories.length > 0 && (
+          <div style={{ background: '#fff', borderBottom: '1px solid hsl(214 32% 91%)', padding: '0 24px' }}>
+            <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '12px 0' }}>
+              <CategoryRail
+                categories={categories}
+                activeCategoryId={categoryId}
+                onChange={handleCategoryChange}
+              />
+            </div>
+          </div>
+        )}
 
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 24px 0' }}>
           {/* Filter bar */}
