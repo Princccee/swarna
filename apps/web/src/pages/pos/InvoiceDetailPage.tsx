@@ -6,13 +6,14 @@ import { downloadInvoicePdf } from '../../lib/download-pdf';
 import { useAuthStore } from '../../stores/auth.store';
 import { toast } from 'sonner';
 import { Role } from '@svarna/shared-types';
+import { RefreshCw, CheckCircle2 } from 'lucide-react';
 
 const STATUS_STYLES: Record<string, string> = {
   DRAFT: 'bg-muted text-muted-foreground',
-  CONFIRMED: 'bg-blue-100 text-blue-700',
-  IRN_PENDING: 'bg-amber-100 text-amber-700',
-  IRN_REGISTERED: 'bg-green-100 text-green-700',
-  CANCELLED: 'bg-red-100 text-red-600',
+  CONFIRMED: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  IRN_PENDING: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  IRN_REGISTERED: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  CANCELLED: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -49,6 +50,8 @@ export default function InvoiceDetailPage() {
   const [payMode, setPayMode] = useState('CASH');
   const [payNote, setPayNote] = useState('');
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showMarkPaidDialog, setShowMarkPaidDialog] = useState(false);
+  const [markPaidMode, setMarkPaidMode] = useState('CASH');
 
   const { data: invoice, isLoading } = useQuery({
     queryKey: ['invoice', id],
@@ -61,7 +64,9 @@ export default function InvoiceDetailPage() {
     onSuccess: () => {
       toast.success('Payment recorded');
       qc.invalidateQueries({ queryKey: ['invoice', id] });
+      qc.invalidateQueries({ queryKey: ['invoices'] });
       setShowPaymentForm(false);
+      setShowMarkPaidDialog(false);
       setPayAmount('');
       setPayMode('CASH');
       setPayNote('');
@@ -74,9 +79,19 @@ export default function InvoiceDetailPage() {
     onSuccess: () => {
       toast.success('Invoice cancelled');
       qc.invalidateQueries({ queryKey: ['invoice', id] });
+      qc.invalidateQueries({ queryKey: ['invoices'] });
       setShowCancelConfirm(false);
     },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Cancel failed'),
+  });
+
+  const retryIrnMutation = useMutation({
+    mutationFn: () => api.post(`/billing/invoices/${id}/irn`),
+    onSuccess: () => {
+      toast.success('IRN registration queued — status will update shortly');
+      setTimeout(() => qc.invalidateQueries({ queryKey: ['invoice', id] }), 3000);
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? 'IRN retry failed'),
   });
 
   const handleAddPayment = (e: React.FormEvent) => {
@@ -84,6 +99,10 @@ export default function InvoiceDetailPage() {
     const amount = parseFloat(payAmount);
     if (!amount || amount <= 0) { toast.error('Enter a valid amount'); return; }
     addPaymentMutation.mutate({ amount, mode: payMode, note: payNote || undefined });
+  };
+
+  const handleMarkPaid = () => {
+    addPaymentMutation.mutate({ amount: balanceDue, mode: markPaidMode, note: 'Full settlement' });
   };
 
   if (isLoading) return <div className="p-6 text-muted-foreground/60">Loading…</div>;
@@ -94,27 +113,35 @@ export default function InvoiceDetailPage() {
   const gst = invoice.gstBreakdown ?? invoice.taxBreakdown ?? null;
   const isOwner = user?.role === Role.OWNER;
   const canCancel = isOwner && (invoice.status === 'DRAFT' || invoice.status === 'CONFIRMED');
+  const canRetryIrn = isOwner && (invoice.status === 'IRN_PENDING' || invoice.status === 'CONFIRMED');
   const balanceDue = Number(invoice.balanceDue ?? 0);
   const totalPaid = payments.reduce((sum: number, p: any) => sum + Number(p.amount ?? 0), 0);
+  const isFullyPaid = balanceDue <= 0;
+  const canAddPayment = invoice.status !== 'CANCELLED' && !isFullyPaid;
 
   return (
     <div className="p-6 space-y-6 max-w-4xl">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <button
-            onClick={() => navigate('/pos/invoices')}
+            onClick={() => navigate(-1)}
             className="text-xs text-muted-foreground/60 hover:text-foreground/80 mb-2 flex items-center gap-1"
           >
-            ← Invoices
+            ← Back
           </button>
           <h1 className="text-2xl font-bold text-foreground">
             {invoice.invoiceNumber ?? `INV-${id?.slice(0, 8).toUpperCase()}`}
           </h1>
-          <div className="flex items-center gap-3 mt-1">
+          <div className="flex items-center gap-3 mt-1 flex-wrap">
             <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATUS_STYLES[invoice.status] ?? 'bg-muted text-muted-foreground'}`}>
               {STATUS_LABELS[invoice.status] ?? invoice.status}
             </span>
+            {invoice.irn && (
+              <span className="text-xs text-muted-foreground font-mono truncate max-w-[180px]" title={invoice.irn}>
+                IRN: {invoice.irn.slice(0, 16)}…
+              </span>
+            )}
             <span className="text-sm text-muted-foreground/60">
               {invoice.invoiceDate
                 ? new Date(invoice.invoiceDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -122,23 +149,45 @@ export default function InvoiceDetailPage() {
             </span>
           </div>
         </div>
-        <div className="flex gap-2 flex-wrap justify-end">
+
+        <div className="flex gap-2 flex-wrap">
+          {/* IRN Retry */}
+          {canRetryIrn && (
+            <button
+              onClick={() => retryIrnMutation.mutate()}
+              disabled={retryIrnMutation.isPending}
+              className="flex items-center gap-1.5 border border-amber-300 dark:border-amber-700/50 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50 transition-colors"
+            >
+              <RefreshCw size={13} className={retryIrnMutation.isPending ? 'animate-spin' : ''} />
+              {retryIrnMutation.isPending ? 'Queuing…' : 'Retry IRN'}
+            </button>
+          )}
+
           <button
             onClick={() => downloadInvoicePdf(id!, (invoice as any).invoiceNumber)}
-            className="border rounded-lg px-4 py-2 text-sm font-medium text-amber-700 border-amber-200 hover:bg-amber-50"
+            className="border rounded-lg px-4 py-2 text-sm font-medium text-amber-700 border-amber-200 hover:bg-amber-50 dark:hover:bg-amber-900/20"
           >
             View PDF
           </button>
+
           {canCancel && (
             <button
               onClick={() => setShowCancelConfirm(true)}
-              className="border border-red-200 text-red-600 rounded-lg px-4 py-2 text-sm font-medium hover:bg-red-50"
+              className="border border-red-200 text-red-600 rounded-lg px-4 py-2 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20"
             >
               Cancel Invoice
             </button>
           )}
         </div>
       </div>
+
+      {/* Fully paid badge */}
+      {isFullyPaid && invoice.status !== 'CANCELLED' && (
+        <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 rounded-xl px-4 py-3 text-sm text-green-700 dark:text-green-400">
+          <CheckCircle2 size={15} />
+          This invoice is fully paid
+        </div>
+      )}
 
       {/* Customer Info */}
       <div className="bg-card rounded-xl border p-5 space-y-3">
@@ -228,36 +277,82 @@ export default function InvoiceDetailPage() {
           </div>
         </div>
 
-        {/* Balance Summary */}
+        {/* Payment Summary */}
         <div className="bg-card rounded-xl border p-5 space-y-3">
           <h2 className="font-semibold text-foreground/80">Payment Summary</h2>
           <Row label="Grand Total" value={fmt(invoice.totalAmount ?? invoice.grandTotal ?? 0)} />
-          <Row label="Total Paid" value={<span className="text-green-700">{fmt(totalPaid)}</span>} bold />
+          <Row label="Total Paid" value={<span className="text-green-700 dark:text-green-400">{fmt(totalPaid)}</span>} bold />
           <div className="border-t pt-2">
             <Row
               label="Balance Due"
               value={
-                <span className={balanceDue > 0 ? 'text-red-600 text-base font-bold' : 'text-green-700 text-base font-bold'}>
+                <span className={isFullyPaid ? 'text-green-700 dark:text-green-400 text-base font-bold' : 'text-red-600 dark:text-red-400 text-base font-bold'}>
                   {fmt(balanceDue)}
                 </span>
               }
             />
           </div>
-          {invoice.status !== 'CANCELLED' && balanceDue > 0 && !showPaymentForm && (
-            <button
-              onClick={() => setShowPaymentForm(true)}
-              className="mt-2 w-full bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-amber-700"
-            >
-              + Add Payment
-            </button>
+
+          {canAddPayment && !showPaymentForm && !showMarkPaidDialog && (
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => setShowMarkPaidDialog(true)}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-amber-700 transition-colors"
+              >
+                <CheckCircle2 size={14} />
+                Mark as Paid
+              </button>
+              <button
+                onClick={() => setShowPaymentForm(true)}
+                className="flex-1 border rounded-lg px-4 py-2 text-sm font-medium hover:bg-muted/50 transition-colors"
+              >
+                + Partial Payment
+              </button>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Add Payment Form */}
+      {/* Mark as Paid — quick confirm */}
+      {showMarkPaidDialog && (
+        <div className="bg-card rounded-xl border p-5">
+          <h2 className="font-semibold text-foreground/80 mb-1">Mark as Paid</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Record the full outstanding balance of{' '}
+            <span className="font-semibold text-foreground">{fmt(balanceDue)}</span> as received.
+          </p>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">Payment mode</label>
+              <select
+                value={markPaidMode}
+                onChange={(e) => setMarkPaidMode(e.target.value)}
+                className="border rounded-lg px-3 py-2 text-sm"
+              >
+                {PAYMENT_MODES.map((m) => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+            <button
+              onClick={handleMarkPaid}
+              disabled={addPaymentMutation.isPending}
+              className="bg-amber-600 text-white rounded-lg px-5 py-2 text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
+            >
+              {addPaymentMutation.isPending ? 'Recording…' : `Confirm — ${fmt(balanceDue)}`}
+            </button>
+            <button
+              onClick={() => setShowMarkPaidDialog(false)}
+              className="border rounded-lg px-5 py-2 text-sm font-medium hover:bg-muted/50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Partial Payment Form */}
       {showPaymentForm && (
         <div className="bg-card rounded-xl border p-5">
-          <h2 className="font-semibold text-foreground/80 mb-4">Record Payment</h2>
+          <h2 className="font-semibold text-foreground/80 mb-4">Record Partial Payment</h2>
           <form onSubmit={handleAddPayment} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1">
@@ -272,6 +367,7 @@ export default function InvoiceDetailPage() {
                   placeholder={`Max ${fmt(balanceDue)}`}
                   className="w-full border rounded-lg px-3 py-2 text-sm"
                   required
+                  autoFocus
                 />
               </div>
               <div className="space-y-1">
@@ -319,10 +415,10 @@ export default function InvoiceDetailPage() {
       <div className="bg-card rounded-xl border overflow-hidden">
         <div className="px-5 py-4 border-b flex items-center justify-between">
           <h2 className="font-semibold text-foreground/80">Payment History</h2>
-          {invoice.status !== 'CANCELLED' && balanceDue > 0 && !showPaymentForm && (
+          {canAddPayment && !showPaymentForm && !showMarkPaidDialog && (
             <button
               onClick={() => setShowPaymentForm(true)}
-              className="text-xs text-amber-700 hover:text-amber-900 font-medium underline"
+              className="text-xs text-amber-700 dark:text-amber-400 hover:underline font-medium"
             >
               + Add Payment
             </button>
@@ -349,7 +445,7 @@ export default function InvoiceDetailPage() {
                         {p.mode ?? p.paymentMode}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-semibold text-green-700">{fmt(p.amount)}</td>
+                    <td className="px-4 py-3 font-semibold text-green-700 dark:text-green-400">{fmt(p.amount)}</td>
                     <td className="px-4 py-3 text-muted-foreground/60 text-xs">{p.note ?? p.reference ?? '—'}</td>
                   </tr>
                 ))}
@@ -371,7 +467,7 @@ export default function InvoiceDetailPage() {
               <span className="font-mono font-semibold text-foreground">
                 {invoice.invoiceNumber ?? id?.slice(0, 8).toUpperCase()}
               </span>
-              . This action cannot be undone.
+              . Stock will be restored. This cannot be undone.
             </p>
             <div className="flex gap-3">
               <button
