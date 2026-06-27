@@ -2,6 +2,7 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useRateStore } from '../../stores/rate.store';
 import { useAuthStore } from '../../stores/auth.store';
 import { RateTicker } from '../shared/RateTicker';
+import { ThemeToggle } from '../shared/ThemeToggle';
 import { Receipt, History, LogOut } from 'lucide-react';
 
 function useAuth() {
@@ -47,6 +48,7 @@ export function PosLayout() {
               {user.name}
             </span>
           )}
+          <ThemeToggle />
           <button
             onClick={logout}
             title="Sign out"

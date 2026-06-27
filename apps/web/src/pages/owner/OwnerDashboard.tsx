@@ -66,7 +66,9 @@ function StatCard({
   return (
     <div
       className={`rounded-xl border p-5 shadow-sm flex flex-col gap-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${
-        accent ? 'bg-amber-50 border-amber-200' : 'bg-card'
+        accent
+          ? 'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800/30'
+          : 'bg-card'
       }`}
     >
       <div className="flex items-center justify-between">
@@ -75,7 +77,9 @@ function StatCard({
         </p>
         <span
           className={`p-1.5 rounded-lg ${
-            accent ? 'bg-amber-100 text-amber-700' : 'bg-muted text-muted-foreground'
+            accent
+              ? 'bg-amber-100 text-amber-700 dark:bg-amber-800/30 dark:text-amber-400'
+              : 'bg-muted text-muted-foreground'
           }`}
         >
           <Icon size={14} />
@@ -83,7 +87,7 @@ function StatCard({
       </div>
       <p
         className={`text-2xl font-bold tabular-nums leading-none ${
-          accent ? 'text-amber-800' : 'text-foreground'
+          accent ? 'text-amber-800 dark:text-amber-300' : 'text-foreground'
         }`}
       >
         {value}
@@ -126,7 +130,7 @@ function RetryIrnButton({ invoiceId }: { invoiceId: string }) {
     <button
       onClick={() => mutate()}
       disabled={isPending}
-      className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-md border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 disabled:opacity-50 transition-colors"
+      className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-md border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 dark:border-amber-700/50 dark:text-amber-400 dark:bg-amber-900/20 dark:hover:bg-amber-900/40 disabled:opacity-50 transition-colors"
     >
       <RefreshCw size={11} className={isPending ? 'animate-spin' : ''} />
       {isPending ? 'Retrying…' : isError ? 'Retry IRN' : 'Retry IRN'}

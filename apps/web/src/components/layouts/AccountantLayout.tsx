@@ -5,6 +5,7 @@ import {
   Tag, ClipboardList, UserCheck, ShieldCheck, LogOut,
 } from 'lucide-react';
 import { RateTicker } from '../shared/RateTicker';
+import { ThemeToggle } from '../shared/ThemeToggle';
 
 const NAV_LINKS = [
   { to: '/accountant',                   label: 'Dashboard',    icon: LayoutDashboard, end: true  },
@@ -86,13 +87,16 @@ export function AccountantLayout() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 text-[12px] text-stone-600 hover:text-amber-400 transition-colors w-full mt-1"
-            >
-              <LogOut size={13} />
-              Sign out
-            </button>
+            <div className="flex items-center justify-between mt-1">
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 text-[12px] text-stone-600 hover:text-amber-400 transition-colors"
+              >
+                <LogOut size={13} />
+                Sign out
+              </button>
+              <ThemeToggle />
+            </div>
           </div>
         </aside>
 

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { RateTicker } from '@/components/shared/RateTicker';
 import { LowStockAlert } from '@/components/shared/LowStockAlert';
+import { ThemeToggle } from '@/components/shared/ThemeToggle';
 
 const navItems = [
   { to: '/owner/dashboard',            label: 'Dashboard',  icon: LayoutDashboard },
@@ -84,13 +85,16 @@ export function OwnerLayout() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={logout}
-              className="flex items-center gap-2 text-[12px] text-stone-600 hover:text-amber-400 transition-colors w-full mt-1"
-            >
-              <LogOut size={13} />
-              Sign out
-            </button>
+            <div className="flex items-center justify-between mt-1">
+              <button
+                onClick={logout}
+                className="flex items-center gap-2 text-[12px] text-stone-600 hover:text-amber-400 transition-colors"
+              >
+                <LogOut size={13} />
+                Sign out
+              </button>
+              <ThemeToggle />
+            </div>
           </div>
 
         </aside>
