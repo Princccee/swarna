@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { LanguageToggle } from '../../components/shared/LanguageToggle';
@@ -7,6 +7,8 @@ import { LanguageToggle } from '../../components/shared/LanguageToggle';
 export default function CatalogueLoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const sessionExpired = searchParams.get('reason') === 'session_expired';
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -38,6 +40,13 @@ export default function CatalogueLoginPage() {
         <div className="flex justify-end mb-2">
           <LanguageToggle />
         </div>
+
+        {/* Session expired notice */}
+        {sessionExpired && (
+          <div className="mb-4 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm text-center">
+            Your session expired. Please sign in again.
+          </div>
+        )}
 
         {/* Brand */}
         <div className="text-center mb-8">

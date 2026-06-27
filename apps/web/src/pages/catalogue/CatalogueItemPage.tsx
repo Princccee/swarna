@@ -46,6 +46,12 @@ export default function CatalogueItemPage() {
       );
     },
     onSuccess: () => setReserved(true),
+    onError: (err: any) => {
+      if (err?.response?.status === 401) {
+        localStorage.removeItem('catalogue_token');
+        navigate('/catalogue/login?reason=session_expired');
+      }
+    },
   });
 
   const handleReserve = () => {
