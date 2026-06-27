@@ -1,6 +1,7 @@
 {
   "common": {
     "brand": "Svarna Jewels",
+    "all": "All",
     "signIn": "Sign In",
     "login": "Login",
     "browse": "Browse",
