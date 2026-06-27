@@ -1,5 +1,4 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { Prisma } from '@prisma/client';
 import { Metal, Purity } from '@svarna/shared-types';
@@ -9,10 +8,15 @@ import { RateGateway, RateUpdatePayload } from './rate.gateway';
 import { paginationMeta } from '../../common/dto/pagination.dto';
 import { QueryRateHistoryDto } from './dto/query-rate-history.dto';
 
-const RATE_TTL = 600; // 10 minutes
+const RATE_TTL = 900; // 15 minutes
 const RATE_KEY = (metal: string, purity: string) => `rate:${metal}:${purity}`;
+const GOLDAPI_LAST_FETCH_KEY = 'goldapi:last_fetch';
+// Minimum gap between goldapi.io calls — keeps free-tier usage (~100 req/month) within budget
+const GOLDAPI_MIN_INTERVAL_MS = 14 * 60 * 1000;
 
-/** Maps Metal+Purity to approximate base rate in INR/gram (used when feed is unavailable) */
+const GOLDAPI_BASE = 'https://www.goldapi.io/api';
+
+/** Fallback rates in INR/gram used when no live API key is configured */
 const BASE_RATES: Partial<Record<string, number>> = {
   [`${Metal.GOLD}:${Purity.GOLD_24K}`]: 6500,
   [`${Metal.GOLD}:${Purity.GOLD_22K}`]: 5960,
@@ -23,6 +27,18 @@ const BASE_RATES: Partial<Record<string, number>> = {
   [`${Metal.PLATINUM}:${Purity.PLATINUM_950}`]: 3200,
 };
 
+interface GoldApiResponse {
+  metal: string;
+  currency: string;
+  price: number;
+  price_gram_24k: number;
+  price_gram_22k: number;
+  price_gram_21k: number;
+  price_gram_18k: number;
+  price_gram_14k: number;
+  error?: string;
+}
+
 @Injectable()
 export class RateSyncService implements OnModuleInit {
   private readonly logger = new Logger(RateSyncService.name);
@@ -31,7 +47,6 @@ export class RateSyncService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly gateway: RateGateway,
-    private readonly config: ConfigService,
   ) {}
 
   async onModuleInit() {
@@ -60,7 +75,6 @@ export class RateSyncService implements OnModuleInit {
             RATE_TTL,
           );
         } else {
-          // No historical data — write base rate
           const base = BASE_RATES[`${metal}:${purity}`];
           if (base) await this.writeRate(metal as Metal, purity as Purity, base, 'base');
         }
@@ -70,31 +84,76 @@ export class RateSyncService implements OnModuleInit {
     this.logger.log('Redis seeded from DB snapshots');
   }
 
-  /** Cron: fetch bullion rates every 5 minutes */
-  @Cron('*/5 * * * *')
+  /** Cron: sync rates every 15 minutes */
+  @Cron('*/15 * * * *')
   async fetchAndSyncRates() {
-    const feedUrl = this.config.get<string>('app.bullionFeed.url');
-    const apiKey = this.config.get<string>('app.bullionFeed.apiKey');
+    const apiKeyRow = await this.prisma.setting.findUnique({ where: { key: 'goldApiKey' } });
+    const apiKey = apiKeyRow?.value?.trim();
 
-    if (!feedUrl || feedUrl.includes('your-bullion-api')) {
+    if (!apiKey) {
       await this.useMockRates();
       return;
     }
 
+    // Throttle actual goldapi.io HTTP calls to respect the free-tier monthly quota
+    const lastFetch = await this.redis.get(GOLDAPI_LAST_FETCH_KEY);
+    if (lastFetch) {
+      const elapsed = Date.now() - parseInt(lastFetch, 10);
+      if (elapsed < GOLDAPI_MIN_INTERVAL_MS) {
+        this.logger.debug(
+          `goldapi.io: skipping — ${Math.round((GOLDAPI_MIN_INTERVAL_MS - elapsed) / 1000)}s until next allowed call`,
+        );
+        return;
+      }
+    }
+
     try {
-      const headers: Record<string, string> = {};
-      if (apiKey) headers['X-API-Key'] = apiKey;
+      const [gold, silver] = await Promise.all([
+        this.fetchGoldApi('XAU', apiKey),
+        this.fetchGoldApi('XAG', apiKey),
+      ]);
 
-      const res = await fetch(feedUrl, { headers, signal: AbortSignal.timeout(8000) });
-      if (!res.ok) throw new Error(`Feed returned ${res.status}`);
+      const snappedAt = new Date().toISOString();
 
-      const body = await res.json();
-      await this.parseFeedAndWrite(body, feedUrl);
+      if (gold && !gold.error) {
+        await this.writeRate(Metal.GOLD, Purity.GOLD_24K, gold.price_gram_24k, 'goldapi.io', snappedAt);
+        await this.writeRate(Metal.GOLD, Purity.GOLD_22K, gold.price_gram_22k, 'goldapi.io', snappedAt);
+        await this.writeRate(Metal.GOLD, Purity.GOLD_18K, gold.price_gram_18k, 'goldapi.io', snappedAt);
+        await this.writeRate(Metal.GOLD, Purity.GOLD_14K, gold.price_gram_14k, 'goldapi.io', snappedAt);
+        this.logger.log(`goldapi.io: Gold 24K = ₹${gold.price_gram_24k}/g`);
+      }
+
+      if (silver && !silver.error) {
+        // XAG price_gram_24k = fine silver (999) per gram; 925 = sterling silver
+        const silver999 = silver.price_gram_24k;
+        const silver925 = parseFloat((silver999 * 0.925).toFixed(4));
+        await this.writeRate(Metal.SILVER, Purity.SILVER_999, silver999, 'goldapi.io', snappedAt);
+        await this.writeRate(Metal.SILVER, Purity.SILVER_925, silver925, 'goldapi.io', snappedAt);
+        this.logger.log(`goldapi.io: Silver 999 = ₹${silver999}/g`);
+      }
+
+      // Platinum not available on goldapi.io free tier — just refresh the existing TTL
+      await this.refreshSingleTtl(Metal.PLATINUM, Purity.PLATINUM_950);
+
+      await this.redis.set(GOLDAPI_LAST_FETCH_KEY, String(Date.now()), RATE_TTL * 2);
     } catch (err) {
-      this.logger.warn(`Bullion feed unreachable (${(err as Error).message}), keeping last known rates`);
-      // Refresh TTL on existing Redis keys so they don't expire
+      this.logger.warn(`goldapi.io fetch failed (${(err as Error).message}), keeping last known rates`);
       await this.refreshTtls();
     }
+  }
+
+  private async fetchGoldApi(symbol: 'XAU' | 'XAG', apiKey: string): Promise<GoldApiResponse | null> {
+    const res = await fetch(`${GOLDAPI_BASE}/${symbol}/INR`, {
+      headers: { 'x-access-token': apiKey, 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => String(res.status));
+      throw new Error(`${symbol}/INR returned ${res.status}: ${text}`);
+    }
+
+    return res.json() as Promise<GoldApiResponse>;
   }
 
   private async useMockRates() {
@@ -105,29 +164,6 @@ export class RateSyncService implements OnModuleInit {
       // ±0.3% jitter for realistic ticker movement
       const jitter = 1 + (Math.random() * 0.006 - 0.003);
       await this.writeRate(metal, purity, parseFloat((base * jitter).toFixed(4)), 'mock', snappedAt);
-    }
-  }
-
-  private async parseFeedAndWrite(body: unknown, source: string) {
-    // Generic feed parser — extend this for specific providers
-    if (typeof body !== 'object' || body === null) return;
-    const data = body as Record<string, unknown>;
-    const snappedAt = new Date().toISOString();
-
-    // Expected format: { GOLD_24K: 6500.00, GOLD_22K: 5960.00, ... }
-    const mapping: Array<[string, Metal, Purity]> = [
-      ['GOLD_24K', Metal.GOLD, Purity.GOLD_24K],
-      ['GOLD_22K', Metal.GOLD, Purity.GOLD_22K],
-      ['GOLD_18K', Metal.GOLD, Purity.GOLD_18K],
-      ['GOLD_14K', Metal.GOLD, Purity.GOLD_14K],
-      ['SILVER_999', Metal.SILVER, Purity.SILVER_999],
-      ['SILVER_925', Metal.SILVER, Purity.SILVER_925],
-      ['PLATINUM_950', Metal.PLATINUM, Purity.PLATINUM_950],
-    ];
-
-    for (const [field, metal, purity] of mapping) {
-      const rate = parseFloat(String(data[field] ?? 0));
-      if (rate > 0) await this.writeRate(metal, purity, rate, source, snappedAt);
     }
   }
 
@@ -152,6 +188,12 @@ export class RateSyncService implements OnModuleInit {
     });
 
     this.gateway.broadcastRateUpdate(payload);
+  }
+
+  private async refreshSingleTtl(metal: Metal, purity: Purity) {
+    const key = RATE_KEY(metal, purity);
+    const val = await this.redis.get(key);
+    if (val) await this.redis.set(key, val, RATE_TTL);
   }
 
   private async refreshTtls() {
