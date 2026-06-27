@@ -59,20 +59,20 @@ export default function CatalogueItemPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center">
-        <p className="text-amber-700 text-sm">Loading item…</p>
+      <div style={{ minHeight: '100vh', background: '#0c0a08', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: '#c8860a', fontSize: '0.875rem' }}>Loading item…</p>
       </div>
     );
   }
 
   if (isError || !item) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500 font-medium">Item not found.</p>
+      <div style={{ minHeight: '100vh', background: '#0c0a08', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ color: '#f87171', fontWeight: 500 }}>Item not found.</p>
           <button
             onClick={() => navigate('/catalogue/browse')}
-            className="mt-4 text-sm text-amber-700 underline underline-offset-2"
+            style={{ marginTop: '16px', fontSize: '0.875rem', color: '#c8860a', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
           >
             Back to catalogue
           </button>
@@ -85,29 +85,38 @@ export default function CatalogueItemPage() {
   const price = item.indicativePrice ?? item.totalValue ?? null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50">
+    <div style={{ minHeight: '100vh', background: '#0c0a08' }}>
       {/* Top nav */}
-      <header className="bg-card/80 backdrop-blur border-b border-amber-100 sticky top-0 z-10">
+      <header style={{ background: '#181411', borderBottom: '1px solid #2e2720', position: 'sticky', top: 0, zIndex: 10 }}>
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-1.5 text-sm min-w-0">
-            <Link to="/catalogue" className="text-amber-600 hover:text-amber-800 shrink-0">Home</Link>
-            <span className="text-muted-foreground/40">›</span>
+            <Link to="/catalogue" style={{ color: '#c8860a', textDecoration: 'none', flexShrink: 0 }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#e8a030')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#c8860a')}
+            >Home</Link>
+            <span style={{ color: '#3a3228' }}>›</span>
             {item?.category?.name && (
               <>
-                <Link to={`/catalogue/browse?categoryId=${item.category.id}`} className="text-amber-600 hover:text-amber-800 truncate max-w-[100px]">
+                <Link to={`/catalogue/browse?categoryId=${item.category.id}`}
+                  style={{ color: '#c8860a', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100px' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#e8a030')}
+                  onMouseLeave={e => (e.currentTarget.style.color = '#c8860a')}
+                >
                   {item.category.name}
                 </Link>
-                <span className="text-muted-foreground/40">›</span>
+                <span style={{ color: '#3a3228' }}>›</span>
               </>
             )}
-            <span className="text-foreground/70 truncate max-w-[120px] sm:max-w-none">{item?.name ?? '…'}</span>
+            <span style={{ color: '#a08060', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '120px' }}>{item?.name ?? '…'}</span>
           </nav>
-          <div className="flex items-center gap-3 shrink-0">
-            <LanguageToggle />
+          <div className="flex items-center gap-3" style={{ flexShrink: 0 }}>
+            <LanguageToggle dark />
             <button
               onClick={() => navigate('/catalogue/my-orders')}
-              className="text-sm text-amber-700 hover:text-amber-900 transition-colors"
+              style={{ fontSize: '0.875rem', color: '#c8860a', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#e8a030')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#c8860a')}
             >
               My Orders
             </button>
@@ -121,8 +130,13 @@ export default function CatalogueItemPage() {
           <div className="space-y-3">
             {/* Main image — click to open lightbox */}
             <div
-              className="aspect-square rounded-2xl overflow-hidden bg-card border border-amber-100 shadow-sm flex items-center justify-center relative group"
-              style={{ cursor: images.length > 0 ? 'zoom-in' : 'default' }}
+              style={{
+                aspectRatio: '1', borderRadius: '1rem', overflow: 'hidden',
+                background: '#181411', border: '1px solid #2e2720',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                position: 'relative', cursor: images.length > 0 ? 'zoom-in' : 'default',
+              }}
+              className="group"
               onClick={() => images.length > 0 && setLightboxOpen(true)}
             >
               {images.length > 0 ? (
@@ -160,29 +174,31 @@ export default function CatalogueItemPage() {
                   )}
                 </>
               ) : (
-                <div className="flex flex-col items-center gap-3 text-amber-300 select-none">
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', color: '#5a4030', userSelect: 'none' }}>
                   <svg width="72" height="72" viewBox="0 0 72 72" fill="none" stroke="currentColor" strokeWidth="1.2">
                     <rect x="8" y="16" width="56" height="44" rx="4" />
                     <circle cx="28" cy="32" r="5" />
                     <path d="M8 46l14-12 10 10 8-8 14 12" />
                   </svg>
-                  <span className="text-sm font-medium">No image available</span>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>No image available</span>
                 </div>
               )}
             </div>
 
             {/* Thumbnail strip */}
             {images.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-1">
+              <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
                 {images.map((src, i) => (
                   <button
                     key={i}
                     onClick={() => setActiveImage(i)}
-                    className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
-                      i === activeImage ? 'border-amber-500' : 'border-transparent hover:border-amber-200'
-                    }`}
+                    style={{
+                      flexShrink: 0, width: '64px', height: '64px', borderRadius: '8px', overflow: 'hidden',
+                      border: `2px solid ${i === activeImage ? '#c8860a' : '#2e2720'}`,
+                      padding: 0, cursor: 'pointer', transition: 'border-color 0.15s',
+                    }}
                   >
-                    <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
+                    <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
                   </button>
                 ))}
               </div>
@@ -190,22 +206,22 @@ export default function CatalogueItemPage() {
           </div>
 
           {/* Item info */}
-          <div className="space-y-6">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {/* Name & category */}
             <div>
               {item.category?.name && (
-                <p className="text-xs font-semibold tracking-widest text-amber-600 uppercase mb-2">
+                <p style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.1em', color: '#c8860a', textTransform: 'uppercase', marginBottom: '8px', margin: '0 0 8px' }}>
                   {item.category.name}
                 </p>
               )}
-              <h1 className="text-2xl font-bold text-foreground leading-snug">{item.name}</h1>
+              <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ede0c8', lineHeight: 1.3, margin: '0 0 4px' }}>{item.name}</h1>
               {item.sku && (
-                <p className="text-xs text-muted-foreground/60 font-mono mt-1">{item.sku}</p>
+                <p style={{ fontSize: '0.75rem', color: '#5a4a38', fontFamily: 'monospace', margin: 0 }}>{item.sku}</p>
               )}
             </div>
 
             {/* Specs */}
-            <div className="bg-card rounded-xl border border-amber-100 divide-y divide-amber-50">
+            <div style={{ background: '#181411', borderRadius: '12px', border: '1px solid #2e2720', overflow: 'hidden' }}>
               <SpecRow label="Purity" value={PURITY_LABELS[item.purity] ?? item.purity ?? '—'} />
               <SpecRow
                 label="Gross Weight"
@@ -215,8 +231,8 @@ export default function CatalogueItemPage() {
                 label="Net Weight"
                 value={item.netWeightG ? `${Number(item.netWeightG).toFixed(3)} g` : '—'}
               />
-              <div className="px-4 py-3 flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">HUID</span>
+              <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #2e2720' }}>
+                <span style={{ fontSize: '0.875rem', color: '#7a6a55' }}>HUID</span>
                 <HuidBadge huid={item.huid} />
               </div>
             </div>
@@ -281,22 +297,13 @@ export default function CatalogueItemPage() {
 
             {/* Reserve button */}
             {reserved ? (
-              <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-5 py-4">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  stroke="#16a34a"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#0d1f12', border: '1px solid #1a4a28', borderRadius: '12px', padding: '16px 20px' }}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M4 10l4.5 4.5L16 6" />
                 </svg>
                 <div>
-                  <p className="font-semibold text-green-800">Reserved!</p>
-                  <p className="text-xs text-green-600 mt-0.5">
+                  <p style={{ fontWeight: 600, color: '#4ade80', margin: '0 0 2px' }}>Reserved!</p>
+                  <p style={{ fontSize: '0.75rem', color: '#3ab060', margin: 0 }}>
                     We'll hold this item for you. Our team will reach out shortly.
                   </p>
                 </div>
@@ -305,19 +312,26 @@ export default function CatalogueItemPage() {
               <button
                 onClick={handleReserve}
                 disabled={reserveMutation.isPending}
-                className="w-full bg-amber-700 hover:bg-amber-800 disabled:opacity-60 text-white font-semibold py-3.5 rounded-xl transition-colors text-sm tracking-wide"
+                style={{
+                  width: '100%', background: '#c8860a', color: '#fff', border: 'none',
+                  fontWeight: 600, padding: '14px 0', borderRadius: '12px',
+                  fontSize: '0.875rem', letterSpacing: '0.05em', cursor: reserveMutation.isPending ? 'not-allowed' : 'pointer',
+                  opacity: reserveMutation.isPending ? 0.6 : 1, transition: 'background 0.15s',
+                }}
+                onMouseEnter={e => { if (!reserveMutation.isPending) (e.currentTarget.style.background = '#a86e08'); }}
+                onMouseLeave={e => (e.currentTarget.style.background = '#c8860a')}
               >
                 {reserveMutation.isPending ? 'Reserving…' : 'Reserve This Item'}
               </button>
             )}
 
             {reserveMutation.isError && (
-              <p className="text-sm text-red-500 text-center">
+              <p style={{ fontSize: '0.875rem', color: '#f87171', textAlign: 'center', margin: 0 }}>
                 {(reserveMutation.error as any)?.response?.data?.message ?? 'Something went wrong. Please try again.'}
               </p>
             )}
 
-            <p className="text-xs text-muted-foreground/60 text-center leading-relaxed">
+            <p style={{ fontSize: '0.75rem', color: '#4a3a2a', textAlign: 'center', lineHeight: 1.6, margin: 0 }}>
               Reservations hold the item for 48 hours. Price shown is indicative and may vary at billing.
             </p>
           </div>
@@ -338,18 +352,18 @@ export default function CatalogueItemPage() {
 
 function SpecRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="px-4 py-3 flex justify-between items-center">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-medium text-foreground">{value}</span>
+    <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #2e2720' }}>
+      <span style={{ fontSize: '0.875rem', color: '#7a6a55' }}>{label}</span>
+      <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#ede0c8' }}>{value}</span>
     </div>
   );
 }
 
 function BreakdownRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between">
+    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
       <span>{label}</span>
-      <span className="font-medium tabular-nums">{value}</span>
+      <span style={{ fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
     </div>
   );
 }
