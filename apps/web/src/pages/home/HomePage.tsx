@@ -409,10 +409,22 @@ export default function HomePage() {
           <h1 className="hp-gold-text" style={{
             fontSize: 'clamp(3.5rem, 14vw, 9rem)', fontWeight: 800,
             letterSpacing: '-0.02em', lineHeight: 0.9,
-            marginBottom: '0.3rem',
+            marginBottom: '0.5rem',
           }}>
             SVARNA
           </h1>
+
+          {/* Hindi wordmark */}
+          <p style={{
+            fontFamily: "'Noto Serif Devanagari', 'Mangal', 'Kokila', serif",
+            fontSize: 'clamp(1.4rem, 4vw, 2.4rem)', fontWeight: 400,
+            color: GOLD, opacity: 0.72, letterSpacing: '0.12em',
+            marginBottom: '0.6rem',
+            animation: 'hp-shimmer 4s ease-in-out infinite',
+          }}>
+            स्वर्ण
+          </p>
+
           <p style={{
             fontSize: 'clamp(0.9rem, 3vw, 1.4rem)', letterSpacing: '0.55em',
             color: 'rgba(245,230,200,0.6)', textTransform: 'uppercase',
