@@ -51,7 +51,7 @@ export default function CategoriesPage() {
 
       {/* Create form */}
       <form onSubmit={handleSubmit((d) => { createMutation.mutate(d); reset(); })}
-        className="bg-white rounded-xl border p-5 space-y-3">
+        className="bg-card rounded-xl border p-5 space-y-3">
         <h2 className="font-semibold">Add Category</h2>
         <div className="flex gap-3">
           <input {...register('name')} placeholder="Category name" className="flex-1 border rounded-lg px-3 py-2 text-sm" />
@@ -65,8 +65,8 @@ export default function CategoriesPage() {
       </form>
 
       {/* Category list */}
-      <div className="bg-white rounded-xl border divide-y">
-        {isLoading && <div className="p-4 text-gray-400">Loading…</div>}
+      <div className="bg-card rounded-xl border divide-y">
+        {isLoading && <div className="p-4 text-muted-foreground/60">Loading…</div>}
         {categories.map((cat: any) => (
           <div key={cat.id} className="p-4 flex items-center justify-between">
             {editing === cat.id ? (
@@ -79,10 +79,10 @@ export default function CategoriesPage() {
               <>
                 <div>
                   <p className="font-medium">{cat.name}</p>
-                  <p className="text-xs text-gray-400">{cat.slug} · {cat._count?.items ?? 0} items</p>
+                  <p className="text-xs text-muted-foreground/60">{cat.slug} · {cat._count?.items ?? 0} items</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {!cat.visible && <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">Hidden</span>}
+                  {!cat.visible && <span className="text-xs text-muted-foreground/60 bg-muted px-2 py-0.5 rounded">Hidden</span>}
                   <button onClick={() => setEditing(cat.id)} className="text-sm text-amber-600 hover:underline">Edit</button>
                   <button onClick={() => deleteMutation.mutate(cat.id)} className="text-sm text-red-500 hover:underline">Delete</button>
                 </div>
@@ -91,7 +91,7 @@ export default function CategoriesPage() {
           </div>
         ))}
         {!isLoading && categories.length === 0 && (
-          <div className="p-4 text-gray-400 text-sm">No categories yet</div>
+          <div className="p-4 text-muted-foreground/60 text-sm">No categories yet</div>
         )}
       </div>
     </div>
@@ -106,7 +106,7 @@ function EditForm({ cat, onSave, onCancel }: { cat: any; onSave: (d: any) => voi
       <input {...register('sortOrder')} type="number" className="w-16 border rounded px-2 py-1 text-sm" />
       <label className="text-sm flex items-center gap-1"><input type="checkbox" {...register('visible')} /> Visible</label>
       <button type="submit" className="text-sm text-amber-600">Save</button>
-      <button type="button" onClick={onCancel} className="text-sm text-gray-400">Cancel</button>
+      <button type="button" onClick={onCancel} className="text-sm text-muted-foreground/60">Cancel</button>
     </form>
   );
 }

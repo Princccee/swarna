@@ -36,7 +36,7 @@ export default {
           foreground: 'hsl(var(--accent-foreground))',
         },
         gold: {
-          50: '#fdf9e7',
+          50:  '#fdf9e7',
           100: '#faf0c0',
           200: '#f5e07d',
           300: '#efc940',
@@ -52,6 +52,30 @@ export default {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+      },
+      keyframes: {
+        'fade-in': {
+          '0%':   { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'slide-in': {
+          '0%':   { opacity: '0', transform: 'translateX(-10px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+        'ticker': {
+          '0%':   { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
+        'live-pulse': {
+          '0%, 100%': { opacity: '1' },
+          '50%':      { opacity: '0.3' },
+        },
+      },
+      animation: {
+        'fade-in':    'fade-in 0.4s cubic-bezier(.22,1,.36,1) both',
+        'slide-in':   'slide-in 0.3s cubic-bezier(.22,1,.36,1) both',
+        'ticker':     'ticker 28s linear infinite',
+        'live-pulse': 'live-pulse 1.8s ease-in-out infinite',
       },
     },
   },

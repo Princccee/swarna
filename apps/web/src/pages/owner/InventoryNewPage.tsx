@@ -51,7 +51,7 @@ export default function InventoryNewPage() {
   return (
     <div className="p-6 max-w-2xl">
       <h1 className="text-2xl font-bold mb-6">Add New Item</h1>
-      <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="bg-white rounded-xl border p-6 space-y-4">
+      <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="bg-card rounded-xl border p-6 space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1">Category <span className="text-red-500">*</span></label>
           <select {...register('categoryId')} className="w-full border rounded-lg px-3 py-2 text-sm">

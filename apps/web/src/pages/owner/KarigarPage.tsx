@@ -38,22 +38,22 @@ export default function KarigarPage() {
     <div className="p-6 space-y-8">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Karigar Ledger</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
+        <h1 className="text-2xl font-bold text-foreground">Karigar Ledger</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
           Metal issued and returned across all karigar accounts
         </p>
       </div>
 
       {/* ── Section 1: Balance cards ── */}
       <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
           Outstanding Balances
         </h2>
 
         {balanceLoading ? (
-          <div className="py-8 text-center text-gray-400 text-sm">Loading balances…</div>
+          <div className="py-8 text-center text-muted-foreground/60 text-sm">Loading balances…</div>
         ) : balances.length === 0 ? (
-          <div className="py-8 text-center text-gray-400 text-sm">No karigar records found.</div>
+          <div className="py-8 text-center text-muted-foreground/60 text-sm">No karigar records found.</div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {balances.map((k: any) => {
@@ -62,27 +62,27 @@ export default function KarigarPage() {
               return (
                 <div
                   key={k.karigarId ?? k.karigarName}
-                  className="bg-white border rounded-xl p-5 shadow-sm flex flex-col gap-3"
+                  className="bg-card border rounded-xl p-5 shadow-sm flex flex-col gap-3"
                 >
-                  <p className="font-semibold text-gray-900 truncate">{k.karigarName ?? k.name}</p>
+                  <p className="font-semibold text-foreground truncate">{k.karigarName ?? k.name}</p>
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <div>
-                      <p className="text-xs text-gray-400 mb-0.5">Issued</p>
-                      <p className="text-sm font-medium tabular-nums text-gray-700">
+                      <p className="text-xs text-muted-foreground/60 mb-0.5">Issued</p>
+                      <p className="text-sm font-medium tabular-nums text-foreground/80">
                         {formatWeight(k.issuedG)} g
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400 mb-0.5">Returned</p>
-                      <p className="text-sm font-medium tabular-nums text-gray-700">
+                      <p className="text-xs text-muted-foreground/60 mb-0.5">Returned</p>
+                      <p className="text-sm font-medium tabular-nums text-foreground/80">
                         {formatWeight(k.returnedG)} g
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400 mb-0.5">Balance</p>
+                      <p className="text-xs text-muted-foreground/60 mb-0.5">Balance</p>
                       <p
                         className={`text-sm font-bold tabular-nums ${
-                          hasBalance ? 'text-amber-600' : 'text-gray-500'
+                          hasBalance ? 'text-amber-600' : 'text-muted-foreground'
                         }`}
                       >
                         {formatWeight(balance)} g
@@ -98,17 +98,17 @@ export default function KarigarPage() {
 
       {/* ── Section 2: Full ledger table ── */}
       <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
           Transaction Ledger
         </h2>
 
-        <div className="bg-white border rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             {ledgerLoading ? (
-              <div className="py-10 text-center text-gray-400 text-sm">Loading ledger…</div>
+              <div className="py-10 text-center text-muted-foreground/60 text-sm">Loading ledger…</div>
             ) : (
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b">
+                <thead className="bg-muted/50 border-b">
                   <tr>
                     {[
                       'Date',
@@ -121,7 +121,7 @@ export default function KarigarPage() {
                     ].map((h) => (
                       <th
                         key={h}
-                        className="px-4 py-3 text-left font-medium text-gray-600 whitespace-nowrap"
+                        className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap"
                       >
                         {h}
                       </th>
@@ -132,14 +132,14 @@ export default function KarigarPage() {
                   {entries.map((row: any, idx: number) => {
                     const isIssued = row.type === 'ISSUED';
                     return (
-                      <tr key={row.id ?? idx} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-gray-500 whitespace-nowrap tabular-nums">
+                      <tr key={row.id ?? idx} className="hover:bg-muted/50">
+                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap tabular-nums">
                           {formatDate(row.date ?? row.createdAt)}
                         </td>
-                        <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
+                        <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">
                           {row.karigarName ?? row.karigar?.name ?? '—'}
                         </td>
-                        <td className="px-4 py-3 font-mono text-xs text-gray-500 whitespace-nowrap">
+                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground whitespace-nowrap">
                           {row.orderNumber ?? row.order?.orderNumber ?? '—'}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
@@ -153,13 +153,13 @@ export default function KarigarPage() {
                             {row.type}
                           </span>
                         </td>
-                        <td className="px-4 py-3 tabular-nums text-gray-700 whitespace-nowrap">
+                        <td className="px-4 py-3 tabular-nums text-foreground/80 whitespace-nowrap">
                           {formatWeight(row.weightG)} g
                         </td>
-                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                        <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                           {row.metal ?? '—'}
                         </td>
-                        <td className="px-4 py-3 text-gray-500 max-w-xs truncate">
+                        <td className="px-4 py-3 text-muted-foreground max-w-xs truncate">
                           {row.notes ?? '—'}
                         </td>
                       </tr>
@@ -169,7 +169,7 @@ export default function KarigarPage() {
                     <tr>
                       <td
                         colSpan={7}
-                        className="px-4 py-10 text-center text-gray-400"
+                        className="px-4 py-10 text-center text-muted-foreground/60"
                       >
                         No ledger entries found.
                       </td>
@@ -184,7 +184,7 @@ export default function KarigarPage() {
         {/* Pagination */}
         {meta && meta.totalPages > 1 && (
           <div className="flex items-center justify-between text-sm mt-3">
-            <span className="text-gray-500">
+            <span className="text-muted-foreground">
               Showing {(page - 1) * 20 + 1}–{Math.min(page * 20, meta.total)} of{' '}
               {meta.total}
             </span>
@@ -192,14 +192,14 @@ export default function KarigarPage() {
               <button
                 onClick={() => setPage((p) => p - 1)}
                 disabled={page === 1}
-                className="px-3 py-1 border rounded disabled:opacity-40 hover:bg-gray-50"
+                className="px-3 py-1 border rounded disabled:opacity-40 hover:bg-muted/50"
               >
                 Prev
               </button>
               <button
                 onClick={() => setPage((p) => p + 1)}
                 disabled={page >= meta.totalPages}
-                className="px-3 py-1 border rounded disabled:opacity-40 hover:bg-gray-50"
+                className="px-3 py-1 border rounded disabled:opacity-40 hover:bg-muted/50"
               >
                 Next
               </button>

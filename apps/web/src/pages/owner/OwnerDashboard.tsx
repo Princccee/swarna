@@ -41,11 +41,11 @@ const RATE_LABELS: Record<string, string> = {
 const RATE_ORDER = ['GOLD_24K', 'GOLD_22K', 'GOLD_18K', 'SILVER_999'];
 
 const ACTION_COLORS: Record<string, string> = {
-  CREATE: 'bg-emerald-100 text-emerald-700',
-  UPDATE: 'bg-blue-100 text-blue-700',
-  DELETE: 'bg-red-100 text-red-700',
-  LOGIN: 'bg-gray-100 text-gray-600',
-  LOGOUT: 'bg-gray-100 text-gray-600',
+  CREATE: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400',
+  UPDATE: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+  DELETE: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+  LOGIN:  'bg-muted text-muted-foreground',
+  LOGOUT: 'bg-muted text-muted-foreground',
 };
 
 // ── sub-components ────────────────────────────────────────────────────────────
@@ -65,8 +65,10 @@ function StatCard({
 }) {
   return (
     <div
-      className={`rounded-xl border p-5 shadow-sm flex flex-col gap-3 ${
-        accent ? 'bg-amber-50 border-amber-200' : 'bg-card'
+      className={`rounded-xl border p-5 shadow-sm flex flex-col gap-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${
+        accent
+          ? 'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800/30'
+          : 'bg-card'
       }`}
     >
       <div className="flex items-center justify-between">
@@ -75,7 +77,9 @@ function StatCard({
         </p>
         <span
           className={`p-1.5 rounded-lg ${
-            accent ? 'bg-amber-100 text-amber-700' : 'bg-muted text-muted-foreground'
+            accent
+              ? 'bg-amber-100 text-amber-700 dark:bg-amber-800/30 dark:text-amber-400'
+              : 'bg-muted text-muted-foreground'
           }`}
         >
           <Icon size={14} />
@@ -83,7 +87,7 @@ function StatCard({
       </div>
       <p
         className={`text-2xl font-bold tabular-nums leading-none ${
-          accent ? 'text-amber-800' : 'text-foreground'
+          accent ? 'text-amber-800 dark:text-amber-300' : 'text-foreground'
         }`}
       >
         {value}
@@ -95,12 +99,14 @@ function StatCard({
 
 function SectionHeader({ title }: { title: string }) {
   return (
-    <h3 className="text-sm font-semibold text-foreground mb-3 pb-2 border-b">{title}</h3>
+    <h3 className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground/60 mb-3 pb-2 border-b">
+      {title}
+    </h3>
   );
 }
 
 function SkeletonLine({ w = 'w-full' }: { w?: string }) {
-  return <div className={`h-4 rounded bg-muted animate-pulse ${w}`} />;
+  return <div className={`h-4 skeleton ${w}`} />;
 }
 
 // ── IRN Retry button ──────────────────────────────────────────────────────────
@@ -124,7 +130,7 @@ function RetryIrnButton({ invoiceId }: { invoiceId: string }) {
     <button
       onClick={() => mutate()}
       disabled={isPending}
-      className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-md border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 disabled:opacity-50 transition-colors"
+      className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-md border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 dark:border-amber-700/50 dark:text-amber-400 dark:bg-amber-900/20 dark:hover:bg-amber-900/40 disabled:opacity-50 transition-colors"
     >
       <RefreshCw size={11} className={isPending ? 'animate-spin' : ''} />
       {isPending ? 'Retrying…' : isError ? 'Retry IRN' : 'Retry IRN'}
@@ -177,7 +183,7 @@ export function OwnerDashboard() {
 
       {/* Error state */}
       {isError && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/30 rounded-xl p-4 text-sm text-red-700 dark:text-red-400">
           Could not load dashboard data. Check your connection and{' '}
           <button onClick={() => refetch()} className="underline font-medium">
             try again
@@ -198,31 +204,20 @@ export function OwnerDashboard() {
           ))
         ) : (
           <>
-            <StatCard
-              label="Today's Sales"
-              value={formatRupees(todaySalesAmount)}
-              sub={`${todaySalesCount} invoice${todaySalesCount !== 1 ? 's' : ''} today`}
-              icon={TrendingUp}
-              accent
-            />
-            <StatCard
-              label="Outstanding Dues"
-              value={formatRupees(outstandingDues)}
-              sub="Sum of all balance due"
-              icon={AlertTriangle}
-            />
-            <StatCard
-              label="Pending Orders"
-              value={pendingOrders}
-              sub="Confirmed · Making · Ready"
-              icon={ShoppingBag}
-            />
-            <StatCard
-              label="Low Stock Items"
-              value={lowStockCount}
-              sub="Items at or below threshold"
-              icon={Package}
-            />
+            {[
+              { label: "Today's Sales", value: formatRupees(todaySalesAmount), sub: `${todaySalesCount} invoice${todaySalesCount !== 1 ? 's' : ''} today`, icon: TrendingUp, accent: true },
+              { label: 'Outstanding Dues', value: formatRupees(outstandingDues), sub: 'Sum of all balance due', icon: AlertTriangle, accent: false },
+              { label: 'Pending Orders', value: pendingOrders, sub: 'Confirmed · Making · Ready', icon: ShoppingBag, accent: false },
+              { label: 'Low Stock Items', value: lowStockCount, sub: 'Items at or below threshold', icon: Package, accent: false },
+            ].map((card, i) => (
+              <div
+                key={card.label}
+                className="animate-fade-in"
+                style={{ animationDelay: `${i * 80}ms` }}
+              >
+                <StatCard {...card} />
+              </div>
+            ))}
           </>
         )}
       </div>
@@ -255,7 +250,7 @@ export function OwnerDashboard() {
                   <div key={event.id ?? i} className="flex items-start gap-3 py-2.5">
                     <span
                       className={`mt-0.5 shrink-0 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${
-                        ACTION_COLORS[event.action] ?? 'bg-gray-100 text-gray-600'
+                        ACTION_COLORS[event.action] ?? 'bg-muted text-muted-foreground'
                       }`}
                     >
                       {event.action}

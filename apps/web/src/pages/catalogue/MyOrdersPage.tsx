@@ -7,13 +7,13 @@ const STATUS_STYLES: Record<string, string> = {
   CONFIRMED: 'bg-blue-100 text-blue-700',
   IN_PROGRESS: 'bg-purple-100 text-purple-700',
   READY: 'bg-green-100 text-green-700',
-  DELIVERED: 'bg-gray-100 text-gray-600',
+  DELIVERED: 'bg-muted text-muted-foreground',
   CANCELLED: 'bg-red-100 text-red-600',
 };
 
 function StatusBadge({ status }: { status: string }) {
   const label = status.replace(/_/g, ' ');
-  const cls = STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-600';
+  const cls = STATUS_STYLES[status] ?? 'bg-muted text-muted-foreground';
   return (
     <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${cls}`}>
       {label}
@@ -43,8 +43,8 @@ export default function MyOrdersPage() {
       <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center px-4">
         <div className="text-center">
           <div className="text-4xl mb-4">🔒</div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Sign in to view your orders</h2>
-          <p className="text-gray-500 text-sm mb-6 max-w-xs mx-auto">
+          <h2 className="text-xl font-bold text-foreground mb-2">Sign in to view your orders</h2>
+          <p className="text-muted-foreground text-sm mb-6 max-w-xs mx-auto">
             You need to be logged in to see your reservations and order history.
           </p>
           <Link
@@ -53,7 +53,7 @@ export default function MyOrdersPage() {
           >
             Sign In
           </Link>
-          <p className="mt-4 text-sm text-gray-400">
+          <p className="mt-4 text-sm text-muted-foreground/60">
             No account?{' '}
             <Link
               to="/catalogue/register"
@@ -70,7 +70,7 @@ export default function MyOrdersPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50">
       {/* Top nav */}
-      <header className="bg-white/80 backdrop-blur border-b border-amber-100 sticky top-0 z-10">
+      <header className="bg-card/80 backdrop-blur border-b border-amber-100 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <button
             onClick={() => navigate('/catalogue/browse')}
@@ -96,7 +96,7 @@ export default function MyOrdersPage() {
               localStorage.removeItem('catalogue_token');
               navigate('/catalogue/login');
             }}
-            className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+            className="text-sm text-muted-foreground hover:text-foreground/80 transition-colors"
           >
             Sign out
           </button>
@@ -104,7 +104,7 @@ export default function MyOrdersPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">My Orders</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-6">My Orders</h1>
 
         {isLoading && (
           <div className="text-center py-16 text-amber-700 text-sm">Loading your orders…</div>
@@ -113,15 +113,15 @@ export default function MyOrdersPage() {
         {isError && (
           <div className="text-center py-16">
             <p className="text-red-500 font-medium mb-2">Could not load orders.</p>
-            <p className="text-gray-400 text-sm">Please check your connection and try again.</p>
+            <p className="text-muted-foreground/60 text-sm">Please check your connection and try again.</p>
           </div>
         )}
 
         {!isLoading && !isError && orders.length === 0 && (
           <div className="text-center py-16">
             <div className="text-5xl mb-4">📋</div>
-            <p className="text-gray-600 font-medium">No orders yet</p>
-            <p className="text-gray-400 text-sm mt-2 mb-6">
+            <p className="text-muted-foreground font-medium">No orders yet</p>
+            <p className="text-muted-foreground/60 text-sm mt-2 mb-6">
               Browse our collection and reserve an item to get started.
             </p>
             <Link
@@ -136,7 +136,7 @@ export default function MyOrdersPage() {
         {!isLoading && !isError && orders.length > 0 && (
           <>
             {/* Desktop table */}
-            <div className="hidden md:block bg-white rounded-2xl border border-amber-100 shadow-sm overflow-hidden">
+            <div className="hidden md:block bg-card rounded-2xl border border-amber-100 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-amber-50 border-b border-amber-100">
@@ -156,16 +156,16 @@ export default function MyOrdersPage() {
                   <tbody className="divide-y divide-amber-50">
                     {orders.map((order: any) => (
                       <tr key={order.id} className="hover:bg-amber-50/50 transition-colors">
-                        <td className="px-4 py-3.5 font-mono text-gray-700 whitespace-nowrap">
+                        <td className="px-4 py-3.5 font-mono text-foreground/80 whitespace-nowrap">
                           #{order.orderNumber ?? order.id?.slice(0, 8).toUpperCase()}
                         </td>
-                        <td className="px-4 py-3.5 text-gray-600 capitalize whitespace-nowrap">
+                        <td className="px-4 py-3.5 text-muted-foreground capitalize whitespace-nowrap">
                           {order.type?.replace(/_/g, ' ').toLowerCase() ?? '—'}
                         </td>
                         <td className="px-4 py-3.5 whitespace-nowrap">
                           <StatusBadge status={order.status ?? 'PENDING'} />
                         </td>
-                        <td className="px-4 py-3.5 text-gray-500 whitespace-nowrap tabular-nums">
+                        <td className="px-4 py-3.5 text-muted-foreground whitespace-nowrap tabular-nums">
                           {order.expectedReadyDate
                             ? new Date(order.expectedReadyDate).toLocaleDateString('en-IN', {
                                 day: 'numeric',
@@ -174,7 +174,7 @@ export default function MyOrdersPage() {
                               })
                             : '—'}
                         </td>
-                        <td className="px-4 py-3.5 text-gray-700 font-medium tabular-nums whitespace-nowrap">
+                        <td className="px-4 py-3.5 text-foreground/80 font-medium tabular-nums whitespace-nowrap">
                           {order.estimatedValue != null
                             ? `₹${Number(order.estimatedValue).toLocaleString('en-IN')}`
                             : '—'}
@@ -193,7 +193,7 @@ export default function MyOrdersPage() {
                                 : 'Paid'}
                             </span>
                           ) : (
-                            <span className="text-gray-400">—</span>
+                            <span className="text-muted-foreground/60">—</span>
                           )}
                         </td>
                       </tr>
@@ -208,26 +208,26 @@ export default function MyOrdersPage() {
               {orders.map((order: any) => (
                 <div
                   key={order.id}
-                  className="bg-white rounded-xl border border-amber-100 shadow-sm p-4 space-y-3"
+                  className="bg-card rounded-xl border border-amber-100 shadow-sm p-4 space-y-3"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-sm text-gray-700 font-semibold">
+                    <span className="font-mono text-sm text-foreground/80 font-semibold">
                       #{order.orderNumber ?? order.id?.slice(0, 8).toUpperCase()}
                     </span>
                     <StatusBadge status={order.status ?? 'PENDING'} />
                   </div>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                     <div>
-                      <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Type</p>
-                      <p className="text-gray-700 capitalize">
+                      <p className="text-xs text-muted-foreground/60 uppercase tracking-wide mb-0.5">Type</p>
+                      <p className="text-foreground/80 capitalize">
                         {order.type?.replace(/_/g, ' ').toLowerCase() ?? '—'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">
+                      <p className="text-xs text-muted-foreground/60 uppercase tracking-wide mb-0.5">
                         Expected Ready
                       </p>
-                      <p className="text-gray-700">
+                      <p className="text-foreground/80">
                         {order.expectedReadyDate
                           ? new Date(order.expectedReadyDate).toLocaleDateString('en-IN', {
                               day: 'numeric',
@@ -237,17 +237,17 @@ export default function MyOrdersPage() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">
+                      <p className="text-xs text-muted-foreground/60 uppercase tracking-wide mb-0.5">
                         Est. Value
                       </p>
-                      <p className="text-gray-700 font-medium tabular-nums">
+                      <p className="text-foreground/80 font-medium tabular-nums">
                         {order.estimatedValue != null
                           ? `₹${Number(order.estimatedValue).toLocaleString('en-IN')}`
                           : '—'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">
+                      <p className="text-xs text-muted-foreground/60 uppercase tracking-wide mb-0.5">
                         Balance Due
                       </p>
                       <p className="tabular-nums">
@@ -264,7 +264,7 @@ export default function MyOrdersPage() {
                               : 'Paid'}
                           </span>
                         ) : (
-                          <span className="text-gray-400">—</span>
+                          <span className="text-muted-foreground/60">—</span>
                         )}
                       </p>
                     </div>

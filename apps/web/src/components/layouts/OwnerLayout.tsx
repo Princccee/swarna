@@ -6,17 +6,18 @@ import {
 } from 'lucide-react';
 import { RateTicker } from '@/components/shared/RateTicker';
 import { LowStockAlert } from '@/components/shared/LowStockAlert';
+import { ThemeToggle } from '@/components/shared/ThemeToggle';
 
 const navItems = [
-  { to: '/owner/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/pos', label: 'POS', icon: MonitorSmartphone },
-  { to: '/owner/inventory', label: 'Inventory', icon: Package, badge: <LowStockAlert /> },
+  { to: '/owner/dashboard',            label: 'Dashboard',  icon: LayoutDashboard },
+  { to: '/pos',                        label: 'POS',        icon: MonitorSmartphone },
+  { to: '/owner/inventory',            label: 'Inventory',  icon: Package, badge: <LowStockAlert /> },
   { to: '/owner/inventory/categories', label: 'Categories', icon: Tag },
-  { to: '/owner/rates', label: 'Rates', icon: TrendingUp },
-  { to: '/owner/orders', label: 'Orders', icon: ShoppingCart },
-  { to: '/owner/invoices', label: 'Invoices', icon: Receipt },
-  { to: '/owner/karigar', label: 'Karigar', icon: Users },
-  { to: '/owner/settings', label: 'Settings', icon: Settings },
+  { to: '/owner/rates',                label: 'Rates',      icon: TrendingUp },
+  { to: '/owner/orders',               label: 'Orders',     icon: ShoppingCart },
+  { to: '/owner/invoices',             label: 'Invoices',   icon: Receipt },
+  { to: '/owner/karigar',              label: 'Karigar',    icon: Users },
+  { to: '/owner/settings',            label: 'Settings',   icon: Settings },
 ];
 
 export function OwnerLayout() {
@@ -26,49 +27,78 @@ export function OwnerLayout() {
     <div className="flex h-screen bg-background flex-col">
       <RateTicker />
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-64 border-r bg-card flex flex-col shrink-0">
-          <div className="p-5 border-b">
-            <h1 className="text-xl font-bold text-primary">Svarna Jewels</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">Owner Console</p>
+
+        {/* ── Sidebar ── */}
+        <aside className="w-60 flex flex-col shrink-0 bg-stone-50 dark:bg-[#18160E] border-r border-border dark:border-white/[0.05]">
+
+          {/* Brand */}
+          <div className="px-5 py-[18px] border-b border-border dark:border-white/[0.06]">
+            <div className="flex items-center gap-2.5">
+              <span className="text-amber-600 dark:text-amber-500 text-[15px] leading-none select-none">◆</span>
+              <div>
+                <h1 className="text-[14px] font-bold text-foreground tracking-tight leading-none">
+                  Svarna Jewels
+                </h1>
+                <p className="text-[9px] text-muted-foreground uppercase tracking-[0.14em] mt-[5px]">
+                  Owner Console
+                </p>
+              </div>
+            </div>
           </div>
-          <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+
+          {/* Nav */}
+          <nav className="flex-1 p-2.5 space-y-0.5 overflow-y-auto">
             {navItems.map(({ to, label, icon: Icon, badge }) => (
               <NavLink
                 key={to}
                 to={to}
                 end={to === '/owner/inventory'}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  `flex items-center gap-3 rounded-lg text-[13px] font-medium transition-all duration-150 py-2.5 pr-3 border-l-2 pl-2.5 ${
                     isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-foreground hover:bg-accent hover:text-accent-foreground'
+                      ? 'bg-amber-50 dark:bg-[#2A2720] text-amber-700 dark:text-amber-400 border-amber-500'
+                      : 'text-muted-foreground hover:bg-muted dark:hover:bg-[#22201A] hover:text-foreground dark:hover:text-stone-200 border-transparent'
                   }`
                 }
               >
-                <Icon size={16} />
-                {label}
+                <Icon size={15} className="shrink-0" />
+                <span className="flex-1 min-w-0 truncate">{label}</span>
                 {badge}
               </NavLink>
             ))}
           </nav>
-          <div className="p-4 border-t">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
-                {user?.name?.[0]?.toUpperCase()}
+
+          {/* User footer */}
+          <div className="p-4 border-t border-border dark:border-white/[0.06] bg-muted/60 dark:bg-[#13120B]">
+            <div className="flex items-center gap-2.5 mb-3">
+              <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800/40 flex items-center justify-center shrink-0">
+                <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 select-none">
+                  {user?.name?.[0]?.toUpperCase()}
+                </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{user?.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{user?.role}</p>
+                <p className="text-[13px] font-semibold text-foreground truncate leading-tight">
+                  {user?.name}
+                </p>
+                <p className="text-[9.5px] text-muted-foreground uppercase tracking-[0.08em] mt-0.5">
+                  {user?.role}
+                </p>
               </div>
             </div>
-            <button
-              onClick={logout}
-              className="flex items-center gap-2 text-sm text-destructive hover:text-destructive/80 w-full transition-colors"
-            >
-              <LogOut size={14} /> Sign out
-            </button>
+            <div className="flex items-center justify-between mt-1">
+              <button
+                onClick={logout}
+                className="flex items-center gap-2 text-[12px] text-muted-foreground hover:text-amber-700 dark:hover:text-amber-400 transition-colors"
+              >
+                <LogOut size={13} />
+                Sign out
+              </button>
+              <ThemeToggle />
+            </div>
           </div>
+
         </aside>
+
         <main className="flex-1 overflow-auto">
           <Outlet />
         </main>

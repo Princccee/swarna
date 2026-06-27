@@ -32,14 +32,14 @@ export default function InventoryListPage() {
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Inventory</h1>
+        <h1 className="text-2xl font-bold text-foreground">Inventory</h1>
         <Link to="/owner/inventory/new" className="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-700">
           + Add Item
         </Link>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 bg-white p-4 rounded-xl border">
+      <div className="flex flex-wrap gap-3 bg-card p-4 rounded-xl border">
         <input
           type="search" placeholder="Search name, SKU, HUID…" value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
@@ -59,28 +59,28 @@ export default function InventoryListPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border overflow-hidden">
+      <div className="bg-card rounded-xl border overflow-hidden">
         {isLoading ? (
-          <div className="p-8 text-center text-gray-400">Loading…</div>
+          <div className="p-8 text-center text-muted-foreground/60">Loading…</div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-muted/50 border-b">
               <tr>
                 {['SKU', 'Name', 'Category', 'Purity', 'Net Wt (g)', 'Stock', 'HUID', ''].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left font-medium text-gray-600">{h}</th>
+                  <th key={h} className="px-4 py-3 text-left font-medium text-muted-foreground">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y">
               {items.map((item: any) => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-mono text-xs text-gray-500">{item.sku}</td>
+                <tr key={item.id} className="hover:bg-muted/50">
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{item.sku}</td>
                   <td className="px-4 py-3 font-medium">{item.name}</td>
-                  <td className="px-4 py-3 text-gray-500">{item.category?.name}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{item.category?.name}</td>
                   <td className="px-4 py-3">{PURITY_LABELS[item.purity] ?? item.purity}</td>
                   <td className="px-4 py-3">{Number(item.netWeightG).toFixed(3)}</td>
                   <td className="px-4 py-3">
-                    <span className={`font-semibold ${item.stockQty <= 2 ? 'text-red-600' : 'text-gray-900'}`}>
+                    <span className={`font-semibold ${item.stockQty <= 2 ? 'text-red-600' : 'text-foreground'}`}>
                       {item.stockQty}
                     </span>
                   </td>
@@ -93,7 +93,7 @@ export default function InventoryListPage() {
                 </tr>
               ))}
               {items.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">No items found</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground/60">No items found</td></tr>
               )}
             </tbody>
           </table>
@@ -103,7 +103,7 @@ export default function InventoryListPage() {
       {/* Pagination */}
       {meta && meta.totalPages > 1 && (
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-500">Showing {(page - 1) * 20 + 1}–{Math.min(page * 20, meta.total)} of {meta.total}</span>
+          <span className="text-muted-foreground">Showing {(page - 1) * 20 + 1}–{Math.min(page * 20, meta.total)} of {meta.total}</span>
           <div className="flex gap-2">
             <button onClick={() => setPage((p) => p - 1)} disabled={page === 1} className="px-3 py-1 border rounded disabled:opacity-40">Prev</button>
             <button onClick={() => setPage((p) => p + 1)} disabled={page >= meta.totalPages} className="px-3 py-1 border rounded disabled:opacity-40">Next</button>

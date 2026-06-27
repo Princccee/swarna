@@ -89,7 +89,7 @@ export default function SettingsPage() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Shop Details */}
-        <section className="bg-white rounded-xl border p-5 space-y-4">
+        <section className="bg-card rounded-xl border p-5 space-y-4">
           <h2 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
             Shop Details
           </h2>
@@ -133,7 +133,7 @@ export default function SettingsPage() {
         </section>
 
         {/* GST Settings */}
-        <section className="bg-white rounded-xl border p-5 space-y-4">
+        <section className="bg-card rounded-xl border p-5 space-y-4">
           <h2 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
             GST Configuration
           </h2>
@@ -192,7 +192,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Billing & Rates */}
-        <section className="bg-white rounded-xl border p-5 space-y-4">
+        <section className="bg-card rounded-xl border p-5 space-y-4">
           <h2 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
             Billing &amp; Rates
           </h2>
@@ -230,7 +230,7 @@ export default function SettingsPage() {
         </section>
 
         {/* E-Invoicing */}
-        <section className="bg-white rounded-xl border p-5 space-y-4">
+        <section className="bg-card rounded-xl border p-5 space-y-4">
           <h2 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
             E-Invoicing
           </h2>
@@ -250,7 +250,7 @@ export default function SettingsPage() {
                 className="sr-only peer"
               />
               <div className="w-10 h-6 rounded-full bg-muted peer-checked:bg-primary transition-colors duration-200 peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2" />
-              <div className="absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 peer-checked:translate-x-4" />
+              <div className="absolute top-1 left-1 w-4 h-4 rounded-full bg-card shadow transition-transform duration-200 peer-checked:translate-x-4" />
             </div>
           </label>
         </section>

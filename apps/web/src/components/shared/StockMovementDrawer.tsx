@@ -41,10 +41,10 @@ export function StockMovementDrawer({ itemId, itemName, currentQty, onClose }: P
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white w-full max-w-sm p-6 shadow-xl flex flex-col gap-5">
+      <div className="relative bg-card w-full max-w-sm p-6 shadow-xl flex flex-col gap-5">
         <div>
           <h2 className="text-lg font-semibold">Adjust Stock</h2>
-          <p className="text-sm text-gray-500">{itemName} — Current: <strong>{currentQty}</strong></p>
+          <p className="text-sm text-muted-foreground">{itemName} — Current: <strong>{currentQty}</strong></p>
         </div>
 
         <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="flex flex-col gap-4">

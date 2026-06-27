@@ -1,36 +1,78 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRateStore } from '../../stores/rate.store';
 
 const DISPLAY_PURITIES = ['GOLD:GOLD_22K', 'GOLD:GOLD_18K', 'SILVER:SILVER_999'];
 
 const LABELS: Record<string, string> = {
-  'GOLD:GOLD_22K': 'Gold 22K',
-  'GOLD:GOLD_18K': 'Gold 18K',
-  'SILVER:SILVER_999': 'Silver',
+  'GOLD:GOLD_22K':    'Gold 22K',
+  'GOLD:GOLD_18K':    'Gold 18K',
+  'SILVER:SILVER_999': 'Silver 999',
 };
 
 export function RateTicker() {
   const { rates, connected, connect } = useRateStore();
+  const trackRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    connect();
-  }, [connect]);
+  useEffect(() => { connect(); }, [connect]);
+
+  const items = DISPLAY_PURITIES.map((key) => {
+    const r = rates[key];
+    return {
+      key,
+      label: LABELS[key],
+      value: r ? `₹${r.ratePerGram.toLocaleString('en-IN', { maximumFractionDigits: 2 })}/g` : '—',
+    };
+  });
+
+  // Double the array for seamless loop
+  const doubled = [...items, ...items];
+
+  function pauseTicker() {
+    if (trackRef.current) trackRef.current.style.animationPlayState = 'paused';
+  }
+  function resumeTicker() {
+    if (trackRef.current) trackRef.current.style.animationPlayState = 'running';
+  }
 
   return (
-    <div className="bg-amber-900 text-amber-100 text-xs px-4 py-1.5 flex items-center gap-6 overflow-x-auto">
-      <span className="font-semibold shrink-0 text-amber-300">Live Rates</span>
-      <span className={`shrink-0 w-1.5 h-1.5 rounded-full ${connected ? 'bg-green-400' : 'bg-red-400'}`} />
-      {DISPLAY_PURITIES.map((key) => {
-        const r = rates[key];
-        return (
-          <div key={key} className="flex items-center gap-1.5 shrink-0">
-            <span className="text-amber-400">{LABELS[key]}</span>
-            <span className="font-mono font-semibold">
-              {r ? `₹${r.ratePerGram.toLocaleString('en-IN', { maximumFractionDigits: 2 })}/g` : '—'}
-            </span>
-          </div>
-        );
-      })}
+    <div
+      className="bg-[#13120B] border-b border-white/[0.05] h-7 flex items-center overflow-hidden shrink-0 select-none"
+      onMouseEnter={pauseTicker}
+      onMouseLeave={resumeTicker}
+    >
+      {/* "Live" indicator — static, not scrolling */}
+      <div className="shrink-0 flex items-center gap-1.5 px-3 border-r border-white/[0.06] h-full">
+        <span
+          className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-live-pulse"
+          aria-label={connected ? 'Connected' : 'Disconnected'}
+        />
+        <span className="text-[10px] font-semibold tracking-[0.1em] uppercase text-stone-600">
+          Live
+        </span>
+      </div>
+
+      {/* Scrolling marquee track */}
+      <div className="flex-1 overflow-hidden h-full flex items-center">
+        <div
+          ref={trackRef}
+          className="flex items-center animate-ticker whitespace-nowrap"
+        >
+          {doubled.map(({ key, label, value }, i) => (
+            <div
+              key={`${key}-${i}`}
+              className="inline-flex items-center gap-2 px-6"
+            >
+              <span className="text-[10px] uppercase tracking-[0.1em] text-stone-600 font-semibold">
+                {label}
+              </span>
+              <span className="font-mono font-bold text-[12px] text-amber-400 tabular-nums">
+                {value}
+              </span>
+              <span className="text-stone-800 text-[10px]">◆</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
