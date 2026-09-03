@@ -47,8 +47,8 @@ async function main() {
 
   const owner = await prisma.user.upsert({
     where: { email: 'owner@svarna.local' },
-    update: { name: 'Rajesh Mehta', phone: '9820001111' },
-    create: { name: 'Rajesh Mehta', email: 'owner@svarna.local', phone: '9820001111', passwordHash: hash, role: Role.OWNER },
+    update: { name: 'Arun Kumar Gupta', phone: '9820001111' },
+    create: { name: 'Arun Kumar Gupta', email: 'owner@svarna.local', phone: '9820001111', passwordHash: hash, role: Role.OWNER },
   });
 
   const staff = await prisma.user.upsert({

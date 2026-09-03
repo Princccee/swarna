@@ -36,6 +36,10 @@ const StockAuditPage = lazy(() => import('@/pages/accountant/StockAuditPage'));
 const AuditTrailPage = lazy(() => import('@/pages/accountant/AuditTrailPage'));
 const KycRegisterPage = lazy(() => import('@/pages/accountant/KycRegisterPage'));
 const SettingsPage = lazy(() => import('@/pages/owner/SettingsPage'));
+const MarketingPage = lazy(() => import('@/pages/owner/MarketingPage'));
+const CampaignNewPage = lazy(() => import('@/pages/owner/CampaignNewPage'));
+const CampaignDetailPage = lazy(() => import('@/pages/owner/CampaignDetailPage'));
+const TemplatesPage = lazy(() => import('@/pages/owner/TemplatesPage'));
 const HomePage = lazy(() => import('@/pages/home/HomePage'));
 
 const Spin = () => <div className="flex items-center justify-center h-full p-8 text-gray-400">Loading…</div>;
@@ -76,6 +80,10 @@ export default function App() {
           <Route path="invoices" element={<InvoiceListPage />} />
           <Route path="invoices/:id" element={<InvoiceDetailPage />} />
           <Route path="karigar" element={<KarigarPage />} />
+          <Route path="marketing" element={<MarketingPage />} />
+          <Route path="marketing/campaigns/new" element={<CampaignNewPage />} />
+          <Route path="marketing/campaigns/:id" element={<CampaignDetailPage />} />
+          <Route path="marketing/templates" element={<TemplatesPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
 

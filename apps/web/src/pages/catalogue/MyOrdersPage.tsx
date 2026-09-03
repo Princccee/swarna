@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -5,13 +6,12 @@ import { api } from '../../lib/api';
 import { LanguageToggle } from '../../components/shared/LanguageToggle';
 
 const STATUS_DARK: Record<string, { bg: string; color: string }> = {
-  PENDING:     { bg: '#2a1f08', color: '#f0b429' },
-  CONFIRMED:   { bg: '#0a1f3a', color: '#60a5fa' },
-  MAKING:      { bg: '#1a0f2e', color: '#c084fc' },
-  IN_PROGRESS: { bg: '#1a0f2e', color: '#c084fc' },
-  READY:       { bg: '#0a2218', color: '#4ade80' },
-  DELIVERED:   { bg: '#1a1714', color: '#7a6a55' },
-  CANCELLED:   { bg: '#2a0f0f', color: '#f87171' },
+  DRAFT:     { bg: '#1a1714', color: '#7a6a55' },
+  CONFIRMED: { bg: '#0a1f3a', color: '#60a5fa' },
+  MAKING:    { bg: '#1a0f2e', color: '#c084fc' },
+  READY:     { bg: '#0a2218', color: '#4ade80' },
+  INVOICED:  { bg: '#2a1f08', color: '#f0b429' },
+  CANCELLED: { bg: '#2a0f0f', color: '#f87171' },
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -33,14 +33,21 @@ export default function MyOrdersPage() {
   const navigate = useNavigate();
   const token = localStorage.getItem('catalogue_token');
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['catalogue-my-orders'],
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['catalogue-my-orders', token],
     queryFn: () =>
       api.get('/catalogue/my-orders', { headers: { Authorization: `Bearer ${token}` } }).then((r: any) => r.data),
     enabled: !!token,
   });
 
-  const orders: any[] = data?.orders ?? data?.rows ?? data ?? [];
+  useEffect(() => {
+    if (isError && (error as any)?.response?.status === 401) {
+      localStorage.removeItem('catalogue_token');
+      navigate('/catalogue/login?reason=session_expired');
+    }
+  }, [isError, error, navigate]);
+
+  const orders: any[] = Array.isArray(data) ? data : (data?.orders ?? data?.rows ?? []);
 
   if (!token) {
     return (
@@ -141,7 +148,7 @@ export default function MyOrdersPage() {
         {!isLoading && !isError && orders.length > 0 && (
           <>
             {/* Desktop table */}
-            <div style={{ display: 'none' }} className="md:block">
+            <div className="hidden md:block">
               <div style={{ background: '#181411', borderRadius: '16px', border: '1px solid #2e2720', overflow: 'hidden' }}>
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', fontSize: '0.875rem', borderCollapse: 'collapse' }}>
@@ -209,7 +216,7 @@ export default function MyOrdersPage() {
             </div>
 
             {/* Mobile cards */}
-            <div className="md:hidden" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="flex flex-col gap-3 md:hidden">
               {orders.map((order: any) => (
                 <div key={order.id} style={{ background: '#181411', borderRadius: '12px', border: '1px solid #2e2720', padding: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>

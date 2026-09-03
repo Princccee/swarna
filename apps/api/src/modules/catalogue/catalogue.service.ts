@@ -319,7 +319,7 @@ export class CatalogueService {
     return jwt.sign(
       { sub: userId, role: 'CUSTOMER', customerId },
       secret,
-      { expiresIn: '15m' },
+      { expiresIn: '30d' },
     );
   }
 

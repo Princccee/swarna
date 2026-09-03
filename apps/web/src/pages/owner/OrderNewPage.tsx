@@ -18,11 +18,11 @@ const PURITY_OPTIONS = [
 
 const schema = z.object({
   customerId: z.string().uuid('Select a customer'),
-  orderType: z.enum(['PRE_ORDER', 'CUSTOM', 'REPAIR']),
+  type: z.enum(['PRE_ORDER', 'CUSTOM', 'REPAIR']),
   description: z.string().min(1, 'Description is required'),
-  purity: z.enum(PURITY_OPTIONS).optional(),
-  estimatedWeightG: z.coerce.number().positive().optional().or(z.literal('')),
-  estimatedValue: z.coerce.number().positive().optional().or(z.literal('')),
+  metalPurity: z.enum(PURITY_OPTIONS).optional(),
+  estimatedWeightG: z.coerce.number().min(0).optional().or(z.literal('')),
+  estimatedValue: z.coerce.number().min(0).optional().or(z.literal('')),
   advancePaid: z.coerce.number().min(0).optional().or(z.literal('')),
   expectedReady: z.string().optional(),
   notes: z.string().optional(),
@@ -105,16 +105,16 @@ export default function OrderNewPage() {
     setSubmitting(true);
     const payload: Record<string, any> = {
       customerId: data.customerId,
-      orderType: data.orderType,
+      type: data.type,
       description: data.description,
     };
-    if (data.purity) payload.purity = data.purity;
+    if (data.metalPurity) payload.metalPurity = data.metalPurity;
     if (data.estimatedWeightG !== '' && data.estimatedWeightG !== undefined)
-      payload.estimatedWeightG = String(data.estimatedWeightG);
+      payload.estimatedWeightG = Number(data.estimatedWeightG);
     if (data.estimatedValue !== '' && data.estimatedValue !== undefined)
-      payload.estimatedValue = String(data.estimatedValue);
+      payload.estimatedValue = Number(data.estimatedValue);
     if (data.advancePaid !== '' && data.advancePaid !== undefined)
-      payload.advancePaid = String(data.advancePaid);
+      payload.advancePaid = Number(data.advancePaid);
     if (data.expectedReady) payload.expectedReady = data.expectedReady;
     if (data.notes) payload.notes = data.notes;
 
@@ -200,7 +200,7 @@ export default function OrderNewPage() {
             Order Type <span className="text-destructive">*</span>
           </label>
           <select
-            {...register('orderType')}
+            {...register('type')}
             className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
           >
             <option value="">Select type</option>
@@ -208,8 +208,8 @@ export default function OrderNewPage() {
             <option value="CUSTOM">Custom</option>
             <option value="REPAIR">Repair</option>
           </select>
-          {errors.orderType && (
-            <p className="text-destructive text-xs mt-1">{errors.orderType.message}</p>
+          {errors.type && (
+            <p className="text-destructive text-xs mt-1">{errors.type.message}</p>
           )}
         </div>
 
@@ -233,7 +233,7 @@ export default function OrderNewPage() {
         <div>
           <label className="block text-sm font-medium mb-1">Metal Purity</label>
           <select
-            {...register('purity')}
+            {...register('metalPurity')}
             className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
           >
             <option value="">Select purity (optional)</option>

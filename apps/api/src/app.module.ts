@@ -15,6 +15,8 @@ import { RegistersModule } from './modules/registers/registers.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { WhatsAppModule } from './modules/whatsapp/whatsapp.module';
+import { CampaignsModule } from './modules/campaigns/campaigns.module';
 import appConfig from './config/app.config';
 
 @Module({
@@ -45,6 +47,8 @@ import appConfig from './config/app.config';
     SettingsModule,
     NotificationsModule,
     DashboardModule,
+    WhatsAppModule,
+    CampaignsModule,
   ],
 })
 export class AppModule {}

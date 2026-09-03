@@ -78,6 +78,9 @@ services:
       IS_INTERSTATE: ${IS_INTERSTATE:-false}
       SHOP_NAME: ${SHOP_NAME:-Svarna Jewels}
       PII_ENCRYPTION_KEY: ${PII_ENCRYPTION_KEY:-32-byte-hex-key-change-in-prod-xx}
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
+      WHATSAPP_WEBHOOK_VERIFY_TOKEN: ${WHATSAPP_WEBHOOK_VERIFY_TOKEN:-svarna-wa-verify}
     depends_on:
       postgres:
         condition: service_healthy
