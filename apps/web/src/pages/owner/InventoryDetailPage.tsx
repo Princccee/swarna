@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { HuidBadge } from '../../components/shared/HuidBadge';
 import { StockMovementDrawer } from '../../components/shared/StockMovementDrawer';
+import { ImageLightbox } from '../../components/catalogue/ImageLightbox';
 import { toast } from 'sonner';
 
 const PURITY_LABELS: Record<string, string> = {
@@ -16,6 +17,8 @@ export default function InventoryDetailPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [showStockDrawer, setShowStockDrawer] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: item, isLoading } = useQuery({
     queryKey: ['item', id],
@@ -41,6 +44,37 @@ export default function InventoryDetailPage() {
     onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Cannot delete'),
   });
 
+  const uploadImagesMutation = useMutation({
+    mutationFn: (formData: FormData) =>
+      api.post(`/inventory/items/${id}/images`, formData, {
+        headers: { 'Content-Type': undefined },
+      }),
+    onSuccess: () => {
+      toast.success('Images uploaded');
+      qc.invalidateQueries({ queryKey: ['item', id] });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Upload failed'),
+  });
+
+  const deleteImageMutation = useMutation({
+    mutationFn: (index: number) => api.delete(`/inventory/items/${id}/images/${index}`),
+    onSuccess: () => {
+      toast.success('Image removed');
+      qc.invalidateQueries({ queryKey: ['item', id] });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Cannot remove image'),
+  });
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (files && files.length) {
+      const formData = new FormData();
+      Array.from(files).forEach((f) => formData.append('images', f));
+      uploadImagesMutation.mutate(formData);
+    }
+    e.target.value = '';
+  }
+
   if (isLoading) return <div className="p-6 text-muted-foreground/60">Loading…</div>;
   if (!item) return <div className="p-6 text-red-500">Item not found</div>;
 
@@ -61,6 +95,49 @@ export default function InventoryDetailPage() {
             Delete
           </button>
         </div>
+      </div>
+
+      {/* Images */}
+      <div className="bg-card rounded-xl border p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-foreground/80">Images</h2>
+          <label className="cursor-pointer border rounded-lg px-4 py-2 text-sm font-medium hover:bg-muted/50">
+            {uploadImagesMutation.isPending ? 'Uploading…' : '+ Add Images'}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleFileSelect}
+              disabled={uploadImagesMutation.isPending}
+            />
+          </label>
+        </div>
+        {item.imageUrls?.length ? (
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+            {item.imageUrls.map((url: string, i: number) => (
+              <div key={url} className="relative group aspect-square rounded-lg overflow-hidden border">
+                <img
+                  src={url}
+                  alt={`${item.name} ${i + 1}`}
+                  className="w-full h-full object-cover cursor-pointer"
+                  onClick={() => setLightboxIndex(i)}
+                />
+                <button
+                  onClick={() => deleteImageMutation.mutate(i)}
+                  disabled={deleteImageMutation.isPending}
+                  title="Remove image"
+                  className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted-foreground/60 text-sm">No images yet</p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -136,6 +213,14 @@ export default function InventoryDetailPage() {
         <StockMovementDrawer
           itemId={id!} itemName={item.name} currentQty={item.stockQty}
           onClose={() => setShowStockDrawer(false)}
+        />
+      )}
+
+      {lightboxIndex !== null && item.imageUrls?.length > 0 && (
+        <ImageLightbox
+          images={item.imageUrls}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
         />
       )}
     </div>
