@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(docker compose up *)",
+      "Bash(psql *)",
+      "Bash(DATABASE_URL=postgresql://svarna:svarna@localhost:5432/svarna npx prisma migrate dev --name init)",
+      "Bash(DATABASE_URL=postgresql://svarna:svarna@localhost:5432/svarna npx ts-node -r tsconfig-paths/register prisma/seed.ts)",
+      "Bash(DATABASE_URL=postgresql://svarna:svarna@localhost:5432/svarna npm run test:api)",
+      "Bash(DATABASE_URL=postgresql://svarna:svarna@localhost:5432/svarna timeout 10 npx ts-node -r tsconfig-paths/register src/main.ts)",
+      "Bash(DATABASE_URL=postgresql://svarna:svarna@localhost:5432/svarna node *)",
+      "Bash(docker info *)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('scripts',{}\\)\\)\")",
+      "Bash(npm --version)",
+      "Bash(docker compose *)",
+      "Bash(DATABASE_URL=postgresql://svarna:svarna@localhost:5432/svarna npx prisma migrate deploy)",
+      "Bash(docker exec *)",
+      "Bash(brew services *)",
+      "Bash(pg_ctl stop *)",
+      "Bash(pkill -9 postgres)",
+      "Bash(npm run *)",
+      "Bash(npx nest *)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(npx tsc *)",
+      "Bash(docker run *)",
+      "Bash(curl -s http://localhost:3000/api/v1/health)",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s -X POST http://localhost:3000/api/v1/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"owner@svarna.local\",\"password\":\"svarna@2026\"}')",
+      "Bash(curl -s http://localhost:5173/ -o /dev/null -w \"HTTP %{http_code}\\\\n\")",
+      "Bash(curl -s http://localhost:5173/api/v1/health)",
+      "Bash(git init *)",
+      "Bash(git rm *)",
+      "Bash(npm test *)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\)['data']; print\\(f'{len\\(d\\)} categories: {[c[\\\\\"name\\\\\"] for c in d]}'\\)\")",
+      "Bash(git reset *)",
+      "Bash(git commit *)",
+      "Bash(grep -v \"^$\")",
+      "Bash(git add *)",
+      "Skill(artifact-design)"
+    ]
+  }
+}

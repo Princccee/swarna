@@ -7,6 +7,8 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
+  // Don't overwrite Authorization for catalogue routes — they set their own token
+  if (config.url?.includes('/catalogue/')) return config;
   const token = useAuthStore.getState().accessToken;
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
@@ -27,6 +29,8 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config;
+    // Catalogue endpoints manage their own auth — let errors propagate to the component
+    if (original.url?.includes('/catalogue/')) return Promise.reject(error);
     if (error.response?.status !== 401 || original._retry) return Promise.reject(error);
 
     if (isRefreshing) {

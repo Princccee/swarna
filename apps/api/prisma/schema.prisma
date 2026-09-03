@@ -190,9 +190,12 @@ model Customer {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
+  optedOut    Boolean   @default(false)
+  optedOutAt  DateTime?
 
-  invoices Invoice[]
-  orders   Order[]
+  invoices         Invoice[]
+  orders           Order[]
+  campaignMessages CampaignMessage[]
 }
 
 model Invoice {
@@ -363,4 +366,85 @@ model Setting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  OPTED_OUT
+}
+
+enum CampaignScheduleType {
+  ONCE
+  DAILY
+  WEEKLY
+}
+
+model WhatsAppTemplate {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  displayName String
+  category    String   @default("MARKETING")
+  language    String   @default("en")
+  bodyText    String
+  variables   String[]
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campaigns Campaign[]
+}
+
+model Campaign {
+  id             String               @id @default(uuid())
+  name           String
+  templateId     String
+  template       WhatsAppTemplate     @relation(fields: [templateId], references: [id])
+  scheduleType   CampaignScheduleType
+  scheduledAt    DateTime?
+  cronExpr       String?
+  audienceFilter Json                 @default("{}")
+  status         CampaignStatus       @default(DRAFT)
+  lastRunAt      DateTime?
+  nextRunAt      DateTime?
+  totalSent      Int                  @default(0)
+  totalDelivered Int                  @default(0)
+  totalFailed    Int                  @default(0)
+  createdBy      String
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  messages CampaignMessage[]
+}
+
+model CampaignMessage {
+  id          String        @id @default(uuid())
+  campaignId  String
+  customerId  String
+  phone       String
+  variables   Json          @default("{}")
+  status      MessageStatus @default(PENDING)
+  waMessageId String?
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  readAt      DateTime?
+  failReason  String?
+  createdAt   DateTime      @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@index([campaignId])
+  @@index([customerId])
+  @@index([waMessageId])
 }
