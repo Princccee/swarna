@@ -15,6 +15,9 @@ export default registerAs('app', () => ({
   },
   s3: {
     endpoint: process.env.S3_ENDPOINT || 'http://localhost:9000',
+    // URL embedded in API responses (e.g. <img src>) — must be reachable by browsers,
+    // unlike `endpoint` which may be an internal Docker network hostname (e.g. http://minio:9000).
+    publicEndpoint: process.env.S3_PUBLIC_ENDPOINT || process.env.S3_ENDPOINT || 'http://localhost:9000',
     accessKey: process.env.S3_ACCESS_KEY || 'minioadmin',
     secretKey: process.env.S3_SECRET_KEY || 'minioadmin',
     bucket: process.env.S3_BUCKET || 'svarna',

@@ -66,7 +66,7 @@ export default function InventoryListPage() {
           <table className="w-full text-sm">
             <thead className="bg-muted/50 border-b">
               <tr>
-                {['SKU', 'Name', 'Category', 'Purity', 'Net Wt (g)', 'Stock', 'HUID', ''].map((h) => (
+                {['Image', 'SKU', 'Name', 'Category', 'Purity', 'Net Wt (g)', 'Stock', 'HUID', ''].map((h) => (
                   <th key={h} className="px-4 py-3 text-left font-medium text-muted-foreground">{h}</th>
                 ))}
               </tr>
@@ -74,6 +74,15 @@ export default function InventoryListPage() {
             <tbody className="divide-y">
               {items.map((item: any) => (
                 <tr key={item.id} className="hover:bg-muted/50">
+                  <td className="px-4 py-3">
+                    {item.imageUrls?.[0] ? (
+                      <img src={item.imageUrls[0]} alt={item.name} className="w-10 h-10 rounded object-cover border" />
+                    ) : (
+                      <div className="w-10 h-10 rounded bg-muted/50 border flex items-center justify-center text-[9px] text-muted-foreground/50">
+                        No img
+                      </div>
+                    )}
+                  </td>
                   <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{item.sku}</td>
                   <td className="px-4 py-3 font-medium">{item.name}</td>
                   <td className="px-4 py-3 text-muted-foreground">{item.category?.name}</td>
@@ -93,7 +102,7 @@ export default function InventoryListPage() {
                 </tr>
               ))}
               {items.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground/60">No items found</td></tr>
+                <tr><td colSpan={9} className="px-4 py-8 text-center text-muted-foreground/60">No items found</td></tr>
               )}
             </tbody>
           </table>
