@@ -3,6 +3,8 @@ dist/
 build/
 .env
 .env.local
+*.pem
+*.key
 *.log
 .DS_Store
 coverage/
