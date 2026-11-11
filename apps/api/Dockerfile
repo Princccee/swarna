@@ -31,7 +31,9 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN apk add --no-cache openssl
+# Prisma CLI is a devDependency; install it globally (pinned to the lockfile version)
+# so the container can apply migrations on startup.
+RUN apk add --no-cache openssl && npm install -g prisma@5.22.0
 
 COPY package.json package-lock.json ./
 COPY packages/shared-types/package.json ./packages/shared-types/
@@ -51,4 +53,5 @@ WORKDIR /app/apps/api
 
 EXPOSE 3000
 
-CMD ["node", "dist/main"]
+# Apply pending migrations, then start the API
+CMD ["sh", "-c", "prisma migrate deploy && exec node dist/main"]
