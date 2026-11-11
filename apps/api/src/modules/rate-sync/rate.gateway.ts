@@ -13,6 +13,8 @@ export interface RateUpdatePayload {
   purity: string;
   ratePerGram: number;
   snappedAt: string;
+  /** metals.dev | goldapi.io | manual | mock | base */
+  source?: string;
 }
 
 @WebSocketGateway({ namespace: '/rates', cors: { origin: '*' } })

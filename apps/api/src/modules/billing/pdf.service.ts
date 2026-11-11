@@ -14,7 +14,13 @@ const WHITE     = '#FFFFFF';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function rupees(n: any): string {
-  return '₹' + Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // Built-in PDF fonts (Helvetica) have no ₹ glyph — it printed as '¹'
+  return 'Rs. ' + Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/** Table cells: amount without the 'Rs.' prefix (column headers already imply rupees). */
+function amt(n: any): string {
+  return Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function wt(n: any): string {
@@ -95,6 +101,7 @@ export class PdfService {
   }
 
   private render(doc: PDFKit.PDFDocument, inv: any, shop: Record<string, string>) {
+    const isEstimate = inv.billType === 'ESTIMATE';
     const ML = 45;   // margin left
     const MR = 45;   // margin right
     const MT = 40;   // margin top
@@ -109,8 +116,8 @@ export class PdfService {
     let y = MT + 18;
 
     // ◆ glyph
-    doc.fontSize(18).fillColor(GOLD).font('Helvetica-Bold')
-       .text('◆', ML, y, { continued: false });
+    // Diamond mark drawn as a shape (the ◆ character isn't in the built-in font)
+    doc.save().translate(ML + 8, y + 9).rotate(45).rect(-5.5, -5.5, 11, 11).fill(GOLD).restore();
 
     // Shop name
     doc.fontSize(15).fillColor(INK).font('Helvetica-Bold')
@@ -123,7 +130,7 @@ export class PdfService {
          .text(shop.address, ML, y, { width: 260, lineBreak: false });
       y += 11;
     }
-    const contactLine = [shop.phone ? `Tel: ${shop.phone}` : '', `GSTIN: ${shop.gstin}`]
+    const contactLine = [shop.phone ? `Tel: ${shop.phone}` : '', isEstimate ? '' : `GSTIN: ${shop.gstin}`]
       .filter(Boolean).join('   ');
     doc.fontSize(7.5).fillColor(MUTED).font('Helvetica')
        .text(contactLine, ML, y, { width: 260, lineBreak: false });
@@ -133,14 +140,15 @@ export class PdfService {
     const invY0 = MT + 18;
 
     doc.fontSize(13).fillColor(GOLD_DARK).font('Helvetica-Bold')
-       .text('TAX INVOICE', invBlockX, invY0, { width: 170, align: 'right' });
-    doc.fontSize(7).fillColor(MUTED).font('Helvetica-Bold')
-       .text('GST Invoice u/s 31 of CGST Act, 2017', invBlockX, invY0 + 17, { width: 170, align: 'right' });
+       .text(isEstimate ? 'ESTIMATE' : 'TAX INVOICE', invBlockX, invY0, { width: 170, align: 'right' });
+    doc.fontSize(7).fillColor(isEstimate ? '#B91C1C' : MUTED).font('Helvetica-Bold')
+       .text(isEstimate ? 'Not a tax invoice. No GST charged.' : 'GST Invoice u/s 31 of CGST Act, 2017',
+         invBlockX, invY0 + 17, { width: 170, align: 'right' });
 
     // Invoice number + date grid
     const metaY = invY0 + 30;
     doc.fontSize(7.5).fillColor(MUTED).font('Helvetica')
-       .text('Invoice No.', invBlockX, metaY, { width: 80 });
+       .text(isEstimate ? 'Estimate No.' : 'Invoice No.', invBlockX, metaY, { width: 80 });
     doc.fontSize(7.5).fillColor(MUTED).font('Helvetica')
        .text('Date', invBlockX + 88, metaY, { width: 82, align: 'right' });
 
@@ -151,10 +159,10 @@ export class PdfService {
 
     // Status badge
     const isPaid = Number(inv.balanceDue ?? 0) <= 0;
-    const badgeColor = isPaid ? '#059669' : '#D97706';
-    const badgeLabel = isPaid ? 'PAID' : 'BALANCE DUE';
+    const badgeColor = isEstimate ? '#475569' : isPaid ? '#059669' : '#D97706';
+    const badgeLabel = isEstimate ? 'QUOTATION' : isPaid ? 'PAID' : 'BALANCE DUE';
     const badgeY = metaY + 26;
-    doc.roundedRect(invBlockX + 88, badgeY, 82, 14, 3).fill(isPaid ? '#D1FAE5' : '#FEF3C7');
+    doc.roundedRect(invBlockX + 88, badgeY, 82, 14, 3).fill(isEstimate ? '#E2E8F0' : isPaid ? '#D1FAE5' : '#FEF3C7');
     doc.fontSize(7).fillColor(badgeColor).font('Helvetica-Bold')
        .text(badgeLabel, invBlockX + 88, badgeY + 3, { width: 82, align: 'center' });
 
@@ -170,7 +178,7 @@ export class PdfService {
       { bold: shop.name, normal: '' },
       { bold: '', normal: shop.address },
       { bold: '', normal: shop.phone ? `Phone: ${shop.phone}` : '' },
-      { bold: '', normal: `GSTIN: ${shop.gstin}` },
+      { bold: '', normal: isEstimate ? '' : `GSTIN: ${shop.gstin}` },
       { bold: '', normal: `State: ${shop.state}` },
     ]);
 
@@ -181,7 +189,7 @@ export class PdfService {
       { bold: '', normal: cust?.address ? cust.address : '' },
       { bold: '', normal: cust?.phone ? `Phone: ${cust.phone}` : '' },
       { bold: '', normal: cust?.panNumber ? `PAN: ${cust.panNumber}` : '' },
-      { bold: '', normal: cust?.kycVerified ? '✓ KYC Verified' : '', color: '#059669' },
+      { bold: '', normal: cust?.kycVerified ? 'KYC Verified' : '', color: '#059669' },
     ]);
 
     y += 90;
@@ -194,9 +202,9 @@ export class PdfService {
       { label: 'PURITY',  w: 40,  align: 'center' as const },
       { label: 'WT (g)',  w: 50,  align: 'right'  as const },
       { label: 'QTY',     w: 24,  align: 'center' as const },
-      { label: 'RATE/g',  w: 58,  align: 'right'  as const },
-      { label: 'MAKING',  w: 52,  align: 'right'  as const },
-      { label: 'AMOUNT',  w: 65,  align: 'right'  as const },
+      { label: 'RATE/g (Rs.)', w: 58,  align: 'right'  as const },
+      { label: 'MAKING (Rs.)', w: 52,  align: 'right'  as const },
+      { label: 'AMOUNT (Rs.)', w: 65,  align: 'right'  as const },
     ];
     // Total: 20+158+38+40+50+24+58+52+65 = 505 ✓
 
@@ -221,7 +229,7 @@ export class PdfService {
       doc.rect(ML, y, W, ROW_H).fill(rowFill);
       doc.rect(ML, y + ROW_H - 0.5, W, 0.5).fill(RULE);
 
-      const purityStr = (line.item?.purity ?? '').replace(/_/g, ' ');
+      const purityStr = (line.purity ?? line.item?.purity ?? '').replace(/_/g, ' ');
       const hsnCode   = line.item?.hsnCode ?? '7113';
 
       cx2 = ML;
@@ -231,7 +239,7 @@ export class PdfService {
       cx2 += COLS[0].w;
 
       // Description — name on top, SKU+HUID below in smaller muted text
-      const itemName = line.item?.name ?? '—';
+      const itemName = line.item?.name ?? line.description ?? '—';
       const subLine  = [line.item?.sku, line.item?.huid ? `HUID: ${line.item.huid}` : ''].filter(Boolean).join('  ');
       doc.fillColor(INK).fontSize(8).font('Helvetica-Bold')
          .text(itemName, cx2 + 4, y + 4, { width: COLS[1].w - 8, lineBreak: false });
@@ -263,17 +271,17 @@ export class PdfService {
 
       // Rate/g
       doc.fillColor(INK).fontSize(8).font('Helvetica')
-         .text('₹' + Number(line.ratePerGram ?? 0).toFixed(2), cx2 + 4, y + 7, { width: COLS[6].w - 8, align: 'right', lineBreak: false });
+         .text(amt(line.ratePerGram ?? 0), cx2 + 4, y + 7, { width: COLS[6].w - 8, align: 'right', lineBreak: false });
       cx2 += COLS[6].w;
 
       // Making
       doc.fillColor(INK).fontSize(8).font('Helvetica')
-         .text(rupees(line.makingCharge ?? 0), cx2 + 4, y + 7, { width: COLS[7].w - 8, align: 'right', lineBreak: false });
+         .text(amt(line.makingCharge ?? 0), cx2 + 4, y + 7, { width: COLS[7].w - 8, align: 'right', lineBreak: false });
       cx2 += COLS[7].w;
 
       // Amount
       doc.fillColor(GOLD_DARK).fontSize(8).font('Helvetica-Bold')
-         .text(rupees(line.lineTotal ?? 0), cx2 + 4, y + 7, { width: COLS[8].w - 8, align: 'right', lineBreak: false });
+         .text(amt(line.lineTotal ?? 0), cx2 + 4, y + 7, { width: COLS[8].w - 8, align: 'right', lineBreak: false });
 
       y += ROW_H;
     });
@@ -294,7 +302,7 @@ export class PdfService {
       totalRows.push({ label: 'Stone Value', value: rupees(inv.stoneTotal) });
     if (Number(inv.oldGoldDeduction) > 0)
       totalRows.push({ label: 'Old Gold Deduction', value: rupees(inv.oldGoldDeduction), deduct: true });
-    totalRows.push({ label: 'Taxable Amount', value: rupees(inv.taxableAmount) });
+    if (!isEstimate) totalRows.push({ label: 'Taxable Amount', value: rupees(inv.taxableAmount) });
     if (Number(inv.cgst) > 0) {
       totalRows.push({ label: 'CGST @ 1.5%', value: rupees(inv.cgst) });
       totalRows.push({ label: 'SGST @ 1.5%', value: rupees(inv.sgst) });
@@ -322,9 +330,12 @@ export class PdfService {
     y += 32;
 
     // Payment status
-    if (Number(inv.balanceDue ?? 0) <= 0) {
+    if (isEstimate) {
+      doc.fontSize(8).fillColor(MUTED).font('Helvetica-Bold')
+         .text('Estimate only. Not a bill of sale.', TX, y, { width: TW, align: 'right' });
+    } else if (Number(inv.balanceDue ?? 0) <= 0) {
       doc.fontSize(8).fillColor('#059669').font('Helvetica-Bold')
-         .text('✓ Payment Received in Full', TX, y, { width: TW, align: 'right' });
+         .text('Payment Received in Full', TX, y, { width: TW, align: 'right' });
     } else {
       doc.fontSize(8).fillColor('#DC2626').font('Helvetica-Bold')
          .text('Balance Due: ' + rupees(inv.balanceDue), TX, y, { width: TW, align: 'right' });
@@ -374,7 +385,9 @@ export class PdfService {
        .text('DECLARATION', ML, declY + 8);
     doc.fontSize(7).fillColor(MUTED).font('Helvetica')
        .text(
-         'We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct. This is a system-generated invoice and is valid without a physical signature.',
+         isEstimate
+           ? 'This is an estimate (quotation) only and not a tax invoice. Prices are based on the rates on the date shown and may change. GST will be charged on the final tax invoice.'
+           : 'We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct. This is a system-generated invoice and is valid without a physical signature.',
          ML, declY + 18,
          { width: declW, lineBreak: true }
        );
@@ -390,7 +403,7 @@ export class PdfService {
     const footerY = PH - 30;
     doc.rect(ML, footerY - 6, W, 0.5).fill(GOLD);
     doc.fontSize(7).fillColor(MUTED).font('Helvetica')
-       .text('This is a computer-generated invoice. No signature is required.', ML, footerY, { width: W, align: 'center' });
+       .text(isEstimate ? 'This is a computer-generated estimate, not a tax invoice.' : 'This is a computer-generated invoice. No signature is required.', ML, footerY, { width: W, align: 'center' });
     doc.fontSize(7).fillColor(GOLD_DARK).font('Helvetica-Bold')
        .text(shop.name + (shop.address ? ' — ' + shop.address : ''), ML, footerY + 10, { width: W, align: 'center' });
   }

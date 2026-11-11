@@ -257,3 +257,31 @@ describe('PricingService.computeInvoice()', () => {
     expect(result.totalAmount.toFixed(2)).toBe('22112.93');
   });
 });
+
+describe('PricingService — manual lines and estimates', () => {
+  const service = new PricingService();
+
+  it('prices a manual line (no itemId) with making per gram and stone value', () => {
+    const r = service.computeInvoice(
+      [makeLine({ itemId: null, description: 'Gold ring', purity: 'GOLD_22K', netWeightG: D('4.5'), ratePerGram: D('13200'), makingPct: D('0'), makingPerGram: D('800'), stoneValue: D('1500') })],
+      ZERO, ZERO, false,
+    );
+    // metal 4.5 × 13200 = 59400; making 800 × 4.5 = 3600; stone 1500 → 64500; GST 3% = 1935
+    expect(r.lines[0].itemId).toBeNull();
+    expect(r.lines[0].lineTotal.toFixed(2)).toBe('64500.00');
+    expect(r.cgst.add(r.sgst).toFixed(2)).toBe('1935.00');
+    expect(r.totalAmount.toFixed(2)).toBe('66435.00');
+  });
+
+  it('charges no GST on an estimate, with or without old gold, intra or inter-state', () => {
+    for (const inter of [false, true]) {
+      const r = service.computeInvoice([makeLine()], D('2'), D('5000'), inter, false);
+      // 67200 − old gold 10000 = 57200, no tax
+      expect(r.cgst.toFixed(2)).toBe('0.00');
+      expect(r.sgst.toFixed(2)).toBe('0.00');
+      expect(r.igst.toFixed(2)).toBe('0.00');
+      expect(r.taxableAmount.toFixed(2)).toBe('57200.00');
+      expect(r.totalAmount.toFixed(2)).toBe('57200.00');
+    }
+  });
+});

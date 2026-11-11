@@ -14,6 +14,17 @@ const DEFAULTS: Record<string, string> = {
   wastagePct: '0',
   bullionFeedUrl: '',
   goldApiKey: '',
+  // Live rates via metals.dev (IBJA gold / MCX silver benchmark) + local Patna premium
+  metalsDevApiKey: '',
+  goldPremiumPer10g: '0',
+  silverPremiumPer10g: '0',
+  // Fetched rates that move more than this % vs current wait for owner approval
+  rateMaxChangePct: '3',
+  // Lending (girvi)
+  lendingLtvPct: '65',
+  lendingMaxLtvPct: '70',
+  lendingInterestPctMonthly: '2',
+  lendingOverdueMonths: '12',
 };
 
 @Injectable()

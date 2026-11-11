@@ -4,7 +4,7 @@ import { useRateStore } from '../../stores/rate.store';
 import { useAuthStore } from '../../stores/auth.store';
 import { RateTicker } from '../shared/RateTicker';
 import { ThemeToggle } from '../shared/ThemeToggle';
-import { Receipt, History, LogOut, Menu } from 'lucide-react';
+import { Receipt, History, LogOut, Menu, Coins } from 'lucide-react';
 
 function useAuth() {
   const store = useAuthStore();
@@ -16,6 +16,7 @@ function useAuth() {
 const NAV_ITEMS = [
   { to: '/pos',          label: 'New Bill', icon: Receipt, end: true  },
   { to: '/pos/invoices', label: 'Invoices', icon: History, end: false },
+  { to: '/pos/lending',  label: 'Lending',  icon: Coins, end: false },
 ];
 
 export function PosLayout() {

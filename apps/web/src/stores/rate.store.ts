@@ -6,6 +6,8 @@ export interface RateEntry {
   purity: string;
   ratePerGram: number;
   snappedAt: string;
+  /** metals.dev | goldapi.io | manual | mock | base */
+  source?: string;
 }
 
 interface RateState {

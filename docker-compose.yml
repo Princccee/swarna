@@ -85,6 +85,10 @@ services:
       WHATSAPP_WEBHOOK_VERIFY_TOKEN: ${WHATSAPP_WEBHOOK_VERIFY_TOKEN:-svarna-wa-verify}
       # Meta app secret — verifies webhook signatures. Required in production.
       WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
+      # Demo/mock rates are never billable in production; set true only for local demos
+      ALLOW_DEMO_RATES: ${ALLOW_DEMO_RATES:-false}
+      # Billing refuses rates older than this many hours
+      RATE_MAX_AGE_HOURS: ${RATE_MAX_AGE_HOURS:-48}
     depends_on:
       postgres:
         condition: service_healthy
@@ -105,7 +109,9 @@ services:
       dockerfile: apps/web/Dockerfile
     restart: unless-stopped
     ports:
-      - '127.0.0.1:5173:80'
+      # Local-only by default. Set WEB_BIND=0.0.0.0 in .env to open the app to other devices on
+      # your Wi-Fi (e.g. a phone). Leave unset on servers — Caddy serves the app over HTTPS there.
+      - '${WEB_BIND:-127.0.0.1}:5173:80'
     depends_on:
       - api
 

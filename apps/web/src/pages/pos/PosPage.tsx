@@ -26,7 +26,9 @@ import { useAuthStore } from '../../stores/auth.store';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface BillLine {
-  itemId: string;
+  /** itemId for inventory lines, 'manual-…' for lines typed in at the counter */
+  key: string;
+  itemId: string | null;
   name: string;
   sku: string;
   qty: number;
@@ -35,10 +37,11 @@ interface BillLine {
   makingPct: number;
   makingPerGram: number;
   stoneValue: number;
-  // Filled in by preview response:
-  ratePerGram?: number;
-  lineTotal?: number;
+  /** Manual lines only: own rate per gram (otherwise today's live rate) */
+  manualRate?: number;
 }
+
+type BillType = 'TAX_INVOICE' | 'ESTIMATE';
 
 interface OldGold {
   weightG: string;
@@ -66,8 +69,8 @@ interface BillPreview {
   sgst: number;
   igst: number;
   grandTotal: number;
+  /** Same order as the bill lines sent */
   lines: Array<{
-    itemId: string;
     ratePerGram: number;
     lineTotal: number;
   }>;
@@ -115,12 +118,12 @@ function RatePill({ label, rateKey }: { label: string; rateKey: string }) {
   const rate = useRateStore((s) => s.rates[rateKey]);
   const connected = useRateStore((s) => s.connected);
   return (
-    <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-1">
+    <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-700/50 rounded-md px-2.5 py-1">
       <span
         className={`w-1.5 h-1.5 rounded-full shrink-0 ${connected ? 'bg-emerald-500' : 'bg-muted-foreground/40'}`}
       />
-      <span className="text-xs text-amber-700 font-medium">{label}</span>
-      <span className="font-mono text-xs font-semibold text-amber-900 tabular-nums">
+      <span className="text-xs text-amber-700 dark:text-amber-400 font-medium">{label}</span>
+      <span className="font-mono text-xs font-semibold text-amber-900 dark:text-amber-200 tabular-nums">
         {rate ? `₹${fmt(rate.ratePerGram)}/g` : '—'}
       </span>
     </div>
@@ -144,32 +147,91 @@ function SummaryRow({
 }) {
   return (
     <div
-      className={`flex items-baseline justify-between py-1.5 ${
-        bold ? 'border-t  mt-1 pt-2.5' : ''
-      }`}
+      className={`flex items-baseline justify-between py-1.5 ${ bold ? 'border-t mt-1 pt-2.5' : '' }`}
     >
       <span
-        className={`text-sm ${
-          bold ? 'font-semibold text-foreground' : 'text-muted-foreground'
-        }`}
+        className={`text-sm ${ bold ? 'font-semibold text-foreground' : 'text-muted-foreground' }`}
       >
         {label}
         {sub && <span className="text-xs ml-1 text-muted-foreground/60">{sub}</span>}
       </span>
       <span
-        className={`font-mono text-sm tabular-nums ${
-          accent
-            ? 'text-amber-700 font-bold text-base'
-            : bold
-            ? 'font-bold text-foreground'
-            : deduction
-            ? 'text-emerald-600 font-medium'
-            : 'text-foreground/80'
-        }`}
+        className={`font-mono text-sm tabular-nums ${ accent ? 'text-amber-700 dark:text-amber-400 font-bold text-base' : bold ? 'font-bold text-foreground' : deduction ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-foreground/80' }`}
       >
         {deduction ? `− ₹${value}` : `₹${value}`}
       </span>
     </div>
+  );
+}
+
+const MANUAL_PURITIES = ['GOLD_24K', 'GOLD_22K', 'GOLD_18K', 'GOLD_14K', 'SILVER_999', 'SILVER_925', 'PLATINUM_950'];
+
+function ManualLineForm({ onAdd, onClose }: { onAdd: (line: BillLine) => void; onClose: () => void }) {
+  const [f, setF] = useState({
+    name: '', purity: 'GOLD_22K', netWeightG: '', makingValue: '', makingType: 'pct' as 'pct' | 'perGram',
+    stoneValue: '', rate: '',
+  });
+  const rate = useRateStore((st) => {
+    const metal = f.purity.startsWith('SILVER') ? 'SILVER' : f.purity.startsWith('PLATINUM') ? 'PLATINUM' : 'GOLD';
+    return st.rates[`${metal}:${f.purity}`]?.ratePerGram;
+  });
+  const inputCls = 'w-full px-2.5 py-1.5 text-sm border rounded-md bg-card focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none';
+  const valid = f.name.trim().length > 0 && Number(f.netWeightG) > 0;
+
+  function add(e: React.FormEvent) {
+    e.preventDefault();
+    if (!valid) return;
+    const making = Number(f.makingValue) || 0;
+    onAdd({
+      key: `manual-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      itemId: null,
+      name: f.name.trim(),
+      sku: 'Manual entry',
+      qty: 1,
+      netWeightG: Number(f.netWeightG),
+      purity: f.purity,
+      makingPct: f.makingType === 'pct' ? making : 0,
+      makingPerGram: f.makingType === 'perGram' ? making : 0,
+      stoneValue: Number(f.stoneValue) || 0,
+      ...(Number(f.rate) > 0 ? { manualRate: Number(f.rate) } : {}),
+    });
+    setF({ ...f, name: '', netWeightG: '', makingValue: '', stoneValue: '', rate: '' });
+  }
+
+  return (
+    <form onSubmit={add} className="mt-3 border border-amber-200 dark:border-amber-700/50 rounded-lg p-3 bg-amber-50/40 dark:bg-amber-500/10 dark:bg-amber-900/10 space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wide">Add item manually</p>
+        <button type="button" onClick={onClose} className="text-muted-foreground/60 hover:text-muted-foreground"><X size={14} /></button>
+      </div>
+      <input autoFocus value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Item name (e.g. Gold ring)" className={inputCls} />
+      <div className="grid grid-cols-2 gap-2">
+        <select value={f.purity} onChange={(e) => setF({ ...f, purity: e.target.value })} className={inputCls}>
+          {MANUAL_PURITIES.map((p) => <option key={p} value={p}>{PURITY_LABELS[p]}</option>)}
+        </select>
+        <input type="number" min={0} step={0.001} value={f.netWeightG} onChange={(e) => setF({ ...f, netWeightG: e.target.value })}
+          placeholder="Net weight (g)" className={`${inputCls} font-mono tabular-nums`} />
+      </div>
+      <div className="grid grid-cols-[1fr_auto] gap-2">
+        <input type="number" min={0} step={0.01} value={f.makingValue} onChange={(e) => setF({ ...f, makingValue: e.target.value })}
+          placeholder="Making charge" className={`${inputCls} font-mono tabular-nums`} />
+        <select value={f.makingType} onChange={(e) => setF({ ...f, makingType: e.target.value as 'pct' | 'perGram' })} className={inputCls}>
+          <option value="pct">% of metal</option>
+          <option value="perGram">₹ per gram</option>
+        </select>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <input type="number" min={0} step={0.01} value={f.stoneValue} onChange={(e) => setF({ ...f, stoneValue: e.target.value })}
+          placeholder="Stone value ₹ (optional)" className={`${inputCls} font-mono tabular-nums`} />
+        <input type="number" min={0} step={0.01} value={f.rate} onChange={(e) => setF({ ...f, rate: e.target.value })}
+          placeholder={rate ? `Rate ₹${fmt(rate)}/g (today)` : 'Rate ₹/g'} className={`${inputCls} font-mono tabular-nums`} />
+      </div>
+      <button type="submit" disabled={!valid}
+        className="w-full py-1.5 text-sm font-semibold rounded-md bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white">
+        Add to bill
+      </button>
+      <p className="text-[11px] text-muted-foreground">Leave the rate empty to use today's live rate. Manual items don't change inventory stock.</p>
+    </form>
   );
 }
 
@@ -182,8 +244,10 @@ export function PosPage() {
   const [lines, setLines] = useState<BillLine[]>([]);
   const [oldGold, setOldGold] = useState<OldGold>({ weightG: '', ratePerGram: '' });
   const [customer, setCustomer] = useState<Customer | null>(null);
-  const [isWalkIn, setIsWalkIn] = useState(true);
   const [gstMode, setGstMode] = useState<GstMode>('intra');
+  const [billType, setBillType] = useState<BillType>('TAX_INVOICE');
+  const [showManualForm, setShowManualForm] = useState(false);
+  const isEstimate = billType === 'ESTIMATE';
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('CASH');
   const [paymentAmount, setPaymentAmount] = useState('');
 
@@ -225,7 +289,7 @@ export function PosPage() {
       api
         .get(`/billing/customers?search=${encodeURIComponent(debouncedCustomerSearch)}`)
         .then((r: any) => r.data),
-    enabled: debouncedCustomerSearch.length > 1 && !isWalkIn,
+    enabled: debouncedCustomerSearch.length > 1,
     staleTime: 30_000,
   });
 
@@ -246,21 +310,11 @@ export function PosPage() {
         igst:             Number(raw.igst),
         grandTotal:       Number(raw.totalAmount ?? raw.grandTotal),
         lines: (raw.lines ?? []).map((l: any) => ({
-          itemId:      l.itemId,
           ratePerGram: Number(l.ratePerGram),
           lineTotal:   Number(l.lineTotal),
         })),
       };
       setPreview(data);
-      // Merge ratePerGram + lineTotal back into bill lines
-      setLines((prev) =>
-        prev.map((line) => {
-          const match = data.lines?.find((l) => l.itemId === line.itemId);
-          return match
-            ? { ...line, ratePerGram: match.ratePerGram, lineTotal: match.lineTotal }
-            : line;
-        }),
-      );
     },
     onError: () => {
       setPreview(null);
@@ -273,7 +327,8 @@ export function PosPage() {
       api.post('/billing/invoices', payload).then((r: any) => r.data),
     onSuccess: (data: any) => {
       const invoiceNo = data?.invoiceNumber ?? data?.id;
-      toast.success(`Invoice ${invoiceNo} generated`, {
+      const label = data?.billType === 'ESTIMATE' ? 'Estimate' : 'Invoice';
+      toast.success(`${label} ${invoiceNo} generated`, {
         description: 'Bill has been saved successfully.',
         action: {
           label: 'View PDF',
@@ -303,16 +358,31 @@ export function PosPage() {
       toast.success(`Customer "${data.name}" registered`);
     },
     onError: (err: any) => {
-      toast.error('Failed to create customer', {
-        description: err?.response?.data?.message ?? 'Please try again.',
+      const existing = err?.response?.status === 409 ? err.response.data?.customer : null;
+      if (existing) {
+        // Phone already registered: use that customer rather than creating a duplicate
+        setCustomer({ id: existing.id, name: existing.name, phone: existing.phone, email: existing.email, address: existing.address });
+        setShowNewCustomerForm(false);
+        setNewCustomer({ name: '', phone: '', email: '', address: '' });
+        setCustomerSearch('');
+        toast.info(`${existing.name} is already registered with this phone. Selected.`);
+        return;
+      }
+      const m = err?.response?.data?.message;
+      toast.error('Failed to add customer', {
+        description: Array.isArray(m) ? m.join(', ') : m ?? 'Please try again.',
       });
     },
   });
 
   function handleCreateCustomer(e: React.FormEvent) {
     e.preventDefault();
-    if (!newCustomer.name.trim() || !newCustomer.phone.trim()) {
-      toast.error('Name and phone are required');
+    if (newCustomer.name.trim().length < 2) {
+      toast.error("Enter the customer's name");
+      return;
+    }
+    if (!/^[6-9]\d{9}$/.test(newCustomer.phone)) {
+      toast.error('Enter a valid 10-digit mobile number');
       return;
     }
     createCustomerMutation.mutate({
@@ -327,16 +397,26 @@ export function PosPage() {
   // ── Build preview payload (no customerId — preview doesn't need it) ────────
   const buildPayload = useCallback(() => {
     return {
-      lines: lines.map((l) => ({
-        itemId: l.itemId,
-        qty: l.qty,
-        netWeightG: l.netWeightG,
-      })),
+      lines: lines.map((l) =>
+        l.itemId
+          ? { itemId: l.itemId, qty: l.qty, netWeightG: l.netWeightG }
+          : {
+              qty: l.qty,
+              description: l.name,
+              purity: l.purity,
+              netWeightG: l.netWeightG,
+              ...(l.manualRate ? { ratePerGram: l.manualRate } : {}),
+              ...(l.makingPct > 0 ? { makingPct: l.makingPct } : {}),
+              ...(l.makingPerGram > 0 ? { makingPerGram: l.makingPerGram } : {}),
+              ...(l.stoneValue > 0 ? { stoneValue: l.stoneValue } : {}),
+            },
+      ),
       oldGoldWeightG: oldGold.weightG ? parseFloat(oldGold.weightG) : 0,
       oldGoldRatePerGram: oldGold.ratePerGram ? parseFloat(oldGold.ratePerGram) : 0,
       isInterstate: gstMode === 'inter',
+      billType,
     };
-  }, [lines, oldGold, gstMode]);
+  }, [lines, oldGold, gstMode, billType]);
 
   // ── Auto-trigger preview when bill changes ────────────────────────────────
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -353,7 +433,7 @@ export function PosPage() {
       if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lines, oldGold, gstMode, isWalkIn, customer]);
+  }, [lines, oldGold, gstMode, billType]);
 
   // ── Close dropdowns on outside click ─────────────────────────────────────
   useEffect(() => {
@@ -377,15 +457,16 @@ export function PosPage() {
 
   // ── Actions ───────────────────────────────────────────────────────────────
   function addItem(item: any) {
-    const exists = lines.find((l) => l.itemId === item.id);
+    const exists = lines.find((l) => l.key === item.id);
     if (exists) {
       setLines((prev) =>
-        prev.map((l) => (l.itemId === item.id ? { ...l, qty: l.qty + 1 } : l)),
+        prev.map((l) => (l.key === item.id ? { ...l, qty: l.qty + 1 } : l)),
       );
     } else {
       setLines((prev) => [
         ...prev,
         {
+          key: item.id,
           itemId: item.id,
           name: item.name,
           sku: item.sku,
@@ -402,22 +483,22 @@ export function PosPage() {
     setShowItemDropdown(false);
   }
 
-  function removeLine(itemId: string) {
-    setLines((prev) => prev.filter((l) => l.itemId !== itemId));
+  function removeLine(key: string) {
+    setLines((prev) => prev.filter((l) => l.key !== key));
   }
 
-  function updateQty(itemId: string, delta: number) {
+  function updateQty(key: string, delta: number) {
     setLines((prev) =>
       prev
-        .map((l) => (l.itemId === itemId ? { ...l, qty: Math.max(1, l.qty + delta) } : l))
+        .map((l) => (l.key === key ? { ...l, qty: Math.max(1, l.qty + delta) } : l))
         .filter((l) => l.qty > 0),
     );
   }
 
-  function setQtyDirect(itemId: string, val: string) {
+  function setQtyDirect(key: string, val: string) {
     const n = parseInt(val, 10);
     if (!isNaN(n) && n > 0) {
-      setLines((prev) => prev.map((l) => (l.itemId === itemId ? { ...l, qty: n } : l)));
+      setLines((prev) => prev.map((l) => (l.key === key ? { ...l, qty: n } : l)));
     }
   }
 
@@ -426,15 +507,17 @@ export function PosPage() {
       toast.error('Add at least one item to the bill');
       return;
     }
-    if (!isWalkIn && !customer) {
-      toast.error('Please select a customer before generating the invoice');
+    if (!customer) {
+      toast.error('Choose or add the customer for this bill');
       return;
     }
     const payload = {
       ...buildPayload(),
-      ...(customer && !isWalkIn ? { customerId: customer.id } : {}),
-      paymentMode,
-      paymentAmount: paymentAmount ? parseFloat(paymentAmount) : preview?.grandTotal ?? 0,
+      customerId: customer.id,
+      // An estimate is a quotation: no payment is taken against it
+      ...(isEstimate
+        ? {}
+        : { paymentMode, paymentAmount: paymentAmount ? parseFloat(paymentAmount) : preview?.grandTotal ?? 0 }),
     };
     invoiceMutation.mutate(payload);
   }
@@ -443,27 +526,29 @@ export function PosPage() {
     setLines([]);
     setOldGold({ weightG: '', ratePerGram: '' });
     setCustomer(null);
-    setIsWalkIn(true);
     setCustomerSearch('');
     setShowNewCustomerForm(false);
     setNewCustomer({ name: '', phone: '', email: '', address: '' });
     setGstMode('intra');
+    setBillType('TAX_INVOICE');
+    setShowManualForm(false);
     setPaymentMode('CASH');
     setPaymentAmount('');
     setPreview(null);
   }
 
   const items: any[] = itemResults?.items ?? itemResults ?? [];
-  const customers: any[] = customerResults?.customers ?? customerResults ?? [];
+  const customers: any[] = (customerResults?.customers ?? customerResults?.data ?? customerResults ?? [])
+    .filter((c: any) => c.phone !== '0000000000');
   const totalLines = lines.reduce((sum, l) => sum + l.qty, 0);
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="flex h-full overflow-hidden bg-muted/50">
       {/* ── LEFT: Item search + bill lines ── */}
-      <div className="flex flex-col w-[42%] shrink-0 border-r  bg-card overflow-hidden">
+      <div className="flex flex-col w-[42%] shrink-0 border-r bg-card overflow-hidden">
         {/* Header */}
-        <div className="shrink-0 px-4 pt-4 pb-3 border-b ">
+        <div className="shrink-0 px-4 pt-4 pb-3 border-b">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-foreground/80 uppercase tracking-wide">
               Add Items
@@ -490,7 +575,7 @@ export function PosPage() {
                 }}
                 onFocus={() => setShowItemDropdown(true)}
                 placeholder="Search by name, SKU, or HUID…"
-                className="w-full pl-9 pr-10 py-2.5 text-sm border  rounded-lg bg-muted/50 focus:bg-card focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all placeholder:text-muted-foreground/60"
+                className="w-full pl-9 pr-10 py-2.5 text-sm border rounded-lg bg-muted/50 focus:bg-card focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all placeholder:text-muted-foreground/60"
               />
               {itemSearching && (
                 <Loader2
@@ -510,20 +595,20 @@ export function PosPage() {
 
             {/* Item results dropdown */}
             {showItemDropdown && debouncedItemSearch.length > 1 && items.length > 0 && (
-              <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-card border  rounded-lg shadow-lg overflow-hidden max-h-72 overflow-y-auto">
+              <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-card border rounded-lg shadow-lg overflow-hidden max-h-72 overflow-y-auto">
                 {items.map((item: any) => (
                   <button
                     key={item.id}
                     onClick={() => addItem(item)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-amber-50 text-left group transition-colors"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-amber-50 dark:hover:bg-amber-500/15 text-left group transition-colors"
                   >
-                    <div className="shrink-0 w-8 h-8 rounded-md bg-amber-100 flex items-center justify-center">
-                      <span className="text-xs font-bold text-amber-700">
+                    <div className="shrink-0 w-8 h-8 rounded-md bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center">
+                      <span className="text-xs font-bold text-amber-700 dark:text-amber-400">
                         {PURITY_LABELS[item.purity] ?? '—'}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate group-hover:text-amber-800">
+                      <p className="text-sm font-medium text-foreground truncate group-hover:text-amber-800 dark:group-hover:text-amber-300">
                         {item.name}
                       </p>
                       <p className="text-xs text-muted-foreground/60 tabular-nums">
@@ -531,11 +616,7 @@ export function PosPage() {
                       </p>
                     </div>
                     <div className="shrink-0 text-right">
-                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-                        item.stockQty <= 2
-                          ? 'bg-red-50 text-red-600'
-                          : 'bg-emerald-50 text-emerald-600'
-                      }`}>
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${ item.stockQty <= 2 ? 'bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-400' : 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' }`}>
                         {item.stockQty} in stock
                       </span>
                     </div>
@@ -544,11 +625,28 @@ export function PosPage() {
               </div>
             )}
             {showItemDropdown && debouncedItemSearch.length > 1 && !itemSearching && items.length === 0 && (
-              <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-card border  rounded-lg shadow-sm px-4 py-3 text-sm text-muted-foreground/60">
-                No items found
+              <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-card border rounded-lg shadow-sm px-4 py-3 text-sm text-muted-foreground/60">
+                No items found.{' '}
+                <button onClick={() => { setShowManualForm(true); setShowItemDropdown(false); }} className="text-amber-700 dark:text-amber-400 font-medium hover:underline">
+                  Add it manually
+                </button>
               </div>
             )}
           </div>
+
+          {showManualForm ? (
+            <ManualLineForm
+              onAdd={(line) => { setLines((prev) => [...prev, line]); toast.success(`Added ${line.name}`); }}
+              onClose={() => setShowManualForm(false)}
+            />
+          ) : (
+            <button
+              onClick={() => setShowManualForm(true)}
+              className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300"
+            >
+              <Plus size={13} /> Add item manually (not in inventory)
+            </button>
+          )}
         </div>
 
         {/* Bill lines */}
@@ -559,13 +657,15 @@ export function PosPage() {
               <p className="text-sm">Search and add items above</p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100">
-              {lines.map((line, idx) => (
-                <div key={line.itemId} className="px-4 py-3 group">
+            <div className="divide-y divide-border">
+              {lines.map((line, idx) => {
+                const priced = preview?.lines[idx];
+                return (
+                <div key={line.key} className="px-4 py-3 group">
                   <div className="flex items-start gap-3">
                     {/* Index */}
-                    <div className="shrink-0 w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center mt-0.5">
-                      <span className="text-xs font-bold text-amber-700">{idx + 1}</span>
+                    <div className="shrink-0 w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center mt-0.5">
+                      <span className="text-xs font-bold text-amber-700 dark:text-amber-400">{idx + 1}</span>
                     </div>
 
                     <div className="flex-1 min-w-0">
@@ -575,11 +675,15 @@ export function PosPage() {
                             {line.name}
                           </p>
                           <p className="text-xs text-muted-foreground/60 mt-0.5">
-                            {line.sku} · {PURITY_LABELS[line.purity] ?? line.purity} · {fmtWt(line.netWeightG)}g/pc
+                            {line.itemId ? line.sku : <span className="text-amber-700/80 font-medium">Manual entry</span>} · {PURITY_LABELS[line.purity] ?? line.purity} · {fmtWt(line.netWeightG)}g/pc
+                            {!line.itemId && line.makingPct > 0 ? ` · making ${line.makingPct}%` : ''}
+                            {!line.itemId && line.makingPerGram > 0 ? ` · making ₹${fmt(line.makingPerGram)}/g` : ''}
+                            {!line.itemId && line.stoneValue > 0 ? ` · stone ₹${fmt(line.stoneValue)}` : ''}
+                            {line.manualRate ? ` · rate ₹${fmt(line.manualRate)}/g` : ''}
                           </p>
                         </div>
                         <button
-                          onClick={() => removeLine(line.itemId)}
+                          onClick={() => removeLine(line.key)}
                           className="shrink-0 text-muted-foreground/40 hover:text-red-400 transition-colors p-1 -mr-1 opacity-0 group-hover:opacity-100"
                           title="Remove"
                         >
@@ -590,9 +694,9 @@ export function PosPage() {
                       {/* Qty + weight + rate + total */}
                       <div className="mt-2 flex items-center gap-3 flex-wrap">
                         {/* Qty control */}
-                        <div className="flex items-center gap-1 bg-muted/50 rounded-md border ">
+                        <div className="flex items-center gap-1 bg-muted/50 rounded-md border">
                           <button
-                            onClick={() => updateQty(line.itemId, -1)}
+                            onClick={() => updateQty(line.key, -1)}
                             className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-l-md transition-colors"
                           >
                             <Minus size={12} />
@@ -601,11 +705,11 @@ export function PosPage() {
                             type="number"
                             min={1}
                             value={line.qty}
-                            onChange={(e) => setQtyDirect(line.itemId, e.target.value)}
+                            onChange={(e) => setQtyDirect(line.key, e.target.value)}
                             className="w-8 h-7 text-center text-sm font-semibold text-foreground bg-transparent outline-none tabular-nums"
                           />
                           <button
-                            onClick={() => updateQty(line.itemId, 1)}
+                            onClick={() => updateQty(line.key, 1)}
                             className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-r-md transition-colors"
                           >
                             <Plus size={12} />
@@ -616,14 +720,14 @@ export function PosPage() {
                           <span className="text-muted-foreground/60">
                             {fmtWt(line.netWeightG * line.qty)}g total
                           </span>
-                          {line.ratePerGram !== undefined && (
+                          {priced && (
                             <span className="text-muted-foreground/60">
-                              @₹{fmt(line.ratePerGram)}/g
+                              @₹{fmt(priced.ratePerGram)}/g
                             </span>
                           )}
-                          {line.lineTotal !== undefined && (
-                            <span className="font-semibold text-amber-700">
-                              ₹{fmt(line.lineTotal)}
+                          {priced && (
+                            <span className="font-semibold text-amber-700 dark:text-amber-400">
+                              ₹{fmt(priced.lineTotal)}
                             </span>
                           )}
                         </div>
@@ -631,14 +735,15 @@ export function PosPage() {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
 
         {/* Bottom stat */}
         {lines.length > 0 && (
-          <div className="shrink-0 px-4 py-2 border-t  bg-muted/50 flex items-center justify-between text-xs text-muted-foreground">
+          <div className="shrink-0 px-4 py-2 border-t bg-muted/50 flex items-center justify-between text-xs text-muted-foreground">
             <span>{lines.length} item type{lines.length !== 1 ? 's' : ''} · {totalLines} pc{totalLines !== 1 ? 's' : ''}</span>
             <button
               onClick={resetForm}
@@ -655,42 +760,18 @@ export function PosPage() {
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
 
           {/* ── Customer section ── */}
-          <section className="bg-card rounded-xl border ">
-            <div className="px-4 py-2.5 border-b  flex items-center gap-2">
+          <section className="bg-card rounded-xl border">
+            <div className="px-4 py-2.5 border-b flex items-center gap-2">
               <User size={14} className="text-muted-foreground/60" />
-              <h3 className="text-sm font-semibold text-foreground/80">Customer</h3>
+              <h3 className="text-sm font-semibold text-foreground/80">Customer <span className="text-red-400">*</span></h3>
+              {!customer && <span className="ml-auto text-xs text-muted-foreground/70">Find by name or phone, or add new</span>}
             </div>
             <div className="px-4 py-3 space-y-3">
-              {/* Walk-in toggle */}
-              <label className="flex items-center gap-2.5 cursor-pointer group">
-                <div
-                  onClick={() => {
-                    setIsWalkIn((v) => !v);
-                    setCustomer(null);
-                    setCustomerSearch('');
-                    setShowNewCustomerForm(false);
-                    setNewCustomer({ name: '', phone: '', email: '', address: '' });
-                  }}
-                  className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer ${
-                    isWalkIn ? 'bg-amber-500' : 'bg-muted'
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 w-4 h-4 bg-card rounded-full shadow transition-transform ${
-                      isWalkIn ? 'translate-x-4' : 'translate-x-0'
-                    }`}
-                  />
-                </div>
-                <span className="text-sm text-muted-foreground group-hover:text-foreground">
-                  Walk-in customer
-                </span>
-              </label>
-
-              {!isWalkIn && (
+              {(
                 <div ref={customerDropdownRef} className="space-y-3">
                   {/* ── Selected customer chip ── */}
                   {customer ? (
-                    <div className="flex items-start gap-3 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-start gap-3 px-3 py-2.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-700/50 rounded-lg">
                       <UserCheck size={16} className="text-amber-600 shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-foreground">{customer.name}</p>
@@ -714,9 +795,9 @@ export function PosPage() {
                     </div>
                   ) : showNewCustomerForm ? (
                     /* ── New customer inline form ── */
-                    <form onSubmit={handleCreateCustomer} className="space-y-2.5 border border-amber-200 rounded-lg p-3 bg-amber-50/40">
+                    <form onSubmit={handleCreateCustomer} className="space-y-2.5 border border-amber-200 dark:border-amber-700/50 rounded-lg p-3 bg-amber-50/40 dark:bg-amber-500/10">
                       <div className="flex items-center justify-between mb-1">
-                        <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">New Customer</p>
+                        <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wide">New Customer</p>
                         <button
                           type="button"
                           onClick={() => { setShowNewCustomerForm(false); setNewCustomer({ name: '', phone: '', email: '', address: '' }); }}
@@ -736,7 +817,7 @@ export function PosPage() {
                             value={newCustomer.name}
                             onChange={(e) => setNewCustomer((p) => ({ ...p, name: e.target.value }))}
                             placeholder="Full name"
-                            className="w-full px-3 py-2 text-sm border  rounded-lg bg-card focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all"
+                            className="w-full px-3 py-2 text-sm border rounded-lg bg-card focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all"
                           />
                         </div>
                         <div>
@@ -747,9 +828,11 @@ export function PosPage() {
                             type="tel"
                             required
                             value={newCustomer.phone}
-                            onChange={(e) => setNewCustomer((p) => ({ ...p, phone: e.target.value }))}
+                            inputMode="numeric"
+                            maxLength={10}
+                            onChange={(e) => setNewCustomer((p) => ({ ...p, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
                             placeholder="10-digit mobile"
-                            className="w-full px-3 py-2 text-sm border  rounded-lg bg-card focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all font-mono"
+                            className="w-full px-3 py-2 text-sm border rounded-lg bg-card focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all font-mono"
                           />
                         </div>
                         <div>
@@ -759,7 +842,7 @@ export function PosPage() {
                             value={newCustomer.email}
                             onChange={(e) => setNewCustomer((p) => ({ ...p, email: e.target.value }))}
                             placeholder="optional"
-                            className="w-full px-3 py-2 text-sm border  rounded-lg bg-card focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all"
+                            className="w-full px-3 py-2 text-sm border rounded-lg bg-card focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all"
                           />
                         </div>
                         <div className="col-span-2">
@@ -769,7 +852,7 @@ export function PosPage() {
                             value={newCustomer.address}
                             onChange={(e) => setNewCustomer((p) => ({ ...p, address: e.target.value }))}
                             placeholder="Street, city, pin code…"
-                            className="w-full px-3 py-2 text-sm border  rounded-lg bg-card focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all resize-none"
+                            className="w-full px-3 py-2 text-sm border rounded-lg bg-card focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all resize-none"
                           />
                         </div>
                       </div>
@@ -805,7 +888,7 @@ export function PosPage() {
                           }}
                           onFocus={() => setShowCustomerDropdown(true)}
                           placeholder="Search by name or phone…"
-                          className="w-full pl-9 pr-3 py-2 text-sm border  rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all"
+                          className="w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all"
                         />
                         {customerSearching && (
                           <Loader2
@@ -817,7 +900,7 @@ export function PosPage() {
 
                       {/* Results dropdown */}
                       {showCustomerDropdown && debouncedCustomerSearch.length > 1 && (
-                        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-card border  rounded-lg shadow-lg overflow-hidden">
+                        <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-card border rounded-lg shadow-lg overflow-hidden">
                           {customers.length > 0 && (
                             <div className="max-h-40 overflow-y-auto">
                               {customers.map((c: any) => (
@@ -828,7 +911,7 @@ export function PosPage() {
                                     setShowCustomerDropdown(false);
                                     setCustomerSearch('');
                                   }}
-                                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-amber-50 text-left border-b  last:border-0"
+                                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-amber-50 dark:hover:bg-amber-500/15 text-left border-b last:border-0"
                                 >
                                   <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0">
                                     <span className="text-xs font-bold text-muted-foreground">
@@ -856,10 +939,10 @@ export function PosPage() {
                               setNewCustomer((p) => ({
                                 ...p,
                                 name: /^\d/.test(customerSearch) ? '' : customerSearch,
-                                phone: /^\d/.test(customerSearch) ? customerSearch : '',
+                                phone: /^\d/.test(customerSearch) ? customerSearch.replace(/\D/g, '').slice(-10) : '',
                               }));
                             }}
-                            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-amber-700 font-medium hover:bg-amber-50 border-t "
+                            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-amber-700 dark:text-amber-400 font-medium hover:bg-amber-50 dark:hover:bg-amber-500/15 border-t"
                           >
                             <Plus size={14} className="shrink-0" />
                             New customer
@@ -872,7 +955,7 @@ export function PosPage() {
                       {!showCustomerDropdown && !customerSearch && (
                         <button
                           onClick={() => setShowNewCustomerForm(true)}
-                          className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 text-sm text-amber-700 font-medium border border-dashed border-amber-300 rounded-lg hover:bg-amber-50 transition-colors"
+                          className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 text-sm text-amber-700 dark:text-amber-400 font-medium border border-dashed border-amber-300 dark:border-amber-700/60 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-500/15 transition-colors"
                         >
                           <Plus size={13} />
                           Register new customer
@@ -886,8 +969,8 @@ export function PosPage() {
           </section>
 
           {/* ── Old Gold Exchange ── */}
-          <section className="bg-card rounded-xl border  overflow-hidden">
-            <div className="px-4 py-2.5 border-b  flex items-center gap-2">
+          <section className="bg-card rounded-xl border overflow-hidden">
+            <div className="px-4 py-2.5 border-b flex items-center gap-2">
               <Scale size={14} className="text-muted-foreground/60" />
               <h3 className="text-sm font-semibold text-foreground/80">Old Gold Exchange</h3>
               <span className="text-xs text-muted-foreground/60 ml-1">(optional)</span>
@@ -905,7 +988,7 @@ export function PosPage() {
                     value={oldGold.weightG}
                     onChange={(e) => setOldGold((p) => ({ ...p, weightG: e.target.value }))}
                     placeholder="0.000"
-                    className="w-full px-3 py-2 text-sm border  rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all tabular-nums font-mono"
+                    className="w-full px-3 py-2 text-sm border rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all tabular-nums font-mono"
                   />
                 </div>
                 <div>
@@ -919,12 +1002,12 @@ export function PosPage() {
                     value={oldGold.ratePerGram}
                     onChange={(e) => setOldGold((p) => ({ ...p, ratePerGram: e.target.value }))}
                     placeholder="0.00"
-                    className="w-full px-3 py-2 text-sm border  rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all tabular-nums font-mono"
+                    className="w-full px-3 py-2 text-sm border rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all tabular-nums font-mono"
                   />
                 </div>
               </div>
               {oldGold.weightG && oldGold.ratePerGram && (
-                <p className="mt-2 text-xs text-emerald-600 font-medium tabular-nums">
+                <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium tabular-nums">
                   Deduction: ₹{fmt(parseFloat(oldGold.weightG) * parseFloat(oldGold.ratePerGram))}
                 </p>
               )}
@@ -932,18 +1015,34 @@ export function PosPage() {
           </section>
 
           {/* ── GST mode ── */}
-          <section className="bg-card rounded-xl border  overflow-hidden">
-            <div className="px-4 py-2.5 border-b ">
-              <h3 className="text-sm font-semibold text-foreground/80">Tax</h3>
+          <section className="bg-card rounded-xl border overflow-hidden">
+            <div className="px-4 py-2.5 border-b flex items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold text-foreground/80">GST</h3>
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                <span className="text-sm text-muted-foreground">{isEstimate ? 'Estimate (no GST)' : 'GST invoice'}</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={!isEstimate}
+                  aria-label="Charge GST"
+                  onClick={() => setBillType(isEstimate ? 'TAX_INVOICE' : 'ESTIMATE')}
+                  className={`relative w-9 h-5 rounded-full transition-colors ${!isEstimate ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 bg-card rounded-full shadow transition-transform ${ !isEstimate ? 'translate-x-4' : 'translate-x-0' }`}
+                  />
+                </button>
+              </label>
             </div>
-            <div className="px-4 py-3 flex items-center gap-3">
+            {isEstimate && (
+              <p className="px-4 py-3 text-xs text-muted-foreground">
+                GST is off: this makes an estimate (quotation). No GST, no payment, stock isn't reduced and it isn't counted in sales.
+              </p>
+            )}
+            <div className={`px-4 py-3 flex items-center gap-3 ${isEstimate ? 'hidden' : ''}`}>
               <button
                 onClick={() => setGstMode('intra')}
-                className={`flex-1 py-2 text-sm font-medium rounded-lg border transition-all ${
-                  gstMode === 'intra'
-                    ? 'bg-amber-500 border-amber-500 text-white shadow-sm'
-                    : 'bg-card  text-muted-foreground hover:'
-                }`}
+                className={`flex-1 py-2 text-sm font-medium rounded-lg border transition-all ${ gstMode === 'intra' ? 'bg-amber-500 border-amber-500 text-white shadow-sm' : 'bg-card text-muted-foreground hover:' }`}
               >
                 Intra-state
                 <span className={`block text-xs font-normal mt-0.5 ${gstMode === 'intra' ? 'text-amber-100' : 'text-muted-foreground/60'}`}>
@@ -952,11 +1051,7 @@ export function PosPage() {
               </button>
               <button
                 onClick={() => setGstMode('inter')}
-                className={`flex-1 py-2 text-sm font-medium rounded-lg border transition-all ${
-                  gstMode === 'inter'
-                    ? 'bg-amber-500 border-amber-500 text-white shadow-sm'
-                    : 'bg-card  text-muted-foreground hover:'
-                }`}
+                className={`flex-1 py-2 text-sm font-medium rounded-lg border transition-all ${ gstMode === 'inter' ? 'bg-amber-500 border-amber-500 text-white shadow-sm' : 'bg-card text-muted-foreground hover:' }`}
               >
                 Inter-state
                 <span className={`block text-xs font-normal mt-0.5 ${gstMode === 'inter' ? 'text-amber-100' : 'text-muted-foreground/60'}`}>
@@ -967,8 +1062,8 @@ export function PosPage() {
           </section>
 
           {/* ── Bill summary ── */}
-          <section className="bg-card rounded-xl border  overflow-hidden">
-            <div className="px-4 py-2.5 border-b  flex items-center justify-between">
+          <section className="bg-card rounded-xl border overflow-hidden">
+            <div className="px-4 py-2.5 border-b flex items-center justify-between">
               <h3 className="text-sm font-semibold text-foreground/80">Bill Summary</h3>
               {previewMutation.isPending && (
                 <Loader2 size={13} className="text-amber-400 animate-spin" />
@@ -999,8 +1094,8 @@ export function PosPage() {
                       deduction
                     />
                   )}
-                  <SummaryRow label="Taxable amount" value={fmt(preview.taxableAmount)} />
-                  {gstMode === 'intra' ? (
+                  {!isEstimate && <SummaryRow label="Taxable amount" value={fmt(preview.taxableAmount)} />}
+                  {isEstimate ? null : gstMode === 'intra' ? (
                     <>
                       <SummaryRow label="CGST" sub="1.5%" value={fmt(preview.cgst)} />
                       <SummaryRow label="SGST" sub="1.5%" value={fmt(preview.sgst)} />
@@ -1009,7 +1104,7 @@ export function PosPage() {
                     <SummaryRow label="IGST" sub="3%" value={fmt(preview.igst)} />
                   )}
                   <SummaryRow
-                    label="Grand Total"
+                    label={isEstimate ? 'Estimate total (no GST)' : 'Grand Total'}
                     value={fmt(preview.grandTotal)}
                     bold
                     accent
@@ -1020,8 +1115,8 @@ export function PosPage() {
           </section>
 
           {/* ── Payment ── */}
-          <section className="bg-card rounded-xl border  overflow-hidden">
-            <div className="px-4 py-2.5 border-b  flex items-center gap-2">
+          <section className={`bg-card rounded-xl border overflow-hidden ${isEstimate ? 'hidden' : ''}`}>
+            <div className="px-4 py-2.5 border-b flex items-center gap-2">
               <CreditCard size={14} className="text-muted-foreground/60" />
               <h3 className="text-sm font-semibold text-foreground/80">Payment</h3>
             </div>
@@ -1034,7 +1129,7 @@ export function PosPage() {
                   <select
                     value={paymentMode}
                     onChange={(e) => setPaymentMode(e.target.value as PaymentMode)}
-                    className="w-full appearance-none px-3 py-2 text-sm border  rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none bg-card transition-all"
+                    className="w-full appearance-none px-3 py-2 text-sm border rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none bg-card transition-all"
                   >
                     {(Object.keys(PAYMENT_LABELS) as PaymentMode[]).map((mode) => (
                       <option key={mode} value={mode}>
@@ -1060,14 +1155,10 @@ export function PosPage() {
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
                   placeholder={preview ? fmt(preview.grandTotal) : '0.00'}
-                  className="w-full px-3 py-2 text-sm border  rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all font-mono tabular-nums"
+                  className="w-full px-3 py-2 text-sm border rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all font-mono tabular-nums"
                 />
                 {paymentAmount && preview && (
-                  <p className={`mt-1.5 text-xs font-medium tabular-nums ${
-                    parseFloat(paymentAmount) >= preview.grandTotal
-                      ? 'text-emerald-600'
-                      : 'text-amber-600'
-                  }`}>
+                  <p className={`mt-1.5 text-xs font-medium tabular-nums ${ parseFloat(paymentAmount) >= preview.grandTotal ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }`}>
                     {parseFloat(paymentAmount) >= preview.grandTotal
                       ? `Change: ₹${fmt(parseFloat(paymentAmount) - preview.grandTotal)}`
                       : `Short by: ₹${fmt(preview.grandTotal - parseFloat(paymentAmount))}`}
@@ -1079,7 +1170,7 @@ export function PosPage() {
         </div>
 
         {/* ── Bottom action bar ── */}
-        <div className="shrink-0 px-5 py-3 border-t  bg-card flex items-center gap-3">
+        <div className="shrink-0 px-5 py-3 border-t bg-card flex items-center gap-3">
           {createdInvoiceId && (
             <button
               onClick={() => downloadInvoicePdf(createdInvoiceId)}
@@ -1093,22 +1184,22 @@ export function PosPage() {
 
           {preview && lines.length > 0 && (
             <div className="text-right mr-2">
-              <p className="text-xs text-muted-foreground/60">Grand Total</p>
-              <p className="text-lg font-bold text-amber-700 font-mono tabular-nums leading-tight">
+              <p className="text-xs text-muted-foreground/60">{isEstimate ? 'Estimate total' : 'Grand Total'}</p>
+              <p className="text-lg font-bold text-amber-700 dark:text-amber-400 font-mono tabular-nums leading-tight">
                 ₹{fmt(preview.grandTotal)}
               </p>
             </div>
           )}
 
-          {!isWalkIn && !customer && lines.length > 0 && (
+          {!customer && lines.length > 0 && (
             <p className="text-xs text-amber-600 font-medium">
-              Select or register a customer to continue
+              Choose or add the customer to continue
             </p>
           )}
 
           <button
             onClick={handleGenerateInvoice}
-            disabled={lines.length === 0 || (!isWalkIn && !customer) || invoiceMutation.isPending}
+            disabled={lines.length === 0 || !customer || invoiceMutation.isPending}
             className="flex items-center gap-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:bg-muted disabled:text-muted-foreground/60 text-white font-semibold text-sm rounded-lg transition-colors shadow-sm disabled:shadow-none"
           >
             {invoiceMutation.isPending ? (
@@ -1119,7 +1210,7 @@ export function PosPage() {
             ) : (
               <>
                 <CheckCircle2 size={15} />
-                Generate Invoice
+                {isEstimate ? 'Generate Estimate' : 'Generate Invoice'}
               </>
             )}
           </button>

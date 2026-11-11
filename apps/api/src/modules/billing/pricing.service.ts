@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 export interface PriceLineInput {
-  itemId: string;
+  /** null for manual lines typed in at the counter */
+  itemId: string | null;
+  description?: string | null;
+  purity?: string | null;
   qty: number;
   netWeightG: Prisma.Decimal;
   ratePerGram: Prisma.Decimal;
@@ -45,6 +48,8 @@ export class PricingService {
     oldGoldWeightG: Prisma.Decimal,
     oldGoldRatePerGram: Prisma.Decimal,
     isInterstate: boolean,
+    /** false for ESTIMATE (non-GST) bills: no CGST/SGST/IGST */
+    applyGst = true,
   ): InvoiceCalculation {
     const computedLines: PriceLineResult[] = lines.map((line) => {
       const wastagePct = line.wastagePct ?? ZERO;
@@ -128,7 +133,11 @@ export class PricingService {
     let sgst: Prisma.Decimal;
     let igst: Prisma.Decimal;
 
-    if (isInterstate) {
+    if (!applyGst) {
+      cgst = ZERO;
+      sgst = ZERO;
+      igst = ZERO;
+    } else if (isInterstate) {
       igst = taxableAmount.mul(IGST_RATE).toDecimalPlaces(2);
       cgst = ZERO;
       sgst = ZERO;

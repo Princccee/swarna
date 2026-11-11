@@ -17,6 +17,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { WhatsAppModule } from './modules/whatsapp/whatsapp.module';
 import { CampaignsModule } from './modules/campaigns/campaigns.module';
+import { LendingModule } from './modules/lending/lending.module';
 import appConfig from './config/app.config';
 
 @Module({
@@ -49,6 +50,7 @@ import appConfig from './config/app.config';
     DashboardModule,
     WhatsAppModule,
     CampaignsModule,
+    LendingModule,
   ],
 })
 export class AppModule {}

@@ -24,6 +24,7 @@ export class RegistersService {
     const where: Prisma.InvoiceWhereInput = {
       invoicedAt: { gte: fromDate, lte: toDate },
       status: { not: 'CANCELLED' },
+      billType: 'TAX_INVOICE', // estimates are quotations, not sales
     };
 
     const [rows, total] = await Promise.all([
@@ -144,6 +145,7 @@ export class RegistersService {
     const where: Prisma.InvoiceWhereInput = {
       oldGoldDeduction: { gt: 0 },
       invoicedAt: { gte: fromDate, lte: toDate },
+      billType: 'TAX_INVOICE',
     };
 
     const [invoices, total] = await Promise.all([
@@ -364,6 +366,7 @@ export class RegistersService {
     const where: Prisma.InvoiceWhereInput = {
       invoicedAt: { gte: fromDate, lte: toDate },
       status: { in: ['CONFIRMED', 'IRN_REGISTERED'] },
+      billType: 'TAX_INVOICE',
     };
 
     const invoices = await this.prisma.invoice.findMany({
@@ -466,6 +469,7 @@ export class RegistersService {
     const where: Prisma.InvoiceWhereInput = {
       invoicedAt: { gte: fromDate, lte: toDate },
       status: { in: ['CONFIRMED', 'IRN_REGISTERED'] },
+      billType: 'TAX_INVOICE',
     };
 
     const aggregates = await this.prisma.invoice.aggregate({

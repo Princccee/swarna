@@ -41,6 +41,9 @@ const CampaignNewPage = lazy(() => import('@/pages/owner/CampaignNewPage'));
 const CampaignDetailPage = lazy(() => import('@/pages/owner/CampaignDetailPage'));
 const TemplatesPage = lazy(() => import('@/pages/owner/TemplatesPage'));
 const ShareKitPage = lazy(() => import('@/pages/owner/ShareKitPage'));
+const LendingListPage = lazy(() => import('@/pages/lending/LendingListPage'));
+const LendingNewPage = lazy(() => import('@/pages/lending/LendingNewPage'));
+const LendingDetailPage = lazy(() => import('@/pages/lending/LendingDetailPage'));
 const HomePage = lazy(() => import('@/pages/home/HomePage'));
 
 const Spin = () => <div className="flex items-center justify-center h-full p-8 text-gray-400">Loading…</div>;
@@ -86,6 +89,9 @@ export default function App() {
           <Route path="marketing/campaigns/:id" element={<CampaignDetailPage />} />
           <Route path="marketing/templates" element={<TemplatesPage />} />
           <Route path="marketing/share" element={<ShareKitPage />} />
+          <Route path="lending" element={<LendingListPage />} />
+          <Route path="lending/new" element={<LendingNewPage />} />
+          <Route path="lending/:id" element={<LendingDetailPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
 
@@ -101,6 +107,9 @@ export default function App() {
           <Route index element={<PosPage />} />
           <Route path="invoices" element={<InvoiceListPage />} />
           <Route path="invoices/:id" element={<InvoiceDetailPage />} />
+          <Route path="lending" element={<LendingListPage />} />
+          <Route path="lending/new" element={<LendingNewPage />} />
+          <Route path="lending/:id" element={<LendingDetailPage />} />
         </Route>
 
         {/* Accountant */}

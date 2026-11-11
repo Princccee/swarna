@@ -1,17 +1,33 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsEnum, IsNumber, IsOptional, IsString, IsUUID, Min, ValidateNested } from 'class-validator';
-import { PaymentMode } from '@prisma/client';
+import { ArrayMinSize, IsArray, IsEnum, IsNumber, IsOptional, IsString, IsUUID, Matches, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
+import { BillType, PaymentMode, Purity } from '@prisma/client';
 
+/**
+ * A bill line is either an inventory item (itemId) or a manual line typed in at the counter
+ * (description + purity + netWeightG, no itemId).
+ */
 export class InvoiceLineDto {
-  @IsUUID() itemId: string;
+  @IsOptional() @IsUUID() itemId?: string;
   @IsNumber() @Min(1) qty: number;
-  @IsOptional() @IsNumber() @Min(0) netWeightG?: number; // override item's net weight if set
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 3 }) @Min(0) netWeightG?: number; // inventory: override item's net weight
+
+  // ── Manual lines only ──
+  @IsOptional() @IsString() @MaxLength(120) description?: string;
+  @IsOptional() @IsEnum(Purity) purity?: Purity;
+  /** Rate per gram; defaults to today's live rate for the purity */
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 4 }) @Min(0.01) ratePerGram?: number;
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) makingPct?: number;
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) makingPerGram?: number;
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) stoneValue?: number;
 }
 
 export class CreateInvoiceDto {
-  @IsOptional() @IsUUID() customerId?: string;
-  @IsArray() @ValidateNested({ each: true }) @Type(() => InvoiceLineDto)
+  /** Required: every bill is made out to a real customer */
+  @IsUUID('4', { message: 'Choose or add the customer for this bill' }) customerId: string;
+  @IsArray() @ArrayMinSize(1) @ValidateNested({ each: true }) @Type(() => InvoiceLineDto)
   lines: InvoiceLineDto[];
+  /** TAX_INVOICE (default) or ESTIMATE (non-GST quotation) */
+  @IsOptional() @IsEnum(BillType) billType?: BillType;
   @IsOptional() @IsNumber() @Min(0) oldGoldWeightG?: number;
   @IsOptional() @IsNumber() @Min(0) oldGoldRatePerGram?: number;
   @IsOptional() @IsString() notes?: string;
@@ -27,16 +43,17 @@ export class RecordPaymentDto {
 }
 
 export class PreviewInvoiceDto {
-  @IsArray() @ValidateNested({ each: true }) @Type(() => InvoiceLineDto)
+  @IsArray() @ArrayMinSize(1) @ValidateNested({ each: true }) @Type(() => InvoiceLineDto)
   lines: InvoiceLineDto[];
+  @IsOptional() @IsEnum(BillType) billType?: BillType;
   @IsOptional() @IsNumber() @Min(0) oldGoldWeightG?: number;
   @IsOptional() @IsNumber() @Min(0) oldGoldRatePerGram?: number;
   @IsOptional() isInterstate?: boolean;
 }
 
 export class CreateCustomerDto {
-  @IsString() name: string;
-  @IsString() phone: string;
+  @IsString() @MinLength(2) @MaxLength(120) name: string;
+  @Matches(/^[6-9]\d{9}$/, { message: 'Enter a valid 10-digit mobile number' }) phone: string;
   @IsOptional() @IsString() email?: string;
   @IsOptional() @IsString() address?: string;
   @IsOptional() @IsString() panNumber?: string;

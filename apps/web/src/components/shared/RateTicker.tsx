@@ -24,6 +24,8 @@ export function RateTicker() {
     };
   });
 
+  const isDemo = DISPLAY_PURITIES.some((k) => ['mock', 'base'].includes(rates[k]?.source ?? ''));
+
   // Double the array for seamless loop
   const doubled = [...items, ...items];
 
@@ -43,11 +45,14 @@ export function RateTicker() {
       {/* "Live" indicator — static, not scrolling */}
       <div className="shrink-0 flex items-center gap-1.5 px-3 border-r border-white/[0.06] h-full">
         <span
-          className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-live-pulse"
+          className={`w-1.5 h-1.5 rounded-full ${isDemo ? 'bg-red-500' : 'bg-amber-400 animate-live-pulse'}`}
           aria-label={connected ? 'Connected' : 'Disconnected'}
         />
-        <span className="text-[10px] font-semibold tracking-[0.1em] uppercase text-stone-600">
-          Live
+        <span
+          className={`text-[10px] font-semibold tracking-[0.1em] uppercase ${isDemo ? 'text-red-400' : 'text-stone-600'}`}
+          title={isDemo ? 'Placeholder rates, not real market prices' : undefined}
+        >
+          {isDemo ? 'Demo' : 'Live'}
         </span>
       </div>
 

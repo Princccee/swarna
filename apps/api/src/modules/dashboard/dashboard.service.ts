@@ -29,6 +29,7 @@ export class DashboardService {
       where: {
         invoicedAt: { gte: todayStart, lt: todayEnd },
         status: { not: InvoiceStatus.CANCELLED },
+        billType: 'TAX_INVOICE', // estimates are quotations, not sales
       },
       _sum: { totalAmount: true },
       _count: { id: true },
@@ -43,6 +44,7 @@ export class DashboardService {
     const duesAgg = await this.prisma.invoice.aggregate({
       where: {
         status: { not: InvoiceStatus.CANCELLED },
+        billType: 'TAX_INVOICE',
         balanceDue: { gt: ZERO },
       },
       _sum: { balanceDue: true },

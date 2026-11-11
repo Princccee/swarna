@@ -113,11 +113,12 @@ export default function InvoiceDetailPage() {
   const gst = invoice.gstBreakdown ?? invoice.taxBreakdown ?? null;
   const isOwner = user?.role === Role.OWNER;
   const canCancel = isOwner && (invoice.status === 'DRAFT' || invoice.status === 'CONFIRMED');
-  const canRetryIrn = isOwner && (invoice.status === 'IRN_PENDING' || invoice.status === 'CONFIRMED');
+  const isEstimate = invoice.billType === 'ESTIMATE';
+  const canRetryIrn = !isEstimate && isOwner && (invoice.status === 'IRN_PENDING' || invoice.status === 'CONFIRMED');
   const balanceDue = Number(invoice.balanceDue ?? 0);
   const totalPaid = payments.reduce((sum: number, p: any) => sum + Number(p.amount ?? 0), 0);
   const isFullyPaid = balanceDue <= 0;
-  const canAddPayment = invoice.status !== 'CANCELLED' && !isFullyPaid;
+  const canAddPayment = !isEstimate && invoice.status !== 'CANCELLED' && !isFullyPaid;
 
   return (
     <div className="p-6 space-y-6 max-w-4xl">
@@ -134,9 +135,15 @@ export default function InvoiceDetailPage() {
             {invoice.invoiceNumber ?? `INV-${id?.slice(0, 8).toUpperCase()}`}
           </h1>
           <div className="flex items-center gap-3 mt-1 flex-wrap">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATUS_STYLES[invoice.status] ?? 'bg-muted text-muted-foreground'}`}>
-              {STATUS_LABELS[invoice.status] ?? invoice.status}
-            </span>
+            {isEstimate ? (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+                Estimate · no GST
+              </span>
+            ) : (
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATUS_STYLES[invoice.status] ?? 'bg-muted text-muted-foreground'}`}>
+                {STATUS_LABELS[invoice.status] ?? invoice.status}
+              </span>
+            )}
             {invoice.irn && (
               <span className="text-xs text-muted-foreground font-mono truncate max-w-[180px]" title={invoice.irn}>
                 IRN: {invoice.irn.slice(0, 16)}…
@@ -225,8 +232,9 @@ export default function InvoiceDetailPage() {
               {lineItems.map((item: any, idx: number) => (
                 <tr key={item.id ?? idx} className="hover:bg-muted/50">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-foreground">{item.name ?? item.itemName ?? item.item?.name}</div>
-                    {item.sku && <div className="text-xs text-muted-foreground/60 font-mono">{item.sku}</div>}
+                    <div className="font-medium text-foreground">{item.name ?? item.itemName ?? item.item?.name ?? item.description}</div>
+                    {(item.sku ?? item.item?.sku) && <div className="text-xs text-muted-foreground/60 font-mono">{item.sku ?? item.item?.sku}</div>}
+                    {!item.itemId && <div className="text-xs text-amber-700/80">Manual entry</div>}
                   </td>
                   <td className="px-4 py-3 text-foreground/80">{item.qty ?? item.quantity ?? 1}</td>
                   <td className="px-4 py-3 text-foreground/80">{Number(item.netWeightG ?? item.netWeight ?? 0).toFixed(3)}</td>

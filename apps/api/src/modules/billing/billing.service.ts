@@ -1,12 +1,14 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
-import { Prisma, InvoiceStatus, Metal, Purity } from '@prisma/client';
+import { Injectable, Logger, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Prisma, InvoiceStatus, Metal, Purity, BillType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { PricingService, PriceLineInput, InvoiceCalculation } from './pricing.service';
 import { IrnService } from './irn.service';
 import { PdfService } from './pdf.service';
+import { demoRatesAllowed, rateMaxAgeHours, rateUsability } from '../rate-sync/rate-math';
 import {
   CreateInvoiceDto,
+  InvoiceLineDto,
   RecordPaymentDto,
   PreviewInvoiceDto,
   CreateCustomerDto,
@@ -78,29 +80,33 @@ export class BillingService {
   // Private helpers
   // -------------------------------------------------------------------------
 
-  /** Get or create the generic walk-in customer used when no customerId is supplied. */
-  private async getWalkInCustomer() {
-    const WALK_IN_PHONE = '0000000000';
-    const existing = await this.prisma.customer.findUnique({ where: { phone: WALK_IN_PHONE } });
-    if (existing) return existing;
-    return this.prisma.customer.create({
-      data: { name: 'Walk-in Customer', phone: WALK_IN_PHONE },
-    });
-  }
+  /**
+   * Legacy placeholder record that older invoices were billed to. Every new bill must name a
+   * real customer, so it can't be selected any more.
+   */
+  private static readonly LEGACY_WALK_IN_PHONE = '0000000000';
 
-  /** Fetch rate from Redis for a given purity. Throws BadRequestException if missing. */
+  /**
+   * Fetch rate from Redis for a given purity. Refuses to bill on a missing, stale or demo rate
+   * (demo rates are allowed only outside production) so invoices never use a wrong price.
+   */
   private async fetchRate(metal: Metal, purity: Purity): Promise<Prisma.Decimal> {
     const key = `rate:${metal}:${purity}`;
     const cached = await this.redis.getJson<RateCacheEntry>(key);
-    if (!cached || cached.ratePerGram === undefined || cached.ratePerGram === null) {
-      throw new BadRequestException(`Live rate not available for ${purity}. Please sync rates and retry.`);
-    }
-    return new Prisma.Decimal(String(cached.ratePerGram));
+    const check = rateUsability(
+      cached
+        ? { ratePerGram: Number(cached.ratePerGram), snappedAt: cached.snappedAt as string | undefined, source: cached.source as string | undefined }
+        : null,
+      { now: new Date(), allowDemo: demoRatesAllowed(), maxAgeHours: rateMaxAgeHours(), label: purity.replace('_', ' ') },
+    );
+    if (!check.ok) throw new BadRequestException(check.message);
+    return new Prisma.Decimal(String(cached!.ratePerGram));
   }
 
   /** Generate the next invoice number for the current month. */
-  private async nextInvoiceNumber(): Promise<string> {
-    const prefix = 'SVR-' + yyyymm(new Date());
+  /** Tax invoices (SVR-) and estimates (EST-) have separate, gap-free series. */
+  private async nextInvoiceNumber(series: 'SVR' | 'EST' = 'SVR'): Promise<string> {
+    const prefix = series + '-' + yyyymm(new Date());
     const last = await this.prisma.invoice.findFirst({
       where: { invoiceNumber: { startsWith: prefix } },
       orderBy: { invoiceNumber: 'desc' },
@@ -119,58 +125,76 @@ export class BillingService {
   }
 
   /**
-   * Resolve item data + rates for every line in the DTO.
-   * Returns: priceLineInputs, itemMap (itemId → item), rateMap (purity → ratePerGram).
+   * Resolve every bill line to a priced input. Inventory lines take weight/making/stone from the
+   * item; manual lines carry their own description, purity, weight and making. Rates come from
+   * the live rate cache (guarded), except a manual line may give its own rate.
+   * Returns: priceLineInputs (same order as `lines`), itemMap, and the live rates used.
    */
-  private async resolveLines(
-    lines: Array<{ itemId: string; qty: number; netWeightG?: number }>,
-  ): Promise<{
+  private async resolveLines(lines: InvoiceLineDto[]): Promise<{
     priceLineInputs: PriceLineInput[];
     itemMap: Map<string, Awaited<ReturnType<typeof this.prisma.item.findUniqueOrThrow>>>;
     rateMap: Map<Purity, Prisma.Decimal>;
   }> {
-    const itemIds = lines.map((l) => l.itemId);
-    const items = await this.prisma.item.findMany({
-      where: { id: { in: itemIds }, active: true },
-    });
+    if (!lines.length) throw new BadRequestException('Add at least one item to the bill.');
 
+    const itemIds = lines.filter((l) => l.itemId).map((l) => l.itemId!);
+    const items = itemIds.length
+      ? await this.prisma.item.findMany({ where: { id: { in: itemIds }, active: true } })
+      : [];
     const itemMap = new Map(items.map((i) => [i.id, i]));
 
-    // Verify all items found
-    for (const l of lines) {
-      if (!itemMap.has(l.itemId)) {
-        throw new NotFoundException(`Item ${l.itemId} not found or inactive.`);
+    lines.forEach((l, idx) => {
+      const n = idx + 1;
+      if (l.itemId) {
+        if (!itemMap.has(l.itemId)) throw new NotFoundException(`Item ${l.itemId} not found or inactive.`);
+        return;
       }
-    }
+      if (!l.description?.trim()) throw new BadRequestException(`Line ${n}: enter the item name.`);
+      if (!l.purity) throw new BadRequestException(`Line ${n} (${l.description}): choose the metal/purity.`);
+      if (!(Number(l.netWeightG) > 0)) throw new BadRequestException(`Line ${n} (${l.description}): enter the net weight.`);
+      if ((l.makingPct ?? 0) > 0 && (l.makingPerGram ?? 0) > 0) {
+        throw new BadRequestException(`Line ${n} (${l.description}): give making as a % or per gram, not both.`);
+      }
+    });
 
-    // Collect unique purities and fetch rates once each
-    const uniquePurities = [...new Set(items.map((i) => i.purity))];
+    // Live rates are needed for every inventory purity and for manual lines without their own rate
+    const neededPurities = new Set<Purity>();
+    for (const l of lines) {
+      if (l.itemId) neededPurities.add(itemMap.get(l.itemId)!.purity);
+      else if (l.ratePerGram == null) neededPurities.add(l.purity!);
+    }
     const rateMap = new Map<Purity, Prisma.Decimal>();
     await Promise.all(
-      uniquePurities.map(async (purity) => {
-        const metal = metalFromPurity(purity);
-        const rate = await this.fetchRate(metal, purity);
-        rateMap.set(purity, rate);
+      [...neededPurities].map(async (purity) => {
+        rateMap.set(purity, await this.fetchRate(metalFromPurity(purity), purity));
       }),
     );
 
-    // Build PriceLineInput array
+    const dec = (n: number | undefined) => new Prisma.Decimal(String(n ?? 0));
     const priceLineInputs: PriceLineInput[] = lines.map((l) => {
-      const item = itemMap.get(l.itemId)!;
-      const netWeightG =
-        l.netWeightG !== undefined
-          ? new Prisma.Decimal(String(l.netWeightG))
-          : item.netWeightG;
-      const ratePerGram = rateMap.get(item.purity)!;
-
+      if (l.itemId) {
+        const item = itemMap.get(l.itemId)!;
+        return {
+          itemId: item.id,
+          purity: item.purity,
+          qty: l.qty,
+          netWeightG: l.netWeightG !== undefined ? new Prisma.Decimal(String(l.netWeightG)) : item.netWeightG,
+          ratePerGram: rateMap.get(item.purity)!,
+          makingPct: item.makingPct,
+          makingPerGram: item.makingPerGram,
+          stoneValue: item.stoneValue,
+        };
+      }
       return {
-        itemId: item.id,
+        itemId: null,
+        description: l.description!.trim(),
+        purity: l.purity!,
         qty: l.qty,
-        netWeightG,
-        ratePerGram,
-        makingPct: item.makingPct,
-        makingPerGram: item.makingPerGram,
-        stoneValue: item.stoneValue,
+        netWeightG: new Prisma.Decimal(String(l.netWeightG)),
+        ratePerGram: l.ratePerGram != null ? new Prisma.Decimal(String(l.ratePerGram)) : rateMap.get(l.purity!)!,
+        makingPct: dec(l.makingPct),
+        makingPerGram: dec(l.makingPerGram),
+        stoneValue: dec(l.stoneValue),
       };
     });
 
@@ -181,57 +205,61 @@ export class BillingService {
   // 1. createInvoice
   // -------------------------------------------------------------------------
   async createInvoice(dto: CreateInvoiceDto, userId: string) {
-    const { priceLineInputs, itemMap, rateMap } = await this.resolveLines(dto.lines);
+    const isEstimate = dto.billType === BillType.ESTIMATE;
+    const { priceLineInputs } = await this.resolveLines(dto.lines);
 
     const oldGoldWeightG = new Prisma.Decimal(String(dto.oldGoldWeightG ?? 0));
     const oldGoldRatePerGram = new Prisma.Decimal(String(dto.oldGoldRatePerGram ?? 0));
     const isInterstate = dto.isInterstate ?? false;
 
-    // Compute pricing
     const calc = this.pricing.computeInvoice(
       priceLineInputs,
       oldGoldWeightG,
       oldGoldRatePerGram,
       isInterstate,
+      !isEstimate,
     );
 
-    // Generate invoice number
-    const invoiceNumber = await this.nextInvoiceNumber();
+    // Separate number series so the tax-invoice sequence stays continuous
+    const invoiceNumber = await this.nextInvoiceNumber(isEstimate ? 'EST' : 'SVR');
 
-    // Resolve customer — use walk-in placeholder when none supplied
-    const customer = dto.customerId
-      ? await this.prisma.customer.findUnique({ where: { id: dto.customerId } })
-      : await this.getWalkInCustomer();
-    if (!customer) throw new NotFoundException(`Customer ${dto.customerId} not found.`);
-
-    // Create one RateSnapshot per unique purity (use the first purity's snapshot as the invoice's primary snapshot)
-    const snapshotIds = new Map<Purity, string>();
-    for (const [purity, ratePerGram] of rateMap.entries()) {
-      const metal = metalFromPurity(purity);
-      const snapshot = await this.prisma.rateSnapshot.create({
-        data: {
-          metal,
-          purity,
-          ratePerGram,
-          source: 'redis-cache',
-        },
-      });
-      snapshotIds.set(purity, snapshot.id);
+    // Every bill is made out to a real customer (no anonymous walk-in bills)
+    const customer = await this.prisma.customer.findFirst({ where: { id: dto.customerId, deletedAt: null } });
+    if (!customer) throw new NotFoundException('Customer not found. Choose or add the customer for this bill.');
+    if (customer.phone === BillingService.LEGACY_WALK_IN_PHONE) {
+      throw new BadRequestException('Bills must be made out to a real customer. Find or add the customer by name and phone.');
     }
 
-    // The invoice's rateSnapshotId: use the first item's purity snapshot
-    const firstItemPurity = itemMap.get(dto.lines[0].itemId)!.purity;
-    const primarySnapshotId = snapshotIds.get(firstItemPurity)!;
+    // One RateSnapshot per distinct (purity, rate) actually billed. A manual line's own rate is
+    // recorded with source 'manual-bill'. The first line's snapshot is the invoice's primary one.
+    const snapshotIds = new Map<string, string>();
+    const lineSnapshotKey = priceLineInputs.map((l, idx) => {
+      const manualRate = !l.itemId && dto.lines[idx].ratePerGram != null;
+      return { key: `${l.purity}:${l.ratePerGram.toString()}:${manualRate ? 'manual' : 'live'}`, manualRate, l };
+    });
+    for (const { key, manualRate, l } of lineSnapshotKey) {
+      if (snapshotIds.has(key)) continue;
+      const purity = l.purity as Purity;
+      const snapshot = await this.prisma.rateSnapshot.create({
+        data: {
+          metal: metalFromPurity(purity),
+          purity,
+          ratePerGram: l.ratePerGram,
+          source: manualRate ? 'manual-bill' : 'redis-cache',
+        },
+      });
+      snapshotIds.set(key, snapshot.id);
+    }
+    const primarySnapshotId = snapshotIds.get(lineSnapshotKey[0].key)!;
 
-    // Build transaction operations
     const invoice = await this.prisma.$transaction(async (tx) => {
-      // Create the invoice
       const created = await tx.invoice.create({
         data: {
           customer: { connect: { id: customer.id } },
           rateSnapshot: { connect: { id: primarySnapshotId } },
           createdBy: { connect: { id: userId } },
           invoiceNumber,
+          billType: isEstimate ? BillType.ESTIMATE : BillType.TAX_INVOICE,
           subtotal: calc.subtotal,
           makingTotal: calc.makingTotal,
           wastageTotal: calc.wastageTotal,
@@ -245,13 +273,16 @@ export class BillingService {
           igst: calc.igst,
           totalAmount: calc.totalAmount,
           amountPaid: ZERO,
-          balanceDue: calc.totalAmount,
-          status: InvoiceStatus.CONFIRMED,
+          // An estimate is a quotation: nothing is owed against it
+          balanceDue: isEstimate ? ZERO : calc.totalAmount,
+          status: isEstimate ? InvoiceStatus.DRAFT : InvoiceStatus.CONFIRMED,
           notes: dto.notes,
           invoicedAt: new Date(),
           lines: {
             create: calc.lines.map((l) => ({
-              item: { connect: { id: l.itemId } },
+              ...(l.itemId ? { item: { connect: { id: l.itemId } } } : {}),
+              description: l.itemId ? null : l.description ?? null,
+              purity: (l.purity as Purity) ?? null,
               qty: l.qty,
               netWeightG: l.netWeightG,
               ratePerGram: l.ratePerGram,
@@ -262,62 +293,57 @@ export class BillingService {
             })),
           },
         },
-        include: {
-          customer: true,
-          lines: { include: { item: true } },
-          payments: true,
-          rateSnapshot: true,
-        },
       });
 
-      // Decrement stockQty and create StockMovement (OUT) for each line
-      for (const lineDto of dto.lines) {
-        await tx.item.update({
-          where: { id: lineDto.itemId },
-          data: { stockQty: { decrement: lineDto.qty } },
-        });
+      if (!isEstimate) {
+        // Stock leaves the shop only for inventory lines on a real sale
+        for (const lineDto of dto.lines) {
+          if (!lineDto.itemId) continue;
+          await tx.item.update({
+            where: { id: lineDto.itemId },
+            data: { stockQty: { decrement: lineDto.qty } },
+          });
+          await tx.stockMovement.create({
+            data: {
+              item: { connect: { id: lineDto.itemId } },
+              type: 'OUT',
+              qty: lineDto.qty,
+              reason: 'Sale',
+              refId: created.id,
+            },
+          });
+        }
 
-        await tx.stockMovement.create({
+        if (dto.paymentMode) {
+          const paid = new Prisma.Decimal(String(dto.paymentAmount ?? calc.totalAmount));
+          const balanceDue = calc.totalAmount.sub(paid).toDecimalPlaces(2);
+          await tx.payment.create({
+            data: { invoice: { connect: { id: created.id } }, amount: paid, mode: dto.paymentMode },
+          });
+          await tx.invoice.update({
+            where: { id: created.id },
+            data: { amountPaid: paid, balanceDue },
+          });
+        }
+
+        await tx.registerEntry.create({
           data: {
-            item: { connect: { id: lineDto.itemId } },
-            type: 'OUT',
-            qty: lineDto.qty,
-            reason: 'Sale',
-            refId: created.id,
+            createdById: userId,
+            refInvoiceId: created.id,
+            registerType: 'SALES',
+            description: `Invoice ${invoiceNumber}`,
+            amount: calc.totalAmount,
           },
         });
       }
 
-      // Create Payment record if paymentMode supplied
-      if (dto.paymentMode) {
-        const paid = new Prisma.Decimal(String(dto.paymentAmount ?? calc.totalAmount));
-        const balanceDue = calc.totalAmount.sub(paid).toDecimalPlaces(2);
-        await tx.payment.create({
-          data: { invoice: { connect: { id: created.id } }, amount: paid, mode: dto.paymentMode },
-        });
-        await tx.invoice.update({
-          where: { id: created.id },
-          data: { amountPaid: paid, balanceDue },
-        });
-      }
-
-      // Create RegisterEntry (SALES)
-      await tx.registerEntry.create({
-        data: {
-          createdById: userId,
-          refInvoiceId: created.id,
-          registerType: 'SALES',
-          description: `Invoice ${invoiceNumber}`,
-          amount: calc.totalAmount,
-        },
-      });
-
-      // Re-fetch so response includes payment + updated amounts
       return tx.invoice.findUniqueOrThrow({
         where: { id: created.id },
         include: { customer: true, lines: { include: { item: true } }, payments: true, rateSnapshot: true },
       });
     });
+
+    if (isEstimate) return invoice; // a quotation: no sales total, no e-invoice
 
     // Update customer totalSpent (outside transaction — non-critical)
     this.prisma.customer
@@ -364,6 +390,7 @@ export class BillingService {
       oldGoldWeightG,
       oldGoldRatePerGram,
       isInterstate,
+      dto.billType !== BillType.ESTIMATE,
     );
   }
 
@@ -504,6 +531,8 @@ export class BillingService {
     await this.prisma.$transaction(async (tx) => {
       // Reverse stock movements: create IN movements and restore stockQty
       for (const line of invoice.lines) {
+        // Manual lines and estimates never took stock out
+        if (!line.itemId || invoice.billType === BillType.ESTIMATE) continue;
         await tx.stockMovement.create({
           data: {
             itemId: line.itemId,
@@ -595,7 +624,10 @@ export class BillingService {
   // 8. listCustomers
   // -------------------------------------------------------------------------
   async listCustomers(search?: string) {
-    const where: Prisma.CustomerWhereInput = { deletedAt: null };
+    const where: Prisma.CustomerWhereInput = {
+      deletedAt: null,
+      phone: { not: BillingService.LEGACY_WALK_IN_PHONE },
+    };
 
     if (search) {
       where.OR = [
@@ -617,12 +649,15 @@ export class BillingService {
   async createCustomer(dto: CreateCustomerDto) {
     const existing = await this.prisma.customer.findUnique({ where: { phone: dto.phone } });
     if (existing) {
-      throw new BadRequestException(`Customer with phone ${dto.phone} already exists.`);
+      throw new ConflictException({
+        message: `${existing.name} is already registered with phone ${dto.phone}.`,
+        customer: { id: existing.id, name: existing.name, phone: existing.phone, email: existing.email, address: existing.address },
+      });
     }
 
     return this.prisma.customer.create({
       data: {
-        name: dto.name,
+        name: dto.name.trim(),
         phone: dto.phone,
         email: dto.email,
         address: dto.address,

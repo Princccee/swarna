@@ -14,6 +14,14 @@ type SettingsForm = {
   isInterstate: 'false' | 'true';
   wastagePercent: string;
   goldApiKey: string;
+  metalsDevApiKey: string;
+  goldPremiumPer10g: string;
+  silverPremiumPer10g: string;
+  rateMaxChangePct: string;
+  lendingLtvPct: string;
+  lendingMaxLtvPct: string;
+  lendingInterestPctMonthly: string;
+  lendingOverdueMonths: string;
   irnAutoRegister: boolean;
 };
 
@@ -34,6 +42,14 @@ export default function SettingsPage() {
       isInterstate: 'false',
       wastagePercent: '',
       goldApiKey: '',
+      metalsDevApiKey: '',
+      goldPremiumPer10g: '0',
+      silverPremiumPer10g: '0',
+      rateMaxChangePct: '3',
+      lendingLtvPct: '65',
+      lendingMaxLtvPct: '70',
+      lendingInterestPctMonthly: '2',
+      lendingOverdueMonths: '12',
       irnAutoRegister: false,
     },
   });
@@ -56,6 +72,14 @@ export default function SettingsPage() {
       isInterstate: s.isInterstate === 'true' ? 'true' : 'false',
       wastagePercent: s.wastagePercent ?? '',
       goldApiKey: s.goldApiKey ?? '',
+      metalsDevApiKey: s.metalsDevApiKey ?? '',
+      goldPremiumPer10g: s.goldPremiumPer10g ?? '0',
+      silverPremiumPer10g: s.silverPremiumPer10g ?? '0',
+      rateMaxChangePct: s.rateMaxChangePct ?? '3',
+      lendingLtvPct: s.lendingLtvPct ?? '65',
+      lendingMaxLtvPct: s.lendingMaxLtvPct ?? '70',
+      lendingInterestPctMonthly: s.lendingInterestPctMonthly ?? '2',
+      lendingOverdueMonths: s.lendingOverdueMonths ?? '12',
       irnAutoRegister: s.irnAutoRegister === 'true',
     });
   }, [settingsData, reset]);
@@ -71,6 +95,14 @@ export default function SettingsPage() {
       isInterstate: values.isInterstate,
       wastagePercent: values.wastagePercent,
       goldApiKey: values.goldApiKey,
+      metalsDevApiKey: values.metalsDevApiKey.trim(),
+      goldPremiumPer10g: String(values.goldPremiumPer10g || '0'),
+      silverPremiumPer10g: String(values.silverPremiumPer10g || '0'),
+      rateMaxChangePct: String(values.rateMaxChangePct || '3'),
+      lendingLtvPct: String(values.lendingLtvPct || '65'),
+      lendingMaxLtvPct: String(values.lendingMaxLtvPct || '70'),
+      lendingInterestPctMonthly: String(values.lendingInterestPctMonthly || '2'),
+      lendingOverdueMonths: String(values.lendingOverdueMonths || '12'),
       irnAutoRegister: values.irnAutoRegister ? 'true' : 'false',
     };
 
@@ -232,21 +264,131 @@ export default function SettingsPage() {
             />
           </div>
 
+        </section>
+
+        {/* Live rates */}
+        <section className="bg-card rounded-xl border p-5 space-y-4">
+          <div>
+            <h2 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
+              Live Rates
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Daily IBJA gold and MCX silver benchmark rates from metals.dev (free plan), plus your local premium.
+              Fetched at 10:00, 13:00 and 17:30 IST, Monday to Saturday. Check and override them on the Rates page.
+            </p>
+          </div>
+
           <div className="space-y-1">
-            <label className="text-sm font-medium" htmlFor="goldApiKey">
-              goldapi.io API Key
+            <label className="text-sm font-medium" htmlFor="metalsDevApiKey">
+              metals.dev API Key
             </label>
             <input
-              id="goldApiKey"
+              id="metalsDevApiKey"
               type="password"
               autoComplete="off"
-              {...register('goldApiKey')}
+              {...register('metalsDevApiKey')}
               className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring font-mono"
-              placeholder="goldapi-xxxxxxxxxxxxxxxx"
+              placeholder="Paste the key from metals.dev → Dashboard"
             />
             <p className="text-xs text-muted-foreground">
-              Live gold &amp; silver rates are fetched from goldapi.io every 15 minutes. Leave blank to use mock rates.
+              Sign up free at metals.dev. The free plan allows 100 requests a month; the app uses about 80.
             </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="goldPremiumPer10g">
+                Gold premium (₹ per 10 g)
+              </label>
+              <input
+                id="goldPremiumPer10g"
+                type="number"
+                step="1"
+                {...register('goldPremiumPer10g')}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+                placeholder="0"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="silverPremiumPer10g">
+                Silver premium (₹ per 10 g)
+              </label>
+              <input
+                id="silverPremiumPer10g"
+                type="number"
+                step="0.1"
+                {...register('silverPremiumPer10g')}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+                placeholder="0"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground -mt-2">
+            Added to the 999 benchmark to match the Patna market. Lower purities get their share automatically
+            (22K = 91.6%, 18K = 75%). Compare with the local rate for a few days and adjust. It can be negative.
+          </p>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium" htmlFor="rateMaxChangePct">
+              Hold for approval if rates move more than (%)
+            </label>
+            <input
+              id="rateMaxChangePct"
+              type="number"
+              step="0.5"
+              min="0.5"
+              {...register('rateMaxChangePct')}
+              className="w-40 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring tabular-nums"
+            />
+          </div>
+
+          <details className="text-sm">
+            <summary className="cursor-pointer text-muted-foreground">Alternative: goldapi.io (not recommended)</summary>
+            <div className="space-y-1 mt-3">
+              <label className="text-sm font-medium" htmlFor="goldApiKey">
+                goldapi.io API Key
+              </label>
+              <input
+                id="goldApiKey"
+                type="password"
+                autoComplete="off"
+                {...register('goldApiKey')}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+                placeholder="goldapi-xxxxxxxxxxxxxxxx"
+              />
+              <p className="text-xs text-muted-foreground">
+                Used only if no metals.dev key is set. This is the international spot price without Indian import duty,
+                so it reads lower than local market rates.
+              </p>
+            </div>
+          </details>
+        </section>
+
+        {/* Lending */}
+        <section className="bg-card rounded-xl border p-5 space-y-4">
+          <div>
+            <h2 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Lending (Girvi)</h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Defaults for new loans. Existing loans keep the interest rate they were given at.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="lendingLtvPct">Suggested loan (% of value)</label>
+              <input id="lendingLtvPct" type="number" step="1" min="1" max="100" {...register('lendingLtvPct')} className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring tabular-nums" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="lendingMaxLtvPct">Maximum loan (% of value)</label>
+              <input id="lendingMaxLtvPct" type="number" step="1" min="1" max="100" {...register('lendingMaxLtvPct')} className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring tabular-nums" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="lendingInterestPctMonthly">Interest (% per month)</label>
+              <input id="lendingInterestPctMonthly" type="number" step="0.05" min="0.05" {...register('lendingInterestPctMonthly')} className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring tabular-nums" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="lendingOverdueMonths">Overdue after (months)</label>
+              <input id="lendingOverdueMonths" type="number" step="1" min="1" {...register('lendingOverdueMonths')} className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring tabular-nums" />
+            </div>
           </div>
         </section>
 

@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import {
   LayoutDashboard, Package, Receipt, ShoppingCart,
   Users, Settings, LogOut, TrendingUp, Tag, MonitorSmartphone,
-  Menu, Megaphone,
+  Menu, Megaphone, Coins,
 } from 'lucide-react';
 import { RateTicker } from '@/components/shared/RateTicker';
 import { LowStockAlert } from '@/components/shared/LowStockAlert';
@@ -18,6 +18,7 @@ const navItems = [
   { to: '/owner/rates',                label: 'Rates',      icon: TrendingUp },
   { to: '/owner/orders',               label: 'Orders',     icon: ShoppingCart },
   { to: '/owner/invoices',             label: 'Invoices',   icon: Receipt },
+  { to: '/owner/lending',              label: 'Lending',    icon: Coins },
   { to: '/owner/marketing',            label: 'Marketing',  icon: Megaphone },
   { to: '/owner/karigar',              label: 'Karigar',    icon: Users },
   { to: '/owner/settings',            label: 'Settings',   icon: Settings },

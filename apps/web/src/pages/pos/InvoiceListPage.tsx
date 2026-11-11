@@ -154,9 +154,15 @@ export default function InvoiceListPage() {
                       {fmt(inv.totalAmount ?? inv.grandTotal ?? 0)}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATUS_STYLES[inv.status] ?? 'bg-muted text-muted-foreground'}`}>
-                        {STATUS_LABELS[inv.status] ?? inv.status}
-                      </span>
+                      {inv.billType === 'ESTIMATE' ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+                          Estimate
+                        </span>
+                      ) : (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATUS_STYLES[inv.status] ?? 'bg-muted text-muted-foreground'}`}>
+                          {STATUS_LABELS[inv.status] ?? inv.status}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <span className={Number(inv.balanceDue ?? 0) > 0 ? 'text-red-600 font-semibold' : 'text-green-700 font-semibold'}>
