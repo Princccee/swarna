@@ -5,16 +5,18 @@ import Redis from 'ioredis';
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
-  private client: Redis;
+  private readonly client: Redis;
 
-  constructor(private readonly config: ConfigService) {}
-
-  onModuleInit() {
+  // Client is created in the constructor (not onModuleInit) so it exists before any other
+  // module's onModuleInit uses it — Nest does not guarantee init order across modules.
+  constructor(private readonly config: ConfigService) {
     const url = this.config.get<string>('app.redis.url') ?? 'redis://localhost:6379';
     this.client = new Redis(url, { lazyConnect: false });
     this.client.on('error', (err) => this.logger.error('Redis error', err.message));
     this.client.on('connect', () => this.logger.log('Redis connected'));
   }
+
+  onModuleInit() {}
 
   onModuleDestroy() {
     this.client.disconnect();
@@ -31,6 +33,19 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   del(key: string): Promise<number> {
     return this.client.del(key);
+  }
+
+  /** SET key value EX ttl NX — returns true only if the key did not already exist. */
+  async setIfAbsent(key: string, value: string, ttlSeconds: number): Promise<boolean> {
+    const res = await this.client.set(key, value, 'EX', ttlSeconds, 'NX');
+    return res === 'OK';
+  }
+
+  /** INCR a counter, starting its TTL window on first increment. Returns the new value. */
+  async incrWithTtl(key: string, ttlSeconds: number): Promise<number> {
+    const n = await this.client.incr(key);
+    if (n === 1) await this.client.expire(key, ttlSeconds);
+    return n;
   }
 
   keys(pattern: string): Promise<string[]> {

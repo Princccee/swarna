@@ -40,6 +40,7 @@ const MarketingPage = lazy(() => import('@/pages/owner/MarketingPage'));
 const CampaignNewPage = lazy(() => import('@/pages/owner/CampaignNewPage'));
 const CampaignDetailPage = lazy(() => import('@/pages/owner/CampaignDetailPage'));
 const TemplatesPage = lazy(() => import('@/pages/owner/TemplatesPage'));
+const ShareKitPage = lazy(() => import('@/pages/owner/ShareKitPage'));
 const HomePage = lazy(() => import('@/pages/home/HomePage'));
 
 const Spin = () => <div className="flex items-center justify-center h-full p-8 text-gray-400">Loading…</div>;
@@ -84,6 +85,7 @@ export default function App() {
           <Route path="marketing/campaigns/new" element={<CampaignNewPage />} />
           <Route path="marketing/campaigns/:id" element={<CampaignDetailPage />} />
           <Route path="marketing/templates" element={<TemplatesPage />} />
+          <Route path="marketing/share" element={<ShareKitPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
 

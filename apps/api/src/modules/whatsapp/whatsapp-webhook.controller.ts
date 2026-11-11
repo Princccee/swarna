@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Query, Body, Res, Logger } from '@nestjs/common';
-import { Response } from 'express';
+import { Controller, Get, Post, Query, Body, Res, Req, Headers, Logger, RawBodyRequest } from '@nestjs/common';
+import { Request, Response } from 'express';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
+import { WhatsAppBotService } from './whatsapp-bot.service';
 
 @Controller('whatsapp/webhook')
 export class WhatsAppWebhookController {
@@ -10,6 +12,7 @@ export class WhatsAppWebhookController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly bot: WhatsAppBotService,
   ) {}
 
   /** Meta webhook verification handshake */
@@ -30,7 +33,18 @@ export class WhatsAppWebhookController {
 
   /** Delivery status updates and incoming messages from Meta */
   @Post()
-  async receive(@Body() payload: any, @Res() res: Response) {
+  async receive(
+    @Body() payload: any,
+    @Req() req: RawBodyRequest<Request>,
+    @Headers('x-hub-signature-256') signature: string | undefined,
+    @Res() res: Response,
+  ) {
+    if (!this.isSignatureValid(req.rawBody, signature)) {
+      this.logger.warn('Rejected WhatsApp webhook with missing/invalid signature');
+      res.status(401).send('Invalid signature');
+      return;
+    }
+
     // Always respond 200 immediately so Meta doesn't retry
     res.status(200).send('OK');
 
@@ -45,9 +59,11 @@ export class WhatsAppWebhookController {
             await this.handleStatusUpdate(status);
           }
 
-          // Handle incoming messages (opt-outs)
+          // Incoming customer messages: keyword auto-replies + STOP/START
           for (const message of value?.messages ?? []) {
-            await this.handleIncomingMessage(message);
+            await this.bot.handleIncoming(message).catch((err) =>
+              this.logger.error(`Bot reply failed: ${err.message}`),
+            );
           }
         }
       }
@@ -84,26 +100,24 @@ export class WhatsAppWebhookController {
     });
   }
 
-  private async handleIncomingMessage(message: any) {
-    const phone: string = message?.from;
-    const text: string = message?.text?.body ?? '';
-
-    if (!phone) return;
-
-    // Handle opt-out keywords
-    const optOutKeywords = ['stop', 'unsubscribe', 'opt out', 'optout', 'रुको', 'बंद'];
-    const isOptOut = optOutKeywords.some((kw) =>
-      text.trim().toLowerCase().includes(kw),
-    );
-
-    if (isOptOut) {
-      // Normalize phone to match our DB format
-      const normalized = phone.replace(/^91/, '');
-      await this.prisma.customer.updateMany({
-        where: { phone: normalized },
-        data: { optedOut: true, optedOutAt: new Date() },
-      });
-      this.logger.log(`Customer ${phone} opted out`);
+  /**
+   * Verifies Meta's X-Hub-Signature-256 (HMAC-SHA256 of the raw body with the app secret).
+   * If WHATSAPP_APP_SECRET is unset (local dev), verification is skipped with a warning.
+   */
+  private isSignatureValid(rawBody: Buffer | undefined, signature: string | undefined): boolean {
+    const secret = this.config.get<string>('WHATSAPP_APP_SECRET');
+    if (!secret) {
+      if (!this.warnedNoSecret) {
+        this.logger.warn('WHATSAPP_APP_SECRET not set — webhook signatures are NOT being verified');
+        this.warnedNoSecret = true;
+      }
+      return true;
     }
+    if (!rawBody || !signature?.startsWith('sha256=')) return false;
+    const expected = Buffer.from(createHmac('sha256', secret).update(rawBody).digest('hex'));
+    const given = Buffer.from(signature.slice('sha256='.length));
+    return expected.length === given.length && timingSafeEqual(expected, given);
   }
+
+  private warnedNoSecret = false;
 }

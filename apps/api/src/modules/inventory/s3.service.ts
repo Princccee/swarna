@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   CreateBucketCommand,
   DeleteObjectCommand,
+  GetObjectCommand,
   HeadBucketCommand,
   PutBucketPolicyCommand,
   PutObjectCommand,
@@ -91,6 +92,24 @@ export class S3Service implements OnModuleInit {
       await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
     } catch (err) {
       this.logger.warn(`Failed to delete S3 object ${key}: ${(err as Error).message}`);
+    }
+  }
+
+  /**
+   * Fetch an object we previously uploaded, given its public URL.
+   * Returns null for URLs outside our bucket (never fetches arbitrary URLs).
+   */
+  async getObjectByUrl(url: string): Promise<{ body: Buffer; contentType: string } | null> {
+    const prefix = `${this.publicEndpoint}/${this.bucket}/`;
+    if (!url.startsWith(prefix)) return null;
+    const key = url.slice(prefix.length);
+    try {
+      const out = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+      const bytes = await out.Body!.transformToByteArray();
+      return { body: Buffer.from(bytes), contentType: out.ContentType ?? 'application/octet-stream' };
+    } catch (err) {
+      this.logger.warn(`Failed to read S3 object ${key}: ${(err as Error).message}`);
+      return null;
     }
   }
 }

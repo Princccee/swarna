@@ -8,6 +8,7 @@ type SettingsForm = {
   shopName: string;
   shopAddress: string;
   shopPhone: string;
+  whatsappNumber: string;
   gstin: string;
   stateCode: string;
   isInterstate: 'false' | 'true';
@@ -27,6 +28,7 @@ export default function SettingsPage() {
       shopName: '',
       shopAddress: '',
       shopPhone: '',
+      whatsappNumber: '',
       gstin: '',
       stateCode: '',
       isInterstate: 'false',
@@ -48,6 +50,7 @@ export default function SettingsPage() {
       shopName: s.shopName ?? '',
       shopAddress: s.shopAddress ?? '',
       shopPhone: s.shopPhone ?? '',
+      whatsappNumber: s.whatsappNumber ?? '',
       gstin: s.gstin ?? '',
       stateCode: s.stateCode ?? '',
       isInterstate: s.isInterstate === 'true' ? 'true' : 'false',
@@ -62,6 +65,7 @@ export default function SettingsPage() {
       shopName: values.shopName,
       shopAddress: values.shopAddress,
       shopPhone: values.shopPhone,
+      whatsappNumber: values.whatsappNumber,
       gstin: values.gstin,
       stateCode: values.stateCode,
       isInterstate: values.isInterstate,
@@ -129,6 +133,21 @@ export default function SettingsPage() {
               className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               placeholder="e.g. +91 98765 43210"
             />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium" htmlFor="whatsappNumber">
+              WhatsApp Number
+            </label>
+            <input
+              id="whatsappNumber"
+              {...register('whatsappNumber')}
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="Leave blank to use the shop phone"
+            />
+            <p className="text-xs text-muted-foreground">
+              The number customers message for automatic replies (RATES, NEW). Printed on Share Kit images.
+            </p>
           </div>
         </section>
 

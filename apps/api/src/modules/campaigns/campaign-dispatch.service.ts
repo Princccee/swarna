@@ -196,7 +196,8 @@ export class CampaignDispatchService {
     const rates: Record<string, string> = {};
     for (const key of keys) {
       const data = await this.redis.getJson<{ ratePerGram: number }>(key);
-      if (data) rates[key] = Math.round(data.ratePerGram).toLocaleString('en-IN');
+      // Quoted per 10 g, matching the Share Kit and WhatsApp bot
+      if (data) rates[key] = Math.round(data.ratePerGram * 10).toLocaleString('en-IN');
     }
     return rates;
   }

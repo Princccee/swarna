@@ -5,6 +5,8 @@ const DEFAULTS: Record<string, string> = {
   shopName: 'Svarna Jewels',
   shopAddress: '',
   shopPhone: '',
+  // Number customers message for bot replies (RATES, NEW…); shown on Share Kit cards
+  whatsappNumber: '',
   gstin: process.env.GSTIN ?? '22AAAAA0000A1Z5',
   stateCode: '27',
   isInterstate: 'false',

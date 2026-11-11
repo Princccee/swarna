@@ -6,6 +6,7 @@ import helmet from 'helmet';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log'],
+    rawBody: true, // needed to verify WhatsApp webhook signatures
   });
 
   // Security

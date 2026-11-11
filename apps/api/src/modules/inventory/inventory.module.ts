@@ -6,6 +6,6 @@ import { S3Service } from './s3.service';
 @Module({
   providers: [InventoryService, S3Service],
   controllers: [InventoryController],
-  exports: [InventoryService],
+  exports: [InventoryService, S3Service],
 })
 export class InventoryModule {}

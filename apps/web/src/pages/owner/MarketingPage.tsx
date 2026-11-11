@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Settings2,
   Zap,
+  Share2,
 } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -226,7 +227,15 @@ export default function MarketingPage() {
             Send targeted messages to your customers via WhatsApp
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <Link
+            to="/owner/marketing/share"
+            className="inline-flex items-center gap-1.5 border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800 text-sm font-medium px-4 py-2 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+          >
+            <Share2 className="w-4 h-4" />
+            Share Kit
+            <span className="text-[10px] font-semibold uppercase tracking-wide bg-emerald-600 text-white rounded px-1.5 py-0.5">Free</span>
+          </Link>
           <Link
             to="/owner/marketing/templates"
             className="inline-flex items-center gap-1.5 border bg-card hover:bg-muted/50 text-foreground text-sm font-medium px-4 py-2 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"

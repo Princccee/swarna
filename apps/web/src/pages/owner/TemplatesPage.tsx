@@ -36,9 +36,9 @@ interface Template {
 
 const AVAILABLE_VARIABLES: { key: string; label: string; sample: string }[] = [
   { key: 'customerName',  label: 'Customer Name',   sample: 'Ramesh Mehta'  },
-  { key: 'gold22kRate',   label: 'Gold 22K Rate',   sample: '₹6,420/g'      },
-  { key: 'gold24kRate',   label: 'Gold 24K Rate',   sample: '₹6,850/g'      },
-  { key: 'silverRate',    label: 'Silver Rate',      sample: '₹84/g'         },
+  { key: 'gold22kRate',   label: 'Gold 22K Rate',   sample: '₹64,200/10g'   },
+  { key: 'gold24kRate',   label: 'Gold 24K Rate',   sample: '₹68,500/10g'   },
+  { key: 'silverRate',    label: 'Silver Rate',      sample: '₹840/10g'      },
   { key: 'shopName',      label: 'Shop Name',        sample: 'Swarna Jewels' },
 ];
 

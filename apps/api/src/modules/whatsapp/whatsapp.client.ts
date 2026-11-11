@@ -24,27 +24,14 @@ export class WhatsAppClient {
     return !!(token && phoneId);
   }
 
+  /** Paid, business-initiated message using a Meta-approved template. */
   async sendTemplate(
     toPhone: string,
     templateName: string,
     languageCode: string,
     bodyParams: string[],
   ): Promise<SendTemplateResult> {
-    const token = this.config.get<string>('WHATSAPP_ACCESS_TOKEN');
-    const phoneNumberId = this.config.get<string>('WHATSAPP_PHONE_NUMBER_ID');
-
-    if (!token || !phoneNumberId) {
-      this.logger.warn('WhatsApp not configured — skipping send');
-      return { messageId: null, error: 'WhatsApp not configured' };
-    }
-
-    // Normalize phone: strip non-digits, ensure country code
-    const phone = toPhone.replace(/\D/g, '');
-    const e164 = phone.startsWith('91') ? phone : `91${phone}`;
-
-    const body = {
-      messaging_product: 'whatsapp',
-      to: e164,
+    return this.send(toPhone, {
       type: 'template',
       template: {
         name: templateName,
@@ -56,7 +43,41 @@ export class WhatsAppClient {
           },
         ] : [],
       },
-    };
+    });
+  }
+
+  /**
+   * Free-form text. Only deliverable inside the 24-hour customer service window
+   * (i.e. as a reply after the customer messaged us), where it is free of charge.
+   */
+  async sendText(toPhone: string, text: string): Promise<SendTemplateResult> {
+    return this.send(toPhone, {
+      type: 'text',
+      text: { body: text, preview_url: true },
+    });
+  }
+
+  /** Image by public HTTPS link (Meta downloads it). Same 24-hour-window rule as sendText. */
+  async sendImage(toPhone: string, imageUrl: string, caption?: string): Promise<SendTemplateResult> {
+    return this.send(toPhone, {
+      type: 'image',
+      image: { link: imageUrl, ...(caption ? { caption } : {}) },
+    });
+  }
+
+  private async send(toPhone: string, message: Record<string, unknown>): Promise<SendTemplateResult> {
+    const token = this.config.get<string>('WHATSAPP_ACCESS_TOKEN');
+    const phoneNumberId = this.config.get<string>('WHATSAPP_PHONE_NUMBER_ID');
+
+    // Normalize phone: strip non-digits, ensure country code
+    const phone = toPhone.replace(/\D/g, '');
+    const e164 = phone.startsWith('91') ? phone : `91${phone}`;
+
+    if (!token || !phoneNumberId) {
+      // Dev aid: show what would have been sent
+      this.logger.warn(`WhatsApp not configured — would send ${message.type} to ${e164}: ${JSON.stringify(message)}`);
+      return { messageId: null, error: 'WhatsApp not configured' };
+    }
 
     try {
       const res = await fetch(
@@ -67,7 +88,7 @@ export class WhatsAppClient {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(body),
+          body: JSON.stringify({ messaging_product: 'whatsapp', to: e164, ...message }),
         },
       );
 
@@ -80,7 +101,7 @@ export class WhatsAppClient {
       }
 
       const messageId = data?.messages?.[0]?.id ?? null;
-      this.logger.log(`Sent to ${e164}, wa_id: ${messageId}`);
+      this.logger.log(`Sent ${message.type} to ${e164}, wa_id: ${messageId}`);
       return { messageId, error: null };
     } catch (err: any) {
       this.logger.error(`WhatsApp fetch error: ${err.message}`);
