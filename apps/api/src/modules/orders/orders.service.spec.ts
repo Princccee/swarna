@@ -28,7 +28,55 @@ describe('OrdersService', () => {
         return Promise.all(fn as any);
       }),
     };
-    service = new OrdersService(prisma as any);
+    s3 = {
+      uploadFile: jest.fn(async (_b: Buffer, _m: string, folder: string, name: string) => `https://cdn/${folder}/${name}`),
+      deleteFile: jest.fn().mockResolvedValue(undefined),
+    };
+    service = new OrdersService(prisma as any, s3 as any);
+  });
+
+  let s3: any;
+  const file = (name: string) => ({ buffer: Buffer.from('x'), mimetype: 'image/jpeg', originalname: name }) as any;
+
+  // ── Design photos ───────────────────────────────────────────────────────────
+
+  describe('design photos', () => {
+    it('uploads photos under orders/<id> and appends them to the order', async () => {
+      prisma.order.findUnique.mockResolvedValue({ id: 'o1', imageUrls: ['https://cdn/old.jpg'] });
+      prisma.order.update.mockImplementation(async (a: any) => ({ id: 'o1', ...a.data }));
+
+      const res = await service.addImages('o1', [file('a.jpg'), file('b.jpg')]);
+
+      expect(s3.uploadFile).toHaveBeenCalledWith(expect.any(Buffer), 'image/jpeg', 'orders/o1', 'a.jpg');
+      expect(res.imageUrls).toEqual(['https://cdn/old.jpg', 'https://cdn/orders/o1/a.jpg', 'https://cdn/orders/o1/b.jpg']);
+    });
+
+    it('refuses an upload with no files', async () => {
+      prisma.order.findUnique.mockResolvedValue({ id: 'o1', imageUrls: [] });
+      await expect(service.addImages('o1', [])).rejects.toThrow(BadRequestException);
+      expect(s3.uploadFile).not.toHaveBeenCalled();
+    });
+
+    it('404s for an unknown order', async () => {
+      prisma.order.findUnique.mockResolvedValue(null);
+      await expect(service.addImages('nope', [file('a.jpg')])).rejects.toThrow(NotFoundException);
+    });
+
+    it('removes one photo from storage and from the order', async () => {
+      prisma.order.findUnique.mockResolvedValue({ id: 'o1', imageUrls: ['u0', 'u1', 'u2'] });
+      prisma.order.update.mockImplementation(async (a: any) => ({ id: 'o1', ...a.data }));
+
+      const res = await service.removeImage('o1', 1);
+
+      expect(s3.deleteFile).toHaveBeenCalledWith('u1');
+      expect(res.imageUrls).toEqual(['u0', 'u2']);
+    });
+
+    it('rejects an out-of-range photo index', async () => {
+      prisma.order.findUnique.mockResolvedValue({ id: 'o1', imageUrls: ['u0'] });
+      await expect(service.removeImage('o1', 3)).rejects.toThrow(BadRequestException);
+      expect(s3.deleteFile).not.toHaveBeenCalled();
+    });
   });
 
   // ── 1. createOrder ──────────────────────────────────────────────────────────

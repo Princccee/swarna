@@ -119,6 +119,22 @@ describe('AuthService', () => {
       expect(result.data.accessToken).toBeDefined();
       expect(result.data.refreshToken).toBeDefined();
     });
+
+    it('should refuse customer accounts on the staff login, even with the right password', async () => {
+      const hash = await bcrypt.hash('password123', 12);
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'cust-1',
+        active: true,
+        passwordHash: hash,
+        role: Role.CUSTOMER,
+        name: 'Customer',
+        email: '9876543210@customer.swarna',
+        phone: '9876543210',
+      });
+      await expect(
+        service.login({ email: '9876543210@customer.swarna', password: 'password123' }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
   });
 
   describe('logout', () => {

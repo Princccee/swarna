@@ -1,4 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, Req, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { imageUploadOptions, MAX_IMAGES_PER_UPLOAD } from '../../common/image-upload';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -61,4 +63,19 @@ export class OrdersController {
   @Post(':id/karigar')
   @Roles(Role.OWNER, Role.STAFF)
   addKarigar(@Param('id') id: string, @Body() dto: KarigarEntryDto) { return this.orders.addKarigarEntry(id, dto); }
+
+  // ── Design photos (camera or gallery) ──────────────────────────────────────
+
+  @Post(':id/images')
+  @Roles(Role.OWNER, Role.STAFF)
+  @UseInterceptors(FilesInterceptor('images', MAX_IMAGES_PER_UPLOAD, imageUploadOptions))
+  addImages(@Param('id') id: string, @UploadedFiles() files: Express.Multer.File[]) {
+    return this.orders.addImages(id, files);
+  }
+
+  @Delete(':id/images/:index')
+  @Roles(Role.OWNER, Role.STAFF)
+  removeImage(@Param('id') id: string, @Param('index', ParseIntPipe) index: number) {
+    return this.orders.removeImage(id, index);
+  }
 }

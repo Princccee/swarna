@@ -177,6 +177,7 @@ export class InventoryService {
 
   async addImages(id: string, files: Express.Multer.File[]) {
     const item = await this.findItemOrFail(id);
+    if (!files?.length) throw new BadRequestException('No images received');
     const urls = await Promise.all(
       files.map((f) => this.s3.uploadFile(f.buffer, f.mimetype, `items/${id}`, f.originalname)),
     );

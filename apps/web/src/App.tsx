@@ -16,6 +16,7 @@ const CatalogueRegisterPage = lazy(() => import('@/pages/catalogue/CatalogueRegi
 const MyOrdersPage = lazy(() => import('@/pages/catalogue/MyOrdersPage'));
 import { Role } from '@svarna/shared-types';
 import { OfflineBanner } from '@/components/shared/OfflineBanner';
+import { CUSTOMER_PORTAL_ENABLED } from '@/lib/features';
 
 const InventoryListPage = lazy(() => import('@/pages/owner/InventoryListPage'));
 const InventoryNewPage = lazy(() => import('@/pages/owner/InventoryNewPage'));
@@ -27,7 +28,7 @@ const InvoiceDetailPage = lazy(() => import('@/pages/pos/InvoiceDetailPage'));
 const OrdersPage = lazy(() => import('@/pages/owner/OrdersPage'));
 const OrderDetailPage = lazy(() => import('@/pages/owner/OrderDetailPage'));
 const OrderNewPage = lazy(() => import('@/pages/owner/OrderNewPage'));
-const KarigarPage = lazy(() => import('@/pages/owner/KarigarPage'));
+// Karigar page hidden for now: const KarigarPage = lazy(() => import('@/pages/owner/KarigarPage'));
 
 const SalesRegisterPage = lazy(() => import('@/pages/accountant/SalesRegisterPage'));
 const GstRegisterPage = lazy(() => import('@/pages/accountant/GstRegisterPage'));
@@ -55,12 +56,18 @@ export default function App() {
       <Routes>
         {/* Public */}
         <Route path="/auth/login" element={<LoginPage />} />
-        <Route path="/catalogue" element={<CatalogueHomePage />} />
-        <Route path="/catalogue/browse" element={<CatalogueBrowsePage />} />
-        <Route path="/catalogue/items/:id" element={<CatalogueItemPage />} />
-        <Route path="/catalogue/login" element={<CatalogueLoginPage />} />
-        <Route path="/catalogue/register" element={<CatalogueRegisterPage />} />
-        <Route path="/catalogue/my-orders" element={<MyOrdersPage />} />
+
+        {/* Customer-facing pages — off until the customer portal is ready (see lib/features.ts) */}
+        {CUSTOMER_PORTAL_ENABLED && (
+          <>
+            <Route path="/catalogue" element={<CatalogueHomePage />} />
+            <Route path="/catalogue/browse" element={<CatalogueBrowsePage />} />
+            <Route path="/catalogue/items/:id" element={<CatalogueItemPage />} />
+            <Route path="/catalogue/login" element={<CatalogueLoginPage />} />
+            <Route path="/catalogue/register" element={<CatalogueRegisterPage />} />
+            <Route path="/catalogue/my-orders" element={<MyOrdersPage />} />
+          </>
+        )}
 
         {/* Owner */}
         <Route
@@ -83,7 +90,7 @@ export default function App() {
           <Route path="orders/:id" element={<OrderDetailPage />} />
           <Route path="invoices" element={<InvoiceListPage />} />
           <Route path="invoices/:id" element={<InvoiceDetailPage />} />
-          <Route path="karigar" element={<KarigarPage />} />
+          {/* Karigar hidden for now (see OwnerLayout nav) */}
           <Route path="marketing" element={<MarketingPage />} />
           <Route path="marketing/campaigns/new" element={<CampaignNewPage />} />
           <Route path="marketing/campaigns/:id" element={<CampaignDetailPage />} />
@@ -130,6 +137,7 @@ export default function App() {
           <Route path="audit" element={<AuditTrailPage />} />
         </Route>
 
+        {/* Landing page — with the catalogue off it only offers Sign in */}
         <Route path="/" element={<HomePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

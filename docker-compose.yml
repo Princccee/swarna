@@ -89,6 +89,8 @@ services:
       ALLOW_DEMO_RATES: ${ALLOW_DEMO_RATES:-false}
       # Billing refuses rates older than this many hours
       RATE_MAX_AGE_HOURS: ${RATE_MAX_AGE_HOURS:-48}
+      # Customer catalogue (browse/reserve/customer accounts) — off until it is fully built
+      CUSTOMER_PORTAL_ENABLED: ${CUSTOMER_PORTAL_ENABLED:-false}
       # First-run only: creates this owner if the database has no users (see owner-bootstrap.service.ts)
       BOOTSTRAP_OWNER_EMAIL: ${BOOTSTRAP_OWNER_EMAIL:-}
       BOOTSTRAP_OWNER_PASSWORD: ${BOOTSTRAP_OWNER_PASSWORD:-}

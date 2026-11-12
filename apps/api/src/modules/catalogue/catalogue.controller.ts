@@ -1,8 +1,12 @@
-import { Body, Controller, Get, Post, Query, Param, Headers, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Param, Headers, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { CatalogueService } from './catalogue.service';
+import { CustomerPortalGuard } from '../../common/customer-portal.guard';
 import { CustomerRegisterDto, CustomerLoginDto, ReserveItemDto } from './dto/catalogue.dto';
 import * as jwt from 'jsonwebtoken';
 
+// Whole customer catalogue (browse, customer sign-up/login, reserve, my-orders) is
+// switched off until the customer portal is ready — every route answers 404 meanwhile.
+@UseGuards(CustomerPortalGuard)
 @Controller('catalogue')
 export class CatalogueController {
   constructor(private readonly catalogue: CatalogueService) {}
