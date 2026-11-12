@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useRateStore } from '../../stores/rate.store';
 import { LanguageToggle } from '../../components/shared/LanguageToggle';
+import { CUSTOMER_PORTAL_ENABLED } from '../../lib/features';
 
 // ─── Scroll reveal hook ───────────────────────────────────────────────────────
 
@@ -391,14 +392,6 @@ export default function HomePage() {
             <LanguageToggle dark />
           </div>
 
-          {/* Pre-title */}
-          <p style={{
-            fontSize: '0.68rem', letterSpacing: '0.35em', color: GOLD,
-            textTransform: 'uppercase', marginBottom: '1.2rem', fontWeight: 500,
-          }}>
-            {t('home.pretitle')}
-          </p>
-
           {/* Main title */}
           <h1 className="hp-gold-text" style={{
             fontSize: 'clamp(3.5rem, 14vw, 9rem)', fontWeight: 800,
@@ -447,6 +440,7 @@ export default function HomePage() {
 
           {/* CTAs */}
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            {CUSTOMER_PORTAL_ENABLED && (
             <Link to="/catalogue" style={{
               background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_LIGHT} 100%)`,
               color: '#0C0A06', padding: '0.85rem 2.2rem',
@@ -460,6 +454,7 @@ export default function HomePage() {
             >
               {t('home.cta_explore')}
             </Link>
+            )}
             <Link to="/auth/login" style={{
               border: `1.5px solid rgba(201,151,58,0.45)`,
               color: GOLD_PALE, padding: '0.85rem 2.2rem',
@@ -677,10 +672,11 @@ export default function HomePage() {
             {t('home.cta.title_line1')}<br />{t('home.cta.title_line2')}
           </h2>
           <p style={{ fontSize: '1rem', color: MUTED, maxWidth: 480, margin: '0 auto 2.5rem', lineHeight: 1.75 }}>
-            {t('home.cta.desc')}
+            {CUSTOMER_PORTAL_ENABLED ? t('home.cta.desc') : t('home.cta.desc_no_catalogue')}
           </p>
 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            {CUSTOMER_PORTAL_ENABLED && (
             <Link to="/catalogue" style={{
               background: `linear-gradient(135deg, ${GOLD} 0%, ${GOLD_LIGHT} 100%)`,
               color: '#0C0A06', padding: '0.9rem 2.5rem',
@@ -693,6 +689,7 @@ export default function HomePage() {
             >
               {t('home.cta.browse')}
             </Link>
+            )}
             <Link to="/auth/login" style={{
               border: `1.5px solid rgba(201,151,58,0.4)`,
               color: GOLD_PALE, padding: '0.9rem 2.5rem',
@@ -724,11 +721,13 @@ export default function HomePage() {
           {t('home.footer.tagline')}
         </p>
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+          {CUSTOMER_PORTAL_ENABLED && (
           <Link to="/catalogue" style={{ fontSize: '0.75rem', color: MUTED, textDecoration: 'none', letterSpacing: '0.05em' }}
             onMouseEnter={e => (e.currentTarget.style.color = GOLD)}
             onMouseLeave={e => (e.currentTarget.style.color = MUTED)}>
             {t('common.catalogue')}
           </Link>
+          )}
           <Link to="/auth/login" style={{ fontSize: '0.75rem', color: MUTED, textDecoration: 'none', letterSpacing: '0.05em' }}
             onMouseEnter={e => (e.currentTarget.style.color = GOLD)}
             onMouseLeave={e => (e.currentTarget.style.color = MUTED)}>
