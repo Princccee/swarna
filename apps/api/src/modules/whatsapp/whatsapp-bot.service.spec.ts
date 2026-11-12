@@ -129,7 +129,7 @@ describe('WhatsAppBotService.handleIncoming', () => {
     });
   });
 
-  it('sends photos for public HTTPS images and links for the rest', async () => {
+  it('sends photos for public HTTPS images and text for the rest, without catalogue links', async () => {
     const items = [
       { id: 'i1', name: 'Temple Necklace', purity: 'GOLD_22K', netWeightG: '24.5', imageUrls: ['https://cdn.example.com/svarna/a.jpg'] },
       { id: 'i2', name: 'Plain Band', purity: 'GOLD_18K', netWeightG: '3.2', imageUrls: ['http://localhost:9000/svarna/b.jpg'] },
@@ -141,13 +141,31 @@ describe('WhatsAppBotService.handleIncoming', () => {
     expect(prisma.item.findMany.mock.calls[0][0].where).not.toHaveProperty('categoryId');
     expect(wa.sendImage).toHaveBeenCalledTimes(1);
     expect(wa.sendImage.mock.calls[0][1]).toBe('https://cdn.example.com/svarna/a.jpg');
-    expect(wa.sendImage.mock.calls[0][2]).toContain('https://shop.example.com/catalogue/items/i1');
+    expect(wa.sendImage.mock.calls[0][2]).toContain('Temple Necklace');
+    expect(wa.sendImage.mock.calls[0][2]).not.toContain('/catalogue');
 
     const text = wa.sendText.mock.calls[0][1];
     expect(text).toContain('Plain Band');
     expect(text).toContain('18K Gold · 3.2 g');
-    expect(text).toContain('https://shop.example.com/catalogue/items/i3');
+    expect(text).toContain('Anklet');
+    expect(text).not.toContain('/catalogue'); // catalogue is switched off: no dead links
     expect(text).not.toContain('Temple Necklace'); // already sent as a photo
+  });
+
+  it('adds catalogue links again once the customer portal is switched on', async () => {
+    const saved = process.env.CUSTOMER_PORTAL_ENABLED;
+    process.env.CUSTOMER_PORTAL_ENABLED = 'true';
+    try {
+      const items = [{ id: 'i3', name: 'Anklet', purity: 'SILVER_925', netWeightG: '18', imageUrls: [] }];
+      const { svc, wa } = setup({ items });
+      await svc.handleIncoming(msg('new'));
+      expect(wa.sendText.mock.calls[0][1]).toContain('https://shop.example.com/catalogue/items/i3');
+      await svc.handleIncoming({ ...msg('hello'), id: 'wamid.2' });
+      expect(wa.sendText.mock.calls[1][1]).toContain('https://shop.example.com/catalogue');
+    } finally {
+      if (saved === undefined) delete process.env.CUSTOMER_PORTAL_ENABLED;
+      else process.env.CUSTOMER_PORTAL_ENABLED = saved;
+    }
   });
 
   it('filters items by the matched category', async () => {
@@ -163,6 +181,6 @@ describe('WhatsAppBotService.handleIncoming', () => {
     const text = wa.sendText.mock.calls[0][1];
     expect(text).toContain('*RATES*');
     expect(text).toContain('*RINGS*');
-    expect(text).toContain('https://shop.example.com/catalogue');
+    expect(text).not.toContain('/catalogue');
   });
 });

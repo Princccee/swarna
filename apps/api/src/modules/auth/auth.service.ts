@@ -41,7 +41,8 @@ export class AuthService {
 
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (!user || !user.active) throw new UnauthorizedException('Invalid credentials');
+    // Staff login only — customer accounts sign in through the catalogue
+    if (!user || !user.active || user.role === 'CUSTOMER') throw new UnauthorizedException('Invalid credentials');
 
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!valid) throw new UnauthorizedException('Invalid credentials');
