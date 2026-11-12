@@ -137,10 +137,8 @@ export default function App() {
           <Route path="audit" element={<AuditTrailPage />} />
         </Route>
 
-        <Route
-          path="/"
-          element={CUSTOMER_PORTAL_ENABLED ? <HomePage /> : <Navigate to="/auth/login" replace />}
-        />
+        {/* Landing page — with the catalogue off it only offers Sign in */}
+        <Route path="/" element={<HomePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
