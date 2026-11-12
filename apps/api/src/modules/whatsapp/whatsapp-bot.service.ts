@@ -5,6 +5,7 @@ import { RedisService } from '../redis/redis.service';
 import { RateSyncService } from '../rate-sync/rate-sync.service';
 import { SettingsService } from '../settings/settings.service';
 import { WhatsAppClient } from './whatsapp.client';
+import { customerPortalEnabled } from '../../config/features';
 
 /**
  * Keyword auto-replies for inbound WhatsApp messages.
@@ -222,7 +223,8 @@ export class WhatsAppBotService {
       lines.push(`${names} — browse a category`);
     }
     lines.push('*STOP* — stop offers and updates');
-    lines.push('', `🛍️ Full catalogue: ${this.catalogueUrl()}`);
+    // Catalogue links only while the customer catalogue is switched on — no dead links
+    if (customerPortalEnabled()) lines.push('', `🛍️ Full catalogue: ${this.catalogueUrl()}`);
     if (address) lines.push(`📍 ${address}`);
     if (phone) lines.push(`☎️ ${phone}`);
     return lines.join('\n');
@@ -249,7 +251,8 @@ export class WhatsAppBotService {
     }
 
     const describe = (it: (typeof items)[number]) =>
-      `*${it.name}*\n${PURITY_LABEL[it.purity] ?? it.purity} · ${Number(it.netWeightG)} g\n${this.itemUrl(it.id)}`;
+      `*${it.name}*\n${PURITY_LABEL[it.purity] ?? it.purity} · ${Number(it.netWeightG)} g` +
+      (customerPortalEnabled() ? `\n${this.itemUrl(it.id)}` : '');
 
     // Send photos when Meta can fetch them (public HTTPS); otherwise text with links.
     const withImages = items.filter((it) => this.isPublicImageUrl(it.imageUrls[0])).slice(0, MAX_IMAGES);
@@ -265,10 +268,13 @@ export class WhatsAppBotService {
     } else {
       lines.push('');
     }
-    const browse = categoryId
-      ? `${this.catalogueUrl()}/browse?categoryId=${categoryId}`
-      : `${this.catalogueUrl()}/browse`;
-    lines.push(`See more: ${browse}`, '', 'Reply *RATES* for today\'s rates · *MENU* for options');
+    if (customerPortalEnabled()) {
+      const browse = categoryId
+        ? `${this.catalogueUrl()}/browse?categoryId=${categoryId}`
+        : `${this.catalogueUrl()}/browse`;
+      lines.push(`See more: ${browse}`, '');
+    }
+    lines.push('Reply *RATES* for today\'s rates · *MENU* for options');
     await this.wa.sendText(to, lines.join('\n'));
   }
 

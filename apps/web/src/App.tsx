@@ -16,6 +16,7 @@ const CatalogueRegisterPage = lazy(() => import('@/pages/catalogue/CatalogueRegi
 const MyOrdersPage = lazy(() => import('@/pages/catalogue/MyOrdersPage'));
 import { Role } from '@svarna/shared-types';
 import { OfflineBanner } from '@/components/shared/OfflineBanner';
+import { CUSTOMER_PORTAL_ENABLED } from '@/lib/features';
 
 const InventoryListPage = lazy(() => import('@/pages/owner/InventoryListPage'));
 const InventoryNewPage = lazy(() => import('@/pages/owner/InventoryNewPage'));
@@ -55,12 +56,18 @@ export default function App() {
       <Routes>
         {/* Public */}
         <Route path="/auth/login" element={<LoginPage />} />
-        <Route path="/catalogue" element={<CatalogueHomePage />} />
-        <Route path="/catalogue/browse" element={<CatalogueBrowsePage />} />
-        <Route path="/catalogue/items/:id" element={<CatalogueItemPage />} />
-        <Route path="/catalogue/login" element={<CatalogueLoginPage />} />
-        <Route path="/catalogue/register" element={<CatalogueRegisterPage />} />
-        <Route path="/catalogue/my-orders" element={<MyOrdersPage />} />
+
+        {/* Customer-facing pages — off until the customer portal is ready (see lib/features.ts) */}
+        {CUSTOMER_PORTAL_ENABLED && (
+          <>
+            <Route path="/catalogue" element={<CatalogueHomePage />} />
+            <Route path="/catalogue/browse" element={<CatalogueBrowsePage />} />
+            <Route path="/catalogue/items/:id" element={<CatalogueItemPage />} />
+            <Route path="/catalogue/login" element={<CatalogueLoginPage />} />
+            <Route path="/catalogue/register" element={<CatalogueRegisterPage />} />
+            <Route path="/catalogue/my-orders" element={<MyOrdersPage />} />
+          </>
+        )}
 
         {/* Owner */}
         <Route
@@ -130,7 +137,10 @@ export default function App() {
           <Route path="audit" element={<AuditTrailPage />} />
         </Route>
 
-        <Route path="/" element={<HomePage />} />
+        <Route
+          path="/"
+          element={CUSTOMER_PORTAL_ENABLED ? <HomePage /> : <Navigate to="/auth/login" replace />}
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>

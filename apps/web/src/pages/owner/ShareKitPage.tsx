@@ -7,6 +7,7 @@ import {
   Check, Coins, Sparkles, Info, ImageOff, Loader2,
 } from 'lucide-react';
 import { api } from '../../lib/api';
+import { CUSTOMER_PORTAL_ENABLED } from '../../lib/features';
 import {
   renderRateCard, renderCollage, loadImage, shareImage, downloadBlob, canShareFiles,
   whatsappTextUrl, formatInr, formatDateIST, RATE_UNIT_GRAMS, type RateRow, type ShopInfo,
@@ -69,9 +70,11 @@ function designsCaption(shop: ShopInfo, title: string, items: ShareItem[]): stri
   const lines = [`✨ *${title || 'New Arrivals'}* at ${shop.name}`, ''];
   for (const it of items) {
     lines.push(`• *${it.name}* — ${PURITY_NAME[it.purity] ?? it.purity} · ${it.netWeightG} g`);
-    if (it.catalogueVisible) lines.push(`  ${origin}/catalogue/items/${it.id}`);
+    // Catalogue links only while the customer catalogue is switched on — no dead links
+    if (CUSTOMER_PORTAL_ENABLED && it.catalogueVisible) lines.push(`  ${origin}/catalogue/items/${it.id}`);
   }
-  lines.push('', `🛍️ Browse more: ${origin}/catalogue`);
+  if (CUSTOMER_PORTAL_ENABLED) lines.push('', `🛍️ Browse more: ${origin}/catalogue`);
+  else lines.push('');
   if (shop.whatsappNumber) lines.push(`💬 WhatsApp *NEW* to ${shop.whatsappNumber} to see our latest designs.`);
   return lines.join('\n');
 }

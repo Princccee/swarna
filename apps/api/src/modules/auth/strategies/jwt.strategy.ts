@@ -21,6 +21,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload) {
     const user = await this.authService.validateUser(payload.sub);
     if (!user) throw new UnauthorizedException();
+    // Staff routes only. Customer tokens are verified separately by the catalogue module and
+    // must never pass here, or a self-registered customer could read staff-only endpoints.
+    if (user.role === 'CUSTOMER') throw new UnauthorizedException();
     return user;
   }
 }
