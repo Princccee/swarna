@@ -145,4 +145,25 @@ describe('InventoryService', () => {
       expect(result.valuation!.metalValue).toBeCloseTo(4.8 * 5960, 0);
     });
   });
+
+  describe('addImages', () => {
+    it('uploads photos under items/<id> and appends them', async () => {
+      const s3 = (service as any).s3;
+      s3.uploadFile.mockResolvedValue('https://cdn/items/item-1/a.jpg');
+      prisma.item.findFirst.mockResolvedValue({ ...mockItem, imageUrls: [] });
+      prisma.item.update.mockImplementation(async (a: any) => ({ ...mockItem, ...a.data }));
+
+      const res = await service.addImages('item-1', [
+        { buffer: Buffer.from('x'), mimetype: 'image/jpeg', originalname: 'a.jpg' } as any,
+      ]);
+
+      expect(s3.uploadFile).toHaveBeenCalledWith(expect.any(Buffer), 'image/jpeg', 'items/item-1', 'a.jpg');
+      expect(res.imageUrls).toEqual(['https://cdn/items/item-1/a.jpg']);
+    });
+
+    it('refuses an upload with no files', async () => {
+      prisma.item.findFirst.mockResolvedValue(mockItem);
+      await expect(service.addImages('item-1', [])).rejects.toThrow(BadRequestException);
+    });
+  });
 });

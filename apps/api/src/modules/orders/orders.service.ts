@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { S3Service } from '../inventory/s3.service';
 import { Prisma, OrderStatus } from '@prisma/client';
 import {
   CreateOrderDto,
@@ -20,7 +21,39 @@ const VALID_TRANSITIONS: Record<string, OrderStatus[]> = {
 export class OrdersService {
   private readonly logger = new Logger(OrdersService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly s3: S3Service,
+  ) {}
+
+  // ── design photos ────────────────────────────────────────────────────────
+
+  /** Attach photos of the design the customer wants (camera or gallery) to an order. */
+  async addImages(orderId: string, files: Express.Multer.File[]): Promise<any> {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId }, select: { id: true, imageUrls: true } });
+    if (!order) throw new NotFoundException(`Order ${orderId} not found`);
+    if (!files?.length) throw new BadRequestException('No images received');
+
+    const urls = await Promise.all(
+      files.map((f) => this.s3.uploadFile(f.buffer, f.mimetype, `orders/${orderId}`, f.originalname)),
+    );
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: { imageUrls: [...order.imageUrls, ...urls] },
+    });
+  }
+
+  async removeImage(orderId: string, index: number): Promise<any> {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId }, select: { id: true, imageUrls: true } });
+    if (!order) throw new NotFoundException(`Order ${orderId} not found`);
+    if (index < 0 || index >= order.imageUrls.length) throw new BadRequestException('Invalid image index');
+
+    await this.s3.deleteFile(order.imageUrls[index]);
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: { imageUrls: order.imageUrls.filter((_, i) => i !== index) },
+    });
+  }
 
   // ── helpers ──────────────────────────────────────────────────────────────
 

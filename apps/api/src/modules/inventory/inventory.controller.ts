@@ -3,7 +3,7 @@ import {
   Post, Query, UploadedFiles, UseGuards, UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { memoryStorage } from 'multer';
+import { imageUploadOptions, MAX_IMAGES_PER_UPLOAD } from '../../common/image-upload';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -89,7 +89,7 @@ export class InventoryController {
   @UseGuards(RolesGuard)
   @Roles(Role.OWNER, Role.STAFF)
   @Post('items/:id/images')
-  @UseInterceptors(FilesInterceptor('images', 10, { storage: memoryStorage() }))
+  @UseInterceptors(FilesInterceptor('images', MAX_IMAGES_PER_UPLOAD, imageUploadOptions))
   addImages(@Param('id') id: string, @UploadedFiles() files: Express.Multer.File[]) {
     return this.inventoryService.addImages(id, files);
   }
