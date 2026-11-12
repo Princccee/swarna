@@ -94,6 +94,8 @@ resource "aws_iam_role" "github_deploy" {
           "token.actions.githubusercontent.com:sub" = [
             "repo:${var.github_repo}:ref:refs/heads/main",
             "repo:${var.github_repo}:environment:production",
+            "repo:${var.github_repo_with_ids}:ref:refs/heads/main",
+            "repo:${var.github_repo_with_ids}:environment:production",
           ]
         }
       }

@@ -28,6 +28,12 @@ variable "github_repo" {
   default     = "Princccee/swarna"
 }
 
+variable "github_repo_with_ids" {
+  description = "The same repo in GitHub's immutable-ID form (owner@ownerId/repo@repoId), which newer OIDC tokens use in the sub claim"
+  type        = string
+  default     = "Princccee@119061630/swarna@1356215399"
+}
+
 variable "create_github_oidc_provider" {
   description = "Set false if this AWS account already has the token.actions.githubusercontent.com OIDC provider"
   type        = bool
