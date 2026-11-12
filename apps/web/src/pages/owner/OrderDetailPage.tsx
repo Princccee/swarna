@@ -4,6 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
+import { uploadImages } from '../../lib/images';
+import { ImagePicker, PhotoGrid } from '../../components/shared/ImagePicker';
+import { ImageLightbox } from '../../components/catalogue/ImageLightbox';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -54,6 +57,7 @@ interface Order {
   customer: { name: string; phone: string } | null;
   payments: Payment[];
   karigarLogs: KarigarLog[];
+  imageUrls?: string[];
 }
 
 interface Payment {
@@ -120,7 +124,7 @@ function Badge({ label, colorClass }: { label: string; colorClass: string }) {
 function SectionCard({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div className="bg-card rounded-xl border  overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-3.5 border-b ">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3.5 border-b ">
         <h2 className="font-semibold text-foreground text-sm uppercase tracking-wide">{title}</h2>
         {action && <div>{action}</div>}
       </div>
@@ -466,6 +470,55 @@ function KarigarLogForm({ orderId, onDone }: KarigarLogFormProps) {
   );
 }
 
+// ─── Design photos ────────────────────────────────────────────────────────────
+
+function DesignPhotos({ orderId, urls }: { orderId: string; urls: string[] }) {
+  const qc = useQueryClient();
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const upload = useMutation({
+    mutationFn: (files: File[]) => uploadImages(`/orders/${orderId}/images`, files),
+    onSuccess: () => {
+      toast.success('Photos added');
+      qc.invalidateQueries({ queryKey: ['order', orderId] });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Upload failed'),
+  });
+
+  const remove = useMutation({
+    mutationFn: (index: number) => api.delete(`/orders/${orderId}/images/${index}`),
+    onSuccess: () => {
+      toast.success('Photo removed');
+      qc.invalidateQueries({ queryKey: ['order', orderId] });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Cannot remove photo'),
+  });
+
+  return (
+    <SectionCard
+      title="Design Photos"
+      action={<ImagePicker onPick={(files) => upload.mutate(files)} busy={upload.isPending} />}
+    >
+      {urls.length ? (
+        <PhotoGrid
+          urls={urls}
+          alt="Design photo"
+          onOpen={setLightboxIndex}
+          onRemove={(i) => remove.mutate(i)}
+          removeDisabled={remove.isPending}
+        />
+      ) : (
+        <p className="text-muted-foreground/60 text-sm">
+          No design photos yet — take a picture of the design or pick one from the gallery.
+        </p>
+      )}
+      {lightboxIndex !== null && urls.length > 0 && (
+        <ImageLightbox images={urls} initialIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
+      )}
+    </SectionCard>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function OrderDetailPage() {
@@ -557,6 +610,9 @@ export default function OrderDetailPage() {
       <SectionCard title="Status &amp; Actions">
         <StatusTimeline status={order.status} orderId={id!} />
       </SectionCard>
+
+      {/* ── Design photos ── */}
+      <DesignPhotos orderId={id!} urls={order.imageUrls ?? []} />
 
       {/* ── Order Details ── */}
       <SectionCard title="Order Details">

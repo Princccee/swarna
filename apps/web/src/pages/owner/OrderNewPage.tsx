@@ -5,6 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
+import { uploadImages } from '../../lib/images';
+import { ImagePicker, PhotoGrid, usePendingPhotos } from '../../components/shared/ImagePicker';
 
 const PURITY_OPTIONS = [
   'GOLD_24K',
@@ -44,6 +46,7 @@ export default function OrderNewPage() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searching, setSearching] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const photos = usePendingPhotos();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -120,9 +123,20 @@ export default function OrderNewPage() {
 
     api
       .post('/orders', payload)
-      .then((r: any) => {
+      .then(async (r: any) => {
+        const id = r.data.id;
+        if (photos.files.length) {
+          try {
+            await uploadImages(`/orders/${id}/images`, photos.files);
+          } catch (e: any) {
+            // The order is saved; photos can be added again from its page
+            toast.error(e?.response?.data?.message ?? 'Order saved, but the design photos could not be uploaded — add them again');
+            navigate(`/owner/orders/${id}`);
+            return;
+          }
+        }
         toast.success('Order created');
-        navigate(`/owner/orders/${r.data.id}`);
+        navigate(`/owner/orders/${id}`);
       })
       .catch((e: any) => {
         toast.error(e?.response?.data?.message ?? 'Failed to create order');
@@ -229,6 +243,15 @@ export default function OrderNewPage() {
           )}
         </div>
 
+        {/* Design photos — what the customer wants made (camera or gallery) */}
+        <div>
+          <label className="block text-sm font-medium mb-2">Design photos</label>
+          <ImagePicker onPick={photos.add} disabled={submitting} />
+          <div className="mt-3">
+            <PhotoGrid urls={photos.previews} alt="Design photo" onRemove={photos.removeAt} />
+          </div>
+        </div>
+
         {/* Metal Purity */}
         <div>
           <label className="block text-sm font-medium mb-1">Metal Purity</label>
@@ -327,7 +350,7 @@ export default function OrderNewPage() {
             disabled={submitting}
             className="flex-1 bg-amber-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-amber-700 transition-colors disabled:opacity-60"
           >
-            {submitting ? 'Creating…' : 'Create Order'}
+            {submitting ? (photos.files.length ? 'Saving & uploading photos…' : 'Creating…') : 'Create Order'}
           </button>
         </div>
       </form>

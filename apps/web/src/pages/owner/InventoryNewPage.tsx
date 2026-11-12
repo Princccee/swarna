@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
+import { uploadImages } from '../../lib/images';
+import { ImagePicker, PhotoGrid, usePendingPhotos } from '../../components/shared/ImagePicker';
 
 const schema = z.object({
   categoryId: z.string().uuid('Select a category'),
@@ -34,9 +36,25 @@ export default function InventoryNewPage() {
     defaultValues: { makingPct: '0', makingPerGram: '0', stoneWeightG: '0', stoneValue: '0', catalogueVisible: false },
   });
 
+  const photos = usePendingPhotos();
+
   const mutation = useMutation({
     mutationFn: (data: FormData) => api.post('/inventory/items', data),
-    onSuccess: (res: any) => { toast.success('Item created'); navigate(`/owner/inventory/${res.data.id}`); },
+    onSuccess: async (res: any) => {
+      const id = res.data.id;
+      if (photos.files.length) {
+        try {
+          await uploadImages(`/inventory/items/${id}/images`, photos.files);
+        } catch (e: any) {
+          // The item is saved; photos can be added again from its page
+          toast.error(e?.response?.data?.message ?? 'Item saved, but the photos could not be uploaded — add them again');
+          navigate(`/owner/inventory/${id}`);
+          return;
+        }
+      }
+      toast.success('Item created');
+      navigate(`/owner/inventory/${id}`);
+    },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Failed to create item'),
   });
 
@@ -84,6 +102,14 @@ export default function InventoryNewPage() {
 
         <Field label="HUID (6 chars, optional)" name="huid" />
 
+        <div>
+          <label className="block text-sm font-medium mb-2">Photos</label>
+          <ImagePicker onPick={photos.add} disabled={mutation.isPending} />
+          <div className="mt-3">
+            <PhotoGrid urls={photos.previews} alt="New item photo" onRemove={photos.removeAt} />
+          </div>
+        </div>
+
         <label className="flex items-center gap-2 text-sm cursor-pointer">
           <input type="checkbox" {...register('catalogueVisible')} />
           Visible in customer catalogue
@@ -92,7 +118,7 @@ export default function InventoryNewPage() {
         <div className="flex gap-3 pt-2">
           <button type="button" onClick={() => navigate(-1)} className="flex-1 border rounded-lg py-2 text-sm">Cancel</button>
           <button type="submit" disabled={mutation.isPending} className="flex-1 bg-amber-600 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-60">
-            {mutation.isPending ? 'Creating…' : 'Create Item'}
+            {mutation.isPending ? (photos.files.length ? 'Saving & uploading photos…' : 'Creating…') : 'Create Item'}
           </button>
         </div>
       </form>
