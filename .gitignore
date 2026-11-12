@@ -26,3 +26,6 @@ infra/terraform/*.tfstate.*
 infra/terraform/*.tfvars
 infra/terraform/.terraform.lock.hcl.bak
 infra/terraform/tfplan
+
+# Local-only credentials notes — never commit
+login_credential.md
