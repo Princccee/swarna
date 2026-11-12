@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { downloadInvoicePdf } from '../../lib/download-pdf';
+import { downloadInvoicePdf, shareInvoicePdf } from '../../lib/download-pdf';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
@@ -67,7 +67,7 @@ export default function InvoiceListPage() {
   };
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-4 sm:p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Invoices</h1>
       </div>
@@ -118,8 +118,74 @@ export default function InvoiceListPage() {
         )}
       </div>
 
-      {/* Table */}
-      <div className="bg-card rounded-xl border overflow-hidden">
+      {/* Phone: one card per invoice */}
+      <div className="md:hidden space-y-2">
+        {isLoading && <div className="p-6 text-center text-muted-foreground/60">Loading…</div>}
+        {!isLoading && invoices.length === 0 && (
+          <div className="p-6 text-center text-muted-foreground/60 bg-card border rounded-xl">No invoices found</div>
+        )}
+        {!isLoading && invoices.map((inv: any) => {
+          const due = Number(inv.balanceDue ?? 0);
+          const date = new Date(inv.invoiceDate ?? inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+          return (
+            <div
+              key={inv.id}
+              onClick={() => navigate(`/pos/invoices/${inv.id}`)}
+              className="bg-card border rounded-xl p-3.5 active:bg-muted/50 cursor-pointer"
+              style={{ fontVariantNumeric: 'tabular-nums' }}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-mono text-xs font-semibold text-amber-700 dark:text-amber-400">
+                    {inv.invoiceNumber ?? inv.id?.slice(0, 8).toUpperCase()}
+                  </p>
+                  <p className="font-medium text-foreground truncate mt-0.5">{inv.customer?.name ?? inv.customerName ?? '—'}</p>
+                  <p className="text-xs text-muted-foreground">{date}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="font-semibold text-foreground">{fmt(inv.totalAmount ?? inv.grandTotal ?? 0)}</p>
+                  {inv.billType === 'ESTIMATE' ? (
+                    <span className="inline-flex mt-1 px-2 py-0.5 rounded text-xs font-semibold bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200">Estimate</span>
+                  ) : (
+                    <span className={`inline-flex mt-1 px-2 py-0.5 rounded text-xs font-medium ${STATUS_STYLES[inv.status] ?? 'bg-muted text-muted-foreground'}`}>
+                      {STATUS_LABELS[inv.status] ?? inv.status}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-3 mt-2.5 pt-2.5 border-t text-xs">
+                <span className={due > 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-muted-foreground'}>
+                  {due > 0 ? `Due ${fmt(due)}` : inv.billType === 'ESTIMATE' ? 'Quotation' : 'Paid'}
+                </span>
+                <span className="flex items-center gap-4">
+                  <button onClick={(e) => openPdf(e, inv.id, inv.invoiceNumber)} className="font-medium text-amber-700 dark:text-amber-400 py-1">
+                    PDF
+                  </button>
+                  {inv.status !== 'CANCELLED' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        shareInvoicePdf(inv.id, {
+                          invoiceNumber: inv.invoiceNumber,
+                          billType: inv.billType,
+                          amount: inv.totalAmount ?? inv.grandTotal,
+                          customerPhone: inv.customer?.phone ?? inv.customerPhone,
+                        });
+                      }}
+                      className="font-medium text-emerald-700 dark:text-emerald-400 py-1"
+                    >
+                      Share
+                    </button>
+                  )}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Table (tablet and desktop) */}
+      <div className="hidden md:block bg-card rounded-xl border overflow-hidden">
         <div className="overflow-x-auto">
           {isLoading ? (
             <div className="p-8 text-center text-muted-foreground/60">Loading…</div>
@@ -176,6 +242,22 @@ export default function InvoiceListPage() {
                       >
                         PDF
                       </button>
+                      {inv.status !== 'CANCELLED' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            shareInvoicePdf(inv.id, {
+                              invoiceNumber: inv.invoiceNumber,
+                              billType: inv.billType,
+                              amount: inv.totalAmount ?? inv.grandTotal,
+                              customerPhone: inv.customer?.phone ?? inv.customerPhone,
+                            });
+                          }}
+                          className="ml-3 text-xs text-emerald-700 hover:text-emerald-900 hover:underline font-medium"
+                        >
+                          Share
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

@@ -104,3 +104,40 @@
     background-size: 600px 100%;
   }
 }
+
+/* ── Dark-mode fallbacks for light-theme tints ─────────────────────────────────
+   Many components use pale Tailwind tints (bg-amber-50, text-amber-700, …) without
+   a dark: variant, which made text unreadable in dark mode (e.g. hover rows, badges,
+   status cards). These give every such tint a dark counterpart. :where() keeps the
+   specificity low, so any explicit dark:… class on an element still wins. */
+.dark :where(.bg-amber-50, .hover\:bg-amber-50:hover)   { background-color: rgb(245 158 11 / 0.10); }
+.dark :where(.bg-amber-100, .group:hover .group-hover\:bg-amber-100) { background-color: rgb(245 158 11 / 0.18); }
+.dark :where(.bg-yellow-50)                             { background-color: rgb(234 179 8 / 0.10); }
+.dark :where(.bg-orange-50)                             { background-color: rgb(249 115 22 / 0.10); }
+.dark :where(.bg-red-50, .hover\:bg-red-50:hover)       { background-color: rgb(239 68 68 / 0.10); }
+.dark :where(.bg-red-100)                               { background-color: rgb(239 68 68 / 0.18); }
+.dark :where(.bg-rose-50)                               { background-color: rgb(244 63 94 / 0.10); }
+.dark :where(.bg-rose-100)                              { background-color: rgb(244 63 94 / 0.18); }
+.dark :where(.bg-green-50, .bg-emerald-50)              { background-color: rgb(16 185 129 / 0.10); }
+.dark :where(.bg-green-100, .bg-emerald-100)            { background-color: rgb(16 185 129 / 0.18); }
+.dark :where(.bg-blue-50, .bg-sky-50)                   { background-color: rgb(59 130 246 / 0.10); }
+.dark :where(.bg-blue-100, .bg-sky-100)                 { background-color: rgb(59 130 246 / 0.18); }
+.dark :where(.bg-purple-100, .bg-violet-100)            { background-color: rgb(139 92 246 / 0.20); }
+.dark :where(.bg-slate-100, .bg-gray-100)               { background-color: rgb(148 163 184 / 0.15); }
+
+.dark :where(.border-amber-100, .border-amber-200, .border-yellow-200) { border-color: rgb(245 158 11 / 0.30); }
+.dark :where(.border-amber-300, .hover\:border-amber-300:hover)        { border-color: rgb(245 158 11 / 0.45); }
+.dark :where(.border-red-100, .border-red-200, .border-rose-200)      { border-color: rgb(239 68 68 / 0.35); }
+.dark :where(.border-green-200, .border-emerald-200)                  { border-color: rgb(16 185 129 / 0.35); }
+.dark :where(.border-blue-200)                                        { border-color: rgb(59 130 246 / 0.35); }
+
+.dark :where(.text-amber-700, .text-amber-800, .text-amber-900,
+             .hover\:text-amber-700:hover, .hover\:text-amber-800:hover, .hover\:text-amber-900:hover,
+             .group:hover .group-hover\:text-amber-700, .group:hover .group-hover\:text-amber-800) { color: rgb(251 191 36); }
+.dark :where(.text-yellow-700, .text-yellow-800, .text-orange-700)     { color: rgb(251 191 36); }
+.dark :where(.text-red-600, .text-red-700, .text-red-800, .text-rose-600, .text-rose-700) { color: rgb(248 113 113); }
+.dark :where(.text-green-600, .text-green-700, .text-green-800, .text-emerald-600, .text-emerald-700, .text-emerald-800) { color: rgb(52 211 153); }
+.dark :where(.text-blue-600, .text-blue-700, .text-blue-800, .text-sky-700) { color: rgb(96 165 250); }
+.dark :where(.text-purple-700, .text-violet-700, .text-violet-800)    { color: rgb(196 181 253); }
+.dark :where(.text-slate-700, .text-gray-700)                         { color: rgb(226 232 240); }
+.dark :where(.divide-gray-100, .divide-slate-100) > :not([hidden]) ~ :not([hidden]) { border-color: hsl(var(--border)); }

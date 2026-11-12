@@ -113,8 +113,50 @@ export default function LendingListPage() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-card border rounded-xl overflow-x-auto">
+      {/* Phone: one card per loan */}
+      <div className="md:hidden space-y-2">
+        {loans.isLoading && (
+          <div className="p-6 text-center text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin inline mr-2" />Loading…</div>
+        )}
+        {loans.data?.length === 0 && (
+          <div className="p-6 text-center text-muted-foreground bg-card border rounded-xl">
+            {q ? 'No loans match your search.' : tab === 'active' ? 'No active loans yet.' : 'Nothing here.'}
+          </div>
+        )}
+        {loans.data?.map((l) => (
+          <div
+            key={l.id}
+            onClick={() => navigate(`${base}/${l.id}`)}
+            className="bg-card border rounded-xl p-3.5 active:bg-muted/50 cursor-pointer tabular-nums"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-mono text-xs text-muted-foreground">{l.loanNumber}</p>
+                <p className="font-medium truncate">{l.customer.name}</p>
+                <p className="text-xs text-muted-foreground">{l.customer.phone}</p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-xs text-muted-foreground">{tab === 'closed' ? 'Closed' : 'Due today'}</p>
+                <p className="font-semibold">
+                  {l.status === 'ACTIVE' ? inr(l.due?.totalDue) : dateIN(l.closedAt)}
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+              {l.items.map((i) => `${i.description} (${PURITY_LABEL[i.purity] ?? i.purity}, ${i.netWeightG} g)`).join(', ')}
+            </p>
+            <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t text-xs">
+              <span className="text-muted-foreground">
+                {dateIN(l.loanDate)}{l.status === 'ACTIVE' ? ` · ${l.monthsRunning} mo · out ${inr(l.principal)}` : ''}
+              </span>
+              <StatusBadges loan={l} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Table (tablet and desktop) */}
+      <div className="hidden md:block bg-card border rounded-xl overflow-x-auto">
         <table className="w-full text-sm min-w-[760px]">
           <thead className="text-xs text-muted-foreground border-b">
             <tr>

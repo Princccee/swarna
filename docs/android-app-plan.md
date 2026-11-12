@@ -120,10 +120,11 @@ Root scripts:
 ## 5. Phases
 
 **Phase 1: Share PDF (web first, works everywhere)**
-- [ ] `lib/share-file.ts` (native → Filesystem+Share, browser → Web Share, else download)
-- [ ] `shareInvoicePdf()` + **Share PDF** buttons on InvoiceDetail, POS success, InvoiceList
-- [ ] Caption with shop name, invoice number and amount
-- [ ] Check: desktop still downloads; Chrome on Android opens the share sheet → WhatsApp receives the PDF
+- [x] `lib/share-file.ts` (native → Filesystem+Share, browser → Web Share, else download)
+- [x] `shareInvoicePdf()` + **Share PDF** buttons on InvoiceDetail, POS success, InvoiceList
+- [x] Caption with invoice number and amount (shop name is on the PDF; `/settings` is owner-only so staff POS can't read it); customer phone copied to clipboard
+- [x] Helper paths checked in the browser (share, cancel, expired tap, download fallback)
+- [ ] Check on the phone: Chrome on Android opens the share sheet → WhatsApp receives the PDF
 - [ ] Deploy. *The owner can already use this through Chrome's "Add to Home screen" before the APK exists.*
 
 **Phase 2: Android shell**

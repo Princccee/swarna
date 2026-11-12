@@ -32,7 +32,7 @@ export function PosLayout() {
     <div className="flex flex-col h-screen bg-background">
 
       {/* ── Header ── */}
-      <header className="shrink-0 h-12 bg-card dark:bg-[#18160E] border-b border-border dark:border-white/[0.06] flex items-center px-4 gap-3 z-10">
+      <header className="shrink-0 h-12 bg-card dark:bg-[#18160E] border-b border-border dark:border-white/[0.06] flex items-center px-3 sm:px-4 gap-2 sm:gap-3 z-10">
         <button
           onClick={() => setSidebarOpen((v) => !v)}
           className="text-muted-foreground hover:text-foreground transition-colors"
@@ -46,15 +46,17 @@ export function PosLayout() {
             Svarna POS
           </Link>
         </div>
-        <div className="flex-1 flex items-center justify-center gap-2">
+        {/* 22K rate already scrolls in the ticker below — only repeat it where there's room */}
+        <div className="flex-1 hidden sm:flex items-center justify-center gap-2">
           <span className="text-muted-foreground text-[11px] font-medium">Gold 22K</span>
           <span className="font-mono font-semibold text-amber-600 dark:text-amber-400 text-[13px] tabular-nums">
             {gold22kDisplay}
           </span>
         </div>
+        <div className="flex-1 sm:hidden" />
         <div className="flex items-center gap-3 shrink-0">
           {user?.name && (
-            <span className="text-[12px] font-medium text-muted-foreground truncate max-w-[7rem]">
+            <span className="hidden sm:inline text-[12px] font-medium text-muted-foreground truncate max-w-[7rem]">
               {user.name}
             </span>
           )}
@@ -119,7 +121,7 @@ export function PosLayout() {
         </aside>
 
         {/* Main */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 min-w-0 overflow-y-auto">
           <Outlet />
         </main>
       </div>

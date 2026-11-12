@@ -30,8 +30,8 @@ export default function InventoryListPage() {
   const meta = data?.meta;
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 space-y-4">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-foreground">Inventory</h1>
         <Link to="/owner/inventory/new" className="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-700">
           + Add Item
@@ -43,7 +43,7 @@ export default function InventoryListPage() {
         <input
           type="search" placeholder="Search name, SKU, HUID…" value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="border rounded-lg px-3 py-2 text-sm w-64"
+          className="border rounded-lg px-3 py-2 text-sm w-full sm:w-64"
         />
         <select
           value={purity} onChange={(e) => { setPurity(e.target.value); setPage(1); }}
@@ -58,8 +58,47 @@ export default function InventoryListPage() {
         </label>
       </div>
 
-      {/* Table */}
-      <div className="bg-card rounded-xl border overflow-hidden">
+      {/* Phone: one card per item */}
+      <div className="md:hidden space-y-2">
+        {isLoading && <div className="p-6 text-center text-muted-foreground/60">Loading…</div>}
+        {!isLoading && items.length === 0 && (
+          <div className="p-6 text-center text-muted-foreground/60 bg-card border rounded-xl">No items found</div>
+        )}
+        {!isLoading && items.map((item: any) => (
+          <Link
+            key={item.id}
+            to={`/owner/inventory/${item.id}`}
+            className="flex items-center gap-3 bg-card border rounded-xl p-3 active:bg-muted/50"
+          >
+            {item.imageUrls?.[0] ? (
+              <img src={item.imageUrls[0]} alt={item.name} className="w-14 h-14 rounded-lg object-cover border shrink-0" />
+            ) : (
+              <div className="w-14 h-14 rounded-lg bg-muted/50 border flex items-center justify-center text-[10px] text-muted-foreground/50 shrink-0">
+                No img
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="font-medium truncate">{item.name}</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {item.category?.name} · {PURITY_LABELS[item.purity] ?? item.purity} · {Number(item.netWeightG).toFixed(3)} g
+              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="font-mono text-[11px] text-muted-foreground">{item.sku}</span>
+                <HuidBadge huid={item.huid} />
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <p className={`text-lg font-semibold tabular-nums leading-none ${item.stockQty <= 2 ? 'text-red-600 dark:text-red-400' : 'text-foreground'}`}>
+                {item.stockQty}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">in stock</p>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* Table (tablet and desktop) */}
+      <div className="hidden md:block bg-card rounded-xl border overflow-x-auto">
         {isLoading ? (
           <div className="p-8 text-center text-muted-foreground/60">Loading…</div>
         ) : (

@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
-import { downloadInvoicePdf } from '../../lib/download-pdf';
+import { downloadInvoicePdf, shareInvoicePdf } from '../../lib/download-pdf';
 import { useAuthStore } from '../../stores/auth.store';
 import { toast } from 'sonner';
 import { Role } from '@svarna/shared-types';
-import { RefreshCw, CheckCircle2 } from 'lucide-react';
+import { RefreshCw, CheckCircle2, Share2 } from 'lucide-react';
 
 const STATUS_STYLES: Record<string, string> = {
   DRAFT: 'bg-muted text-muted-foreground',
@@ -176,6 +176,23 @@ export default function InvoiceDetailPage() {
           >
             View PDF
           </button>
+
+          {invoice.status !== 'CANCELLED' && (
+            <button
+              onClick={() =>
+                shareInvoicePdf(id!, {
+                  invoiceNumber: (invoice as any).invoiceNumber,
+                  billType: invoice.billType,
+                  amount: invoice.totalAmount ?? invoice.grandTotal,
+                  customerPhone: invoice.customer?.phone ?? invoice.customerPhone,
+                })
+              }
+              className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700"
+            >
+              <Share2 size={13} />
+              Share PDF
+            </button>
+          )}
 
           {canCancel && (
             <button

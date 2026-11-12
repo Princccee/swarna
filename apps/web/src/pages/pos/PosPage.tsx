@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { downloadInvoicePdf } from '../../lib/download-pdf';
+import { downloadInvoicePdf, shareInvoicePdf } from '../../lib/download-pdf';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -18,6 +18,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Trash2,
+  Share2,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useRateStore } from '../../stores/rate.store';
@@ -263,7 +264,13 @@ export function PosPage() {
 
   // Preview state
   const [preview, setPreview] = useState<BillPreview | null>(null);
-  const [createdInvoiceId, setCreatedInvoiceId] = useState<string | null>(null);
+  const [createdInvoice, setCreatedInvoice] = useState<{
+    id: string;
+    invoiceNumber?: string;
+    billType?: string;
+    totalAmount?: number | string;
+    customerPhone?: string;
+  } | null>(null);
 
   const customerDropdownRef = useRef<HTMLDivElement>(null);
   const itemDropdownRef = useRef<HTMLDivElement>(null);
@@ -335,7 +342,17 @@ export function PosPage() {
           onClick: () => downloadInvoicePdf(data.id, data.invoiceNumber),
         },
       });
-      setCreatedInvoiceId(data?.id ?? null);
+      setCreatedInvoice(
+        data?.id
+          ? {
+              id: data.id,
+              invoiceNumber: data.invoiceNumber,
+              billType: data.billType,
+              totalAmount: data.totalAmount,
+              customerPhone: data.customer?.phone,
+            }
+          : null,
+      );
       resetForm();
     },
     onError: (err: any) => {
@@ -544,12 +561,12 @@ export function PosPage() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="flex h-full overflow-hidden bg-muted/50">
+    <div className="flex flex-col md:flex-row h-full overflow-y-auto md:overflow-hidden bg-muted/50">
       {/* ── LEFT: Item search + bill lines ── */}
-      <div className="flex flex-col w-[42%] shrink-0 border-r bg-card overflow-hidden">
+      <div className="flex flex-col w-full md:w-[42%] md:shrink-0 border-b md:border-b-0 md:border-r bg-card md:overflow-hidden">
         {/* Header */}
         <div className="shrink-0 px-4 pt-4 pb-3 border-b">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <h2 className="text-sm font-semibold text-foreground/80 uppercase tracking-wide">
               Add Items
             </h2>
@@ -650,9 +667,9 @@ export function PosPage() {
         </div>
 
         {/* Bill lines */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="md:flex-1 md:overflow-y-auto">
           {lines.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground/40 py-16">
+            <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground/40 py-6 md:py-16">
               <FileText size={40} strokeWidth={1} />
               <p className="text-sm">Search and add items above</p>
             </div>
@@ -756,8 +773,8 @@ export function PosPage() {
       </div>
 
       {/* ── RIGHT: Bill builder ── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+      <div className="flex-1 flex flex-col md:overflow-hidden">
+        <div className="md:flex-1 md:overflow-y-auto px-3 sm:px-5 py-4 space-y-4">
 
           {/* ── Customer section ── */}
           <section className="bg-card rounded-xl border">
@@ -1170,15 +1187,31 @@ export function PosPage() {
         </div>
 
         {/* ── Bottom action bar ── */}
-        <div className="shrink-0 px-5 py-3 border-t bg-card flex items-center gap-3">
-          {createdInvoiceId && (
-            <button
-              onClick={() => downloadInvoicePdf(createdInvoiceId)}
-              className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-700 font-medium transition-colors"
-            >
-              <ExternalLink size={14} />
-              Download PDF
-            </button>
+        <div className="shrink-0 sticky bottom-0 z-20 px-3 sm:px-5 py-3 border-t bg-card flex flex-wrap items-center gap-x-3 gap-y-2">
+          {createdInvoice && (
+            <>
+              <button
+                onClick={() => downloadInvoicePdf(createdInvoice.id, createdInvoice.invoiceNumber)}
+                className="flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-700 font-medium transition-colors"
+              >
+                <ExternalLink size={14} />
+                Download PDF
+              </button>
+              <button
+                onClick={() =>
+                  shareInvoicePdf(createdInvoice.id, {
+                    invoiceNumber: createdInvoice.invoiceNumber,
+                    billType: createdInvoice.billType,
+                    amount: createdInvoice.totalAmount,
+                    customerPhone: createdInvoice.customerPhone,
+                  })
+                }
+                className="flex items-center gap-1.5 text-sm text-emerald-600 hover:text-emerald-700 font-medium transition-colors"
+              >
+                <Share2 size={14} />
+                Share PDF
+              </button>
+            </>
           )}
           <div className="flex-1" />
 

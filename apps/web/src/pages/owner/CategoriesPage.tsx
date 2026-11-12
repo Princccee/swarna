@@ -53,8 +53,8 @@ export default function CategoriesPage() {
       <form onSubmit={handleSubmit((d) => { createMutation.mutate(d); reset(); })}
         className="bg-card rounded-xl border p-5 space-y-3">
         <h2 className="font-semibold">Add Category</h2>
-        <div className="flex gap-3">
-          <input {...register('name')} placeholder="Category name" className="flex-1 border rounded-lg px-3 py-2 text-sm" />
+        <div className="flex flex-wrap gap-3">
+          <input {...register('name')} placeholder="Category name" className="flex-1 min-w-[10rem] border rounded-lg px-3 py-2 text-sm" />
           <input {...register('sortOrder')} type="number" placeholder="Order" className="w-20 border rounded-lg px-3 py-2 text-sm" />
           <label className="flex items-center gap-1 text-sm"><input type="checkbox" {...register('visible')} /> Visible</label>
           <button type="submit" disabled={createMutation.isPending} className="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium">

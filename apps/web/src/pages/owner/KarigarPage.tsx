@@ -61,10 +61,10 @@ export default function KarigarPage() {
               const hasBalance = balance > 0;
               return (
                 <div
-                  key={k.karigarId ?? k.karigarName}
+                  key={k.karigar?.id ?? k.karigarId ?? k.karigarName}
                   className="bg-card border rounded-xl p-5 shadow-sm flex flex-col gap-3"
                 >
-                  <p className="font-semibold text-foreground truncate">{k.karigarName ?? k.name}</p>
+                  <p className="font-semibold text-foreground truncate">{k.karigar?.name ?? k.karigarName ?? k.name ?? 'Karigar'}</p>
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <div>
                       <p className="text-xs text-muted-foreground/60 mb-0.5">Issued</p>
@@ -82,7 +82,7 @@ export default function KarigarPage() {
                       <p className="text-xs text-muted-foreground/60 mb-0.5">Balance</p>
                       <p
                         className={`text-sm font-bold tabular-nums ${
-                          hasBalance ? 'text-amber-600' : 'text-muted-foreground'
+                          hasBalance ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'
                         }`}
                       >
                         {formatWeight(balance)} g

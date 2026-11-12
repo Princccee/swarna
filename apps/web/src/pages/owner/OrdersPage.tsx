@@ -91,10 +91,10 @@ export default function OrdersPage() {
   const handleRowClick = (id: string) => navigate(`/owner/orders/${id}`);
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-4 sm:p-6 space-y-5">
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-foreground">Orders</h1>
         <button
           onClick={() => navigate('/owner/orders/new')}
@@ -105,7 +105,7 @@ export default function OrdersPage() {
       </div>
 
       {/* Status tabs */}
-      <div className="flex items-center gap-1 border-b ">
+      <div className="flex items-center gap-1 border-b overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
         {STATUS_TABS.map((tab) => (
           <button
             key={tab.value}
@@ -164,8 +164,47 @@ export default function OrdersPage() {
         </label>
       </div>
 
-      {/* Table */}
-      <div className="bg-card rounded-xl border overflow-hidden">
+      {/* Phone: one card per order */}
+      <div className="md:hidden space-y-2">
+        {isLoading && <div className="p-6 text-center text-muted-foreground/60 text-sm">Loading orders…</div>}
+        {!isLoading && orders.length === 0 && (
+          <div className="p-6 text-center text-muted-foreground/60 bg-card border rounded-xl">No orders found</div>
+        )}
+        {!isLoading && orders.map((order: any) => (
+          <div
+            key={order.id}
+            onClick={() => handleRowClick(order.id)}
+            className="bg-card border rounded-xl p-3.5 active:bg-muted/50 cursor-pointer"
+            style={{ fontVariantNumeric: 'tabular-nums' }}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-mono text-xs text-muted-foreground">{order.orderNumber ?? order.id?.slice(0, 8).toUpperCase()}</p>
+                <p className="font-medium text-foreground truncate">{order.customer?.name ?? '—'}</p>
+                {order.customer?.phone && <p className="text-xs text-muted-foreground/70">{order.customer.phone}</p>}
+              </div>
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                <StatusBadge status={order.status as OrderStatus} />
+                <TypeBadge type={order.type as OrderType} />
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-3 mt-2.5 pt-2.5 border-t text-xs">
+              <span className="text-muted-foreground">
+                Ready {order.expectedReadyDate
+                  ? new Date(order.expectedReadyDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
+                  : '—'}
+                {order.estimatedValue != null ? ` · ${fmt.format(order.estimatedValue)}` : ''}
+              </span>
+              <span className={order.balanceDue > 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-muted-foreground'}>
+                {order.balanceDue != null ? `Due ${fmt.format(order.balanceDue)}` : ''}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Table (tablet and desktop) */}
+      <div className="hidden md:block bg-card rounded-xl border overflow-hidden">
         <div className="overflow-x-auto">
           {isLoading ? (
             <div className="p-10 text-center text-muted-foreground/60 text-sm">Loading orders…</div>
@@ -192,12 +231,12 @@ export default function OrdersPage() {
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-border">
                 {orders.map((order: any) => (
                   <tr
                     key={order.id}
                     onClick={() => handleRowClick(order.id)}
-                    className="hover:bg-amber-50 cursor-pointer transition-colors"
+                    className="hover:bg-amber-50 dark:hover:bg-amber-500/10 cursor-pointer transition-colors"
                   >
                     <td className="px-4 py-3 font-mono text-xs text-muted-foreground whitespace-nowrap">
                       {order.orderNumber ?? order.id?.slice(0, 8).toUpperCase()}
