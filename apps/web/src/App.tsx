@@ -28,7 +28,7 @@ const InvoiceDetailPage = lazy(() => import('@/pages/pos/InvoiceDetailPage'));
 const OrdersPage = lazy(() => import('@/pages/owner/OrdersPage'));
 const OrderDetailPage = lazy(() => import('@/pages/owner/OrderDetailPage'));
 const OrderNewPage = lazy(() => import('@/pages/owner/OrderNewPage'));
-const KarigarPage = lazy(() => import('@/pages/owner/KarigarPage'));
+// Karigar page hidden for now: const KarigarPage = lazy(() => import('@/pages/owner/KarigarPage'));
 
 const SalesRegisterPage = lazy(() => import('@/pages/accountant/SalesRegisterPage'));
 const GstRegisterPage = lazy(() => import('@/pages/accountant/GstRegisterPage'));
@@ -90,7 +90,7 @@ export default function App() {
           <Route path="orders/:id" element={<OrderDetailPage />} />
           <Route path="invoices" element={<InvoiceListPage />} />
           <Route path="invoices/:id" element={<InvoiceDetailPage />} />
-          <Route path="karigar" element={<KarigarPage />} />
+          {/* Karigar hidden for now (see OwnerLayout nav) */}
           <Route path="marketing" element={<MarketingPage />} />
           <Route path="marketing/campaigns/new" element={<CampaignNewPage />} />
           <Route path="marketing/campaigns/:id" element={<CampaignDetailPage />} />

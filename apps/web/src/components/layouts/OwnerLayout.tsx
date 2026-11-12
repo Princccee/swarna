@@ -20,7 +20,8 @@ const navItems = [
   { to: '/owner/invoices',             label: 'Invoices',   icon: Receipt },
   { to: '/owner/lending',              label: 'Lending',    icon: Coins },
   { to: '/owner/marketing',            label: 'Marketing',  icon: Megaphone },
-  { to: '/owner/karigar',              label: 'Karigar',    icon: Users },
+  // Karigar is hidden for now — restore this line and its route in App.tsx to bring it back
+  // { to: '/owner/karigar',              label: 'Karigar',    icon: Users },
   { to: '/owner/settings',            label: 'Settings',   icon: Settings },
 ];
 
