@@ -18,3 +18,11 @@ apps/api/prisma/seed.d.ts
 
 # Claude Code local settings
 .claude/
+
+# Terraform
+infra/terraform/.terraform/
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.*
+infra/terraform/*.tfvars
+infra/terraform/.terraform.lock.hcl.bak
+infra/terraform/tfplan

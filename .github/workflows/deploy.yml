@@ -1,0 +1,138 @@
+name: Deploy
+
+# push to main  → CI → build images → push to ECR → deploy to EC2 → health check
+# manual run    → optionally redeploy an existing image tag (rollback) without rebuilding
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Redeploy an existing image (full commit SHA). Leave empty to build and deploy the selected branch.'
+        required: false
+        default: ''
+
+# One deploy at a time; a newer push waits for the running deploy instead of killing it mid-way.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write # lets GitHub prove its identity to AWS (OIDC) — no AWS keys stored here
+
+jobs:
+  ci:
+    if: ${{ !inputs.image_tag }}
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    name: Build ${{ matrix.app }} image
+    needs: ci
+    if: ${{ !inputs.image_tag }}
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        app: [api, web]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          push: true
+          tags: |
+            ${{ vars.ECR_REGISTRY }}/svarna-${{ matrix.app }}:${{ github.sha }}
+            ${{ vars.ECR_REGISTRY }}/svarna-${{ matrix.app }}:latest
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+
+  deploy:
+    name: Deploy to AWS
+    needs: build
+    if: ${{ !cancelled() && (needs.build.result == 'success' || inputs.image_tag) }}
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.SITE_URL }}
+    timeout-minutes: 20
+    env:
+      TAG: ${{ inputs.image_tag || github.sha }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
+      OPS_BUCKET: ${{ vars.OPS_BUCKET }}
+      APP_INSTANCE_TAG: ${{ vars.APP_INSTANCE_TAG }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Upload release bundle (compose files + deploy scripts)
+        run: |
+          RELEASE_KEY="releases/${GITHUB_SHA}-${GITHUB_RUN_ID}.tgz"
+          tar czf release.tgz docker-compose.yml docker-compose.prod.yml docker-compose.aws.yml Caddyfile deploy/
+          aws s3 cp release.tgz "s3://${OPS_BUCKET}/${RELEASE_KEY}"
+          echo "RELEASE_KEY=${RELEASE_KEY}" >> "$GITHUB_ENV"
+
+      - name: Run deploy on the server (SSM)
+        run: |
+          PARAMS=$(jq -n \
+            --arg url "s3://${OPS_BUCKET}/${RELEASE_KEY}" \
+            --arg run "bash /opt/svarna/release/deploy/deploy.sh ${TAG} ${AWS_REGION} ${ECR_REGISTRY} ${OPS_BUCKET}" \
+            --arg region "${AWS_REGION}" \
+            '{commands: [
+               "set -e",
+               "rm -rf /opt/svarna/release && mkdir -p /opt/svarna/release",
+               ("aws s3 cp " + $url + " /tmp/svarna-release.tgz --region " + $region),
+               "tar xzf /tmp/svarna-release.tgz -C /opt/svarna/release",
+               $run
+             ]}')
+
+          CMD_ID=$(aws ssm send-command \
+            --document-name AWS-RunShellScript \
+            --comment "Deploy ${TAG:0:7}" \
+            --targets "Key=tag:Role,Values=${APP_INSTANCE_TAG}" \
+            --timeout-seconds 900 \
+            --parameters "$PARAMS" \
+            --query Command.CommandId --output text)
+          echo "SSM command: $CMD_ID"
+
+          # Poll until the server finishes (max ~15 min)
+          for _ in $(seq 1 90); do
+            sleep 10
+            STATUS=$(aws ssm list-command-invocations --command-id "$CMD_ID" \
+              --query 'CommandInvocations[0].Status' --output text)
+            echo "status: $STATUS"
+            case "$STATUS" in
+              Pending|InProgress|Delayed|None) continue ;;
+              *) break ;;
+            esac
+          done
+
+          echo "──────── server output ────────"
+          aws ssm list-command-invocations --command-id "$CMD_ID" --details \
+            --query 'CommandInvocations[0].CommandPlugins[0].Output' --output text
+          [ "$STATUS" = "Success" ] || { echo "::error::Deploy failed on the server (status: $STATUS)"; exit 1; }
+
+      - name: Public health check
+        run: |
+          for _ in $(seq 1 30); do
+            if curl -fsS -m 10 "${{ vars.SITE_URL }}/api/v1/health"; then echo; echo "Live ✅"; exit 0; fi
+            sleep 10
+          done
+          echo "::error::${{ vars.SITE_URL }} is not responding"; exit 1

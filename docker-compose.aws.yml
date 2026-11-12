@@ -1,0 +1,11 @@
+# AWS overlay: run the images built by GitHub Actions instead of building on the server.
+# Used by deploy/deploy.sh as:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.aws.yml ...
+# ECR_REGISTRY and IMAGE_TAG are written into .env by the deploy script.
+
+services:
+  api:
+    image: ${ECR_REGISTRY:?}/svarna-api:${IMAGE_TAG:?}
+
+  web:
+    image: ${ECR_REGISTRY:?}/svarna-web:${IMAGE_TAG:?}
