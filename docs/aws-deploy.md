@@ -76,6 +76,19 @@ Then open `SITE_URL` and log in with the owner from step 4.
 
 ---
 
+## Branch workflow
+
+```
+feature/xyz ──merge──► dev ──(CI: build + tests)──► merge dev into main ──► Deploy (release)
+```
+1. Start every change from `dev`: `git checkout dev && git pull && git checkout -b feature/xyz`
+2. Work and commit, then merge back: `git checkout dev && git merge --no-ff feature/xyz && git push`
+3. Every push to `dev` runs **CI** (build + tests). Nothing is deployed.
+4. When `dev` is green and tested, release it: `git checkout main && git pull && git merge --no-ff dev && git push`.
+   That push to `main` is what deploys to AWS.
+
+Never commit directly to `main`.
+
 ## What happens on every push / merge to `main`
 1. **CI**: `npm ci`, build shared types, Prisma generate, build API, run the API tests, build the web app.
    If anything fails, the run stops and **nothing is deployed**.
