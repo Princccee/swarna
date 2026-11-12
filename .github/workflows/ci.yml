@@ -1,7 +1,10 @@
 name: CI
 
-# Runs on every pull request, and is called by deploy.yml before anything is deployed.
+# Runs on every push to dev (the integration branch), on every pull request,
+# and is called by deploy.yml before anything on main is deployed.
 on:
+  push:
+    branches: [dev]
   pull_request:
   workflow_call:
 
