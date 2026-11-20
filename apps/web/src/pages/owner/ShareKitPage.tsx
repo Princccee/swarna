@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, Share2, Download, Copy, MessageCircle, RefreshCw, Search,
+  Share2, Download, Copy, MessageCircle, RefreshCw, Search,
   Check, Coins, Sparkles, Info, ImageOff, Loader2,
 } from 'lucide-react';
 import { api } from '../../lib/api';
@@ -252,13 +252,8 @@ export default function ShareKitPage() {
     <div className="p-4 sm:p-6 space-y-6 max-w-6xl">
       {/* Header */}
       <div>
-        <Link
-          to="/owner/marketing"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="w-4 h-4" /> Marketing
-        </Link>
-        <div className="flex items-center gap-2 mt-2">
+        {/* Share Kit is the Marketing tab's main page */}
+        <div className="flex items-center gap-2">
           <Share2 className="w-5 h-5 text-emerald-600" />
           <h1 className="text-2xl font-bold text-foreground">Share Kit</h1>
           <span className="text-[10px] font-semibold uppercase tracking-wide bg-emerald-600 text-white rounded px-1.5 py-0.5">Free</span>

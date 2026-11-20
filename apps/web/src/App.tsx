@@ -93,11 +93,10 @@ export default function App() {
           <Route path="invoices" element={<InvoiceListPage />} />
           <Route path="invoices/:id" element={<InvoiceDetailPage />} />
           {/* Karigar hidden for now (see OwnerLayout nav) */}
-          <Route path="marketing" element={<MarketingPage />} />
-          <Route path="marketing/campaigns/new" element={<CampaignNewPage />} />
-          <Route path="marketing/campaigns/:id" element={<CampaignDetailPage />} />
-          <Route path="marketing/templates" element={<TemplatesPage />} />
-          <Route path="marketing/share" element={<ShareKitPage />} />
+          {/* Marketing = Share Kit. Campaigns and templates are hidden for now
+              (MarketingPage, CampaignNewPage, CampaignDetailPage, TemplatesPage stay in the code). */}
+          <Route path="marketing" element={<ShareKitPage />} />
+          <Route path="marketing/*" element={<Navigate to="/owner/marketing" replace />} />
           <Route path="lending" element={<LendingListPage />} />
           <Route path="lending/new" element={<LendingNewPage />} />
           <Route path="lending/:id" element={<LendingDetailPage />} />
