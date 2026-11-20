@@ -155,7 +155,7 @@ export default function InvoiceListPage() {
               </div>
               <div className="flex items-center justify-between gap-3 mt-2.5 pt-2.5 border-t text-xs">
                 <span className={due > 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-muted-foreground'}>
-                  {due > 0 ? `Due ${fmt(due)}` : inv.billType === 'ESTIMATE' ? 'Quotation' : 'Paid'}
+                  {due > 0 ? `Due ${fmt(due)}` : inv.billType === 'ESTIMATE' && Number(inv.amountPaid ?? 0) === 0 ? 'Quotation' : 'Paid'}
                 </span>
                 <span className="flex items-center gap-4">
                   <button onClick={(e) => openPdf(e, inv.id, inv.invoiceNumber)} className="font-medium text-amber-700 dark:text-amber-400 py-1">

@@ -11,11 +11,12 @@ export class InvoiceLineDto {
   @IsNumber() @Min(1) qty: number;
   @IsOptional() @IsNumber({ maxDecimalPlaces: 3 }) @Min(0) netWeightG?: number; // inventory: override item's net weight
 
+  /** Any line: rate per gram typed at the counter; defaults to today's live rate for the purity */
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 4 }) @Min(0.01) ratePerGram?: number;
+
   // ── Manual lines only ──
   @IsOptional() @IsString() @MaxLength(120) description?: string;
   @IsOptional() @IsEnum(Purity) purity?: Purity;
-  /** Rate per gram; defaults to today's live rate for the purity */
-  @IsOptional() @IsNumber({ maxDecimalPlaces: 4 }) @Min(0.01) ratePerGram?: number;
   @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) makingPct?: number;
   @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) makingPerGram?: number;
   @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) stoneValue?: number;

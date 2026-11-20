@@ -39,12 +39,12 @@ export class DashboardService {
     const todayCount = todayAgg._count.id;
 
     // ------------------------------------------------------------------
-    // Outstanding dues across all non-cancelled invoices
+    // Outstanding dues across all non-cancelled bills — GST and non-GST
+    // (estimate) bills alike: a due is a due
     // ------------------------------------------------------------------
     const duesAgg = await this.prisma.invoice.aggregate({
       where: {
         status: { not: InvoiceStatus.CANCELLED },
-        billType: 'TAX_INVOICE',
         balanceDue: { gt: ZERO },
       },
       _sum: { balanceDue: true },

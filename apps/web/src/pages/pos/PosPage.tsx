@@ -531,10 +531,12 @@ export function PosPage() {
     const payload = {
       ...buildPayload(),
       customerId: customer.id,
-      // An estimate is a quotation: no payment is taken against it
-      ...(isEstimate
-        ? {}
-        : { paymentMode, paymentAmount: paymentAmount ? parseFloat(paymentAmount) : preview?.grandTotal ?? 0 }),
+      // GST and non-GST bills take payment the same way; anything unpaid stays due
+      paymentMode,
+      // Cash handed over beyond the total is change given back, not a payment on the bill
+      paymentAmount: paymentAmount
+        ? Math.min(parseFloat(paymentAmount), preview?.grandTotal ?? parseFloat(paymentAmount))
+        : preview?.grandTotal ?? 0,
     };
     invoiceMutation.mutate(payload);
   }
@@ -1053,7 +1055,7 @@ export function PosPage() {
             </div>
             {isEstimate && (
               <p className="px-4 py-3 text-xs text-muted-foreground">
-                GST is off: this makes an estimate (quotation). No GST, no payment, stock isn't reduced and it isn't counted in sales.
+                GST is off: this makes a non-GST bill (estimate). Take full or part payment below; the rest stays due. It isn't counted in GST sales reports.
               </p>
             )}
             <div className={`px-4 py-3 flex items-center gap-3 ${isEstimate ? 'hidden' : ''}`}>
@@ -1132,7 +1134,7 @@ export function PosPage() {
           </section>
 
           {/* ── Payment ── */}
-          <section className={`bg-card rounded-xl border overflow-hidden ${isEstimate ? 'hidden' : ''}`}>
+          <section className="bg-card rounded-xl border overflow-hidden">
             <div className="px-4 py-2.5 border-b flex items-center gap-2">
               <CreditCard size={14} className="text-muted-foreground/60" />
               <h3 className="text-sm font-semibold text-foreground/80">Payment</h3>
@@ -1178,7 +1180,7 @@ export function PosPage() {
                   <p className={`mt-1.5 text-xs font-medium tabular-nums ${ parseFloat(paymentAmount) >= preview.grandTotal ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }`}>
                     {parseFloat(paymentAmount) >= preview.grandTotal
                       ? `Change: ₹${fmt(parseFloat(paymentAmount) - preview.grandTotal)}`
-                      : `Short by: ₹${fmt(preview.grandTotal - parseFloat(paymentAmount))}`}
+                      : `Balance due: ₹${fmt(preview.grandTotal - parseFloat(paymentAmount))} — recorded as due on the bill`}
                   </p>
                 )}
               </div>
