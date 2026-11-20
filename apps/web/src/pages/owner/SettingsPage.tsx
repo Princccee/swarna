@@ -4,9 +4,22 @@ import { useForm } from 'react-hook-form';
 import { api } from '../../lib/api';
 import { toast } from 'sonner';
 
+// States and union territories, for the shop address printed on invoices
+const INDIAN_STATES = [
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana',
+  'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
+  'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana',
+  'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+  'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi',
+  'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry',
+];
+
 type SettingsForm = {
   shopName: string;
   shopAddress: string;
+  shopPinCode: string;
+  shopDistrict: string;
+  shopState: string;
   shopPhone: string;
   whatsappNumber: string;
   gstin: string;
@@ -30,11 +43,14 @@ export default function SettingsPage() {
     register,
     handleSubmit,
     reset,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors },
   } = useForm<SettingsForm>({
     defaultValues: {
       shopName: '',
       shopAddress: '',
+      shopPinCode: '',
+      shopDistrict: '',
+      shopState: 'Bihar',
       shopPhone: '',
       whatsappNumber: '',
       gstin: '',
@@ -65,6 +81,9 @@ export default function SettingsPage() {
     reset({
       shopName: s.shopName ?? '',
       shopAddress: s.shopAddress ?? '',
+      shopPinCode: s.shopPinCode ?? '',
+      shopDistrict: s.shopDistrict ?? '',
+      shopState: s.shopState || 'Bihar',
       shopPhone: s.shopPhone ?? '',
       whatsappNumber: s.whatsappNumber ?? '',
       gstin: s.gstin ?? '',
@@ -88,6 +107,9 @@ export default function SettingsPage() {
     const payload: Record<string, string> = {
       shopName: values.shopName,
       shopAddress: values.shopAddress,
+      shopPinCode: values.shopPinCode.trim(),
+      shopDistrict: values.shopDistrict.trim(),
+      shopState: values.shopState,
       shopPhone: values.shopPhone,
       whatsappNumber: values.whatsappNumber,
       gstin: values.gstin,
@@ -149,10 +171,57 @@ export default function SettingsPage() {
             <textarea
               id="shopAddress"
               {...register('shopAddress')}
-              rows={3}
+              rows={2}
               className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-              placeholder="Full address including city and pincode"
+              placeholder="Street, locality — e.g. Thana Road, Patepur Bazaar"
             />
+          </div>
+
+          {/* District, State and PIN are printed on invoices and receipts after the address */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="shopDistrict">
+                District
+              </label>
+              <input
+                id="shopDistrict"
+                {...register('shopDistrict')}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder="e.g. Vaishali"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="shopState">
+                State
+              </label>
+              <select
+                id="shopState"
+                {...register('shopState')}
+                className="w-full border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                {INDIAN_STATES.map((st) => (
+                  <option key={st} value={st}>{st}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="shopPinCode">
+                PIN Code
+              </label>
+              <input
+                id="shopPinCode"
+                inputMode="numeric"
+                maxLength={6}
+                {...register('shopPinCode', {
+                  validate: (v) => !v.trim() || /^[1-9]\d{5}$/.test(v.trim()) || 'Enter a 6-digit PIN code',
+                })}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder="e.g. 843114"
+              />
+              {errors.shopPinCode && (
+                <p className="text-xs text-red-600">{errors.shopPinCode.message}</p>
+              )}
+            </div>
           </div>
 
           <div className="space-y-1">

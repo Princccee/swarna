@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as PDFDocument from 'pdfkit';
 import { SettingsService } from '../settings/settings.service';
+import { shopAddressParts } from '../../common/shop-address';
 
 const GOLD = '#8A6408';
 const INK = '#1A1209';
@@ -124,9 +125,11 @@ export class LendingPdfService {
   }
 
   private async header(doc: PDFKit.PDFDocument, title: string) {
-    const [name, address, phone] = await Promise.all([
-      this.settings.get('shopName'), this.settings.get('shopAddress'), this.settings.get('shopPhone'),
+    const [name, phone, street, district, state, pinCode] = await Promise.all([
+      this.settings.get('shopName'), this.settings.get('shopPhone'), this.settings.get('shopAddress'),
+      this.settings.get('shopDistrict'), this.settings.get('shopState'), this.settings.get('shopPinCode'),
     ]);
+    const address = shopAddressParts({ shopAddress: street, shopDistrict: district, shopState: state, shopPinCode: pinCode }).oneLine;
     doc.font('Helvetica-Bold').fontSize(15).fillColor(GOLD).text(name || 'Jewellers', { align: 'center' });
     const sub = [address, phone ? `Ph: ${phone}` : ''].filter(Boolean).join('  |  ');
     if (sub) doc.font('Helvetica').fontSize(8).fillColor(MUTED).text(sub, { align: 'center' });

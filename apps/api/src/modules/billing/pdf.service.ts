@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import * as PDFDocument from 'pdfkit';
+import { shopAddressParts } from '../../common/shop-address';
 
 // ── Palette ────────────────────────────────────────────────────────────────────
 const GOLD      = '#B8880F';
@@ -100,12 +101,15 @@ export class PdfService {
     const rows = await this.prisma.setting.findMany();
     const settings: Record<string, string> = {};
     for (const r of rows) settings[r.key] = r.value;
+    const addr = shopAddressParts(settings);
     const shop = {
-      name:    settings.shopName    ?? 'Svarna Jewels',
-      address: settings.shopAddress ?? '',
-      phone:   settings.shopPhone   ?? '',
-      gstin:   settings.gstin       ?? '22AAAAA0000A1Z5',
-      state:   settings.stateName   ?? 'Maharashtra',
+      name:      settings.shopName    ?? 'Svarna Jewels',
+      street:    addr.street,
+      placeLine: addr.placeLine, // "Dist. Vaishali, Bihar - 843114"
+      oneLine:   addr.oneLine,
+      phone:     settings.shopPhone   ?? '',
+      gstin:     settings.gstin       ?? '',
+      state:     addr.state,
     };
 
     return new Promise((resolve, reject) => {
@@ -152,9 +156,9 @@ export class PdfService {
 
     // Tagline / address
     y += 22;
-    if (shop.address) {
+    if (shop.oneLine) {
       doc.fontSize(8).fillColor(MUTED).font('Helvetica')
-         .text(shop.address, ML, y, { width: 260, lineBreak: false });
+         .text(shop.oneLine, ML, y, { width: 300, lineBreak: false });
       y += 11;
     }
     const contactLine = [shop.phone ? `Tel: ${shop.phone}` : '', isEstimate ? '' : `GSTIN: ${shop.gstin}`]
@@ -203,17 +207,18 @@ export class PdfService {
     y += 10;
     const colW = (W - 14) / 2;
 
-    this.partyBox(doc, ML, y, colW, 80, 'BILLED BY', [
+    this.partyBox(doc, ML, y, colW, 92, 'BILLED BY', [
       { bold: shop.name, normal: '' },
-      { bold: '', normal: shop.address },
+      { bold: '', normal: shop.street },
+      { bold: '', normal: shop.placeLine },
       { bold: '', normal: shop.phone ? `Phone: ${shop.phone}` : '' },
-      { bold: '', normal: isEstimate ? '' : `GSTIN: ${shop.gstin}` },
+      { bold: '', normal: isEstimate || !shop.gstin ? '' : `GSTIN: ${shop.gstin}` },
       { bold: '', normal: `State: ${shop.state}` },
     ]);
 
     const cx = ML + colW + 14;
     const cust = inv.customer;
-    this.partyBox(doc, cx, y, colW, 80, 'BILLED TO', [
+    this.partyBox(doc, cx, y, colW, 92, 'BILLED TO', [
       { bold: cust?.name ?? 'Walk-in Customer', normal: '' },
       { bold: '', normal: cust?.address ? cust.address : '' },
       { bold: '', normal: cust?.phone ? `Phone: ${cust.phone}` : '' },
@@ -221,7 +226,7 @@ export class PdfService {
       { bold: '', normal: cust?.kycVerified ? 'KYC Verified' : '', color: '#059669' },
     ]);
 
-    y += 90;
+    y += 102; // party boxes are 92 high (district/PIN line added)
 
     // ── Items table ───────────────────────────────────────────────────────────
     const COLS = ITEM_COLUMNS;

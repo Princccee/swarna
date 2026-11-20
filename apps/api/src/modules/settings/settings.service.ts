@@ -4,6 +4,10 @@ import { PrismaService } from '../../prisma/prisma.service';
 const DEFAULTS: Record<string, string> = {
   shopName: 'Svarna Jewels',
   shopAddress: '',
+  // Printed on invoices and receipts with the address (see common/shop-address)
+  shopPinCode: '',
+  shopDistrict: '',
+  shopState: 'Bihar',
   shopPhone: '',
   // Number customers message for bot replies (RATES, NEW…); shown on Share Kit cards
   whatsappNumber: '',
