@@ -38,7 +38,7 @@ interface BillLine {
   makingPct: number;
   makingPerGram: number;
   stoneValue: number;
-  /** Manual lines only: own rate per gram (otherwise today's live rate) */
+  /** Rate per gram typed at the counter for this line (otherwise today's live rate) */
   manualRate?: number;
 }
 
@@ -416,7 +416,7 @@ export function PosPage() {
     return {
       lines: lines.map((l) =>
         l.itemId
-          ? { itemId: l.itemId, qty: l.qty, netWeightG: l.netWeightG }
+          ? { itemId: l.itemId, qty: l.qty, netWeightG: l.netWeightG, ...(l.manualRate ? { ratePerGram: l.manualRate } : {}) }
           : {
               qty: l.qty,
               description: l.name,
@@ -517,6 +517,14 @@ export function PosPage() {
     if (!isNaN(n) && n > 0) {
       setLines((prev) => prev.map((l) => (l.key === key ? { ...l, qty: n } : l)));
     }
+  }
+
+  /** Edit a line's rate per gram; empty goes back to today's live rate */
+  function setLineRate(key: string, val: string) {
+    const n = parseFloat(val);
+    setLines((prev) =>
+      prev.map((l) => (l.key === key ? { ...l, manualRate: val.trim() === '' || !(n > 0) ? undefined : n } : l)),
+    );
   }
 
   function handleGenerateInvoice() {
@@ -698,12 +706,11 @@ export function PosPage() {
                             {!line.itemId && line.makingPct > 0 ? ` · making ${line.makingPct}%` : ''}
                             {!line.itemId && line.makingPerGram > 0 ? ` · making ₹${fmt(line.makingPerGram)}/g` : ''}
                             {!line.itemId && line.stoneValue > 0 ? ` · stone ₹${fmt(line.stoneValue)}` : ''}
-                            {line.manualRate ? ` · rate ₹${fmt(line.manualRate)}/g` : ''}
                           </p>
                         </div>
                         <button
                           onClick={() => removeLine(line.key)}
-                          className="shrink-0 text-muted-foreground/40 hover:text-red-400 transition-colors p-1 -mr-1 opacity-0 group-hover:opacity-100"
+                          className="shrink-0 text-muted-foreground/40 hover:text-red-400 transition-colors p-1 -mr-1 sm:opacity-0 sm:group-hover:opacity-100"
                           title="Remove"
                         >
                           <Trash2 size={14} />
@@ -735,15 +742,36 @@ export function PosPage() {
                           </button>
                         </div>
 
-                        <div className="flex items-center gap-3 text-xs tabular-nums">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs tabular-nums">
                           <span className="text-muted-foreground/60">
                             {fmtWt(line.netWeightG * line.qty)}g total
                           </span>
-                          {priced && (
-                            <span className="text-muted-foreground/60">
-                              @₹{fmt(priced.ratePerGram)}/g
-                            </span>
-                          )}
+                          {/* Rate per gram — today's live rate unless edited here */}
+                          <label className="flex items-center gap-1 text-muted-foreground/70">
+                            <span>Rate ₹</span>
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              min={0}
+                              step="0.01"
+                              aria-label={`Rate per gram for ${line.name}`}
+                              value={line.manualRate ?? ''}
+                              placeholder={priced ? String(Number(priced.ratePerGram)) : 'live'}
+                              onChange={(e) => setLineRate(line.key, e.target.value)}
+                              className={`w-24 h-7 px-1.5 rounded-md border bg-transparent text-right text-xs tabular-nums outline-none focus:border-amber-400 ${line.manualRate ? 'border-amber-400 text-amber-700 dark:text-amber-400 font-semibold' : ''}`}
+                            />
+                            <span>/g</span>
+                            {line.manualRate ? (
+                              <button
+                                type="button"
+                                onClick={() => setLineRate(line.key, '')}
+                                className="text-[11px] underline text-muted-foreground hover:text-foreground"
+                                title="Use today's live rate"
+                              >
+                                live
+                              </button>
+                            ) : null}
+                          </label>
                           {priced && (
                             <span className="font-semibold text-amber-700 dark:text-amber-400">
                               ₹{fmt(priced.lineTotal)}
