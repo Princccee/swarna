@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsArray, IsEnum, IsNumber, IsOptional, IsString, IsUUID, Matches, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
+import { ArrayMinSize, IsArray, IsEnum, IsNumber, IsOptional, IsString, IsUUID, Matches, MaxLength, Min, MinLength, ValidateNested, IsIn } from 'class-validator';
 import { BillType, PaymentMode, Purity } from '@prisma/client';
+import { SELECTABLE_PURITIES, SELECTABLE_PURITY_MESSAGE } from '../../../common/purities';
 
 /**
  * A bill line is either an inventory item (itemId) or a manual line typed in at the counter
@@ -16,7 +17,7 @@ export class InvoiceLineDto {
 
   // ── Manual lines only ──
   @IsOptional() @IsString() @MaxLength(120) description?: string;
-  @IsOptional() @IsEnum(Purity) purity?: Purity;
+  @IsOptional() @IsIn(SELECTABLE_PURITIES as unknown as string[], { message: SELECTABLE_PURITY_MESSAGE }) purity?: Purity;
   @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) makingPct?: number;
   @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) makingPerGram?: number;
   @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) stoneValue?: number;

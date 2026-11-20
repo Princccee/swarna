@@ -89,9 +89,10 @@ describe('WhatsAppBotService.handleIncoming', () => {
     expect(text).toContain("Svarna Jewels — Today's Rates");
     expect(text).toContain('*Gold* (per 10 g)');
     expect(text).toContain('22K: ₹59,774');   // 5977.4/g × 10, rounded after scaling
-    expect(text).toContain('24K: ₹65,200');
+    expect(text).not.toContain('24K'); // 24K isn't shown by default
     expect(text).toContain('*Silver* (per 10 g)');
-    expect(text).toContain('999: ₹850');
+    expect(text).toContain('Silver: ₹850');
+    expect(text).not.toContain('999');
     expect(text).not.toContain('18K'); // absent rates are omitted, not shown as blanks
   });
 
