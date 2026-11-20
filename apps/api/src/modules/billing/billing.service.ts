@@ -201,6 +201,15 @@ export class BillingService {
     return { priceLineInputs, itemMap, rateMap };
   }
 
+  /** The old ornament can't be worth more than the items being bought (the bill would go negative). */
+  private assertExchangeFits(calc: InvoiceCalculation) {
+    if (calc.taxableAmount.lessThan(ZERO)) {
+      throw new BadRequestException(
+        `Old gold/silver exchange (₹${calc.oldGoldDeduction.toFixed(2)}) is more than the items' value (₹${calc.subtotal.toFixed(2)}).`,
+      );
+    }
+  }
+
   // -------------------------------------------------------------------------
   // 1. createInvoice
   // -------------------------------------------------------------------------
@@ -208,8 +217,10 @@ export class BillingService {
     const isEstimate = dto.billType === BillType.ESTIMATE;
     const { priceLineInputs } = await this.resolveLines(dto.lines);
 
-    const oldGoldWeightG = new Prisma.Decimal(String(dto.oldGoldWeightG ?? 0));
-    const oldGoldRatePerGram = new Prisma.Decimal(String(dto.oldGoldRatePerGram ?? 0));
+    // Old ornament exchange is entered as one amount; weight × rate is still accepted
+    const oldGoldAmount = dto.oldGoldAmount ? new Prisma.Decimal(String(dto.oldGoldAmount)) : undefined;
+    const oldGoldWeightG = new Prisma.Decimal(String(oldGoldAmount ? 0 : dto.oldGoldWeightG ?? 0));
+    const oldGoldRatePerGram = new Prisma.Decimal(String(oldGoldAmount ? 0 : dto.oldGoldRatePerGram ?? 0));
     const isInterstate = dto.isInterstate ?? false;
 
     const calc = this.pricing.computeInvoice(
@@ -218,7 +229,9 @@ export class BillingService {
       oldGoldRatePerGram,
       isInterstate,
       !isEstimate,
+      oldGoldAmount,
     );
+    this.assertExchangeFits(calc);
 
     // Paying at the counter: never more than the bill (GST and non-GST bills alike)
     if (dto.paymentMode && dto.paymentAmount != null && new Prisma.Decimal(String(dto.paymentAmount)).greaterThan(calc.totalAmount)) {
@@ -388,17 +401,22 @@ export class BillingService {
   async previewInvoice(dto: PreviewInvoiceDto): Promise<InvoiceCalculation> {
     const { priceLineInputs } = await this.resolveLines(dto.lines);
 
-    const oldGoldWeightG = new Prisma.Decimal(String(dto.oldGoldWeightG ?? 0));
-    const oldGoldRatePerGram = new Prisma.Decimal(String(dto.oldGoldRatePerGram ?? 0));
+    // Old ornament exchange is entered as one amount; weight × rate is still accepted
+    const oldGoldAmount = dto.oldGoldAmount ? new Prisma.Decimal(String(dto.oldGoldAmount)) : undefined;
+    const oldGoldWeightG = new Prisma.Decimal(String(oldGoldAmount ? 0 : dto.oldGoldWeightG ?? 0));
+    const oldGoldRatePerGram = new Prisma.Decimal(String(oldGoldAmount ? 0 : dto.oldGoldRatePerGram ?? 0));
     const isInterstate = dto.isInterstate ?? false;
 
-    return this.pricing.computeInvoice(
+    const calc = this.pricing.computeInvoice(
       priceLineInputs,
       oldGoldWeightG,
       oldGoldRatePerGram,
       isInterstate,
       dto.billType !== BillType.ESTIMATE,
+      oldGoldAmount,
     );
+    this.assertExchangeFits(calc);
+    return calc;
   }
 
   // -------------------------------------------------------------------------

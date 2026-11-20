@@ -313,7 +313,7 @@ export class PdfService {
     if (Number(inv.stoneTotal) > 0)
       totalRows.push({ label: 'Stone Value', value: rupees(inv.stoneTotal) });
     if (Number(inv.oldGoldDeduction) > 0)
-      totalRows.push({ label: 'Old Gold Deduction', value: rupees(inv.oldGoldDeduction), deduct: true });
+      totalRows.push({ label: 'Old Gold/Silver Exchange', value: rupees(inv.oldGoldDeduction), deduct: true });
     if (!isEstimate) totalRows.push({ label: 'Taxable Amount', value: rupees(inv.taxableAmount) });
     if (Number(inv.cgst) > 0) {
       totalRows.push({ label: 'CGST @ 1.5%', value: rupees(inv.cgst) });

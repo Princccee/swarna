@@ -44,10 +44,6 @@ interface BillLine {
 
 type BillType = 'TAX_INVOICE' | 'ESTIMATE';
 
-interface OldGold {
-  weightG: string;
-  ratePerGram: string;
-}
 
 interface Customer {
   id: string;
@@ -243,7 +239,8 @@ export function PosPage() {
 
   // Bill state
   const [lines, setLines] = useState<BillLine[]>([]);
-  const [oldGold, setOldGold] = useState<OldGold>({ weightG: '', ratePerGram: '' });
+  /** Old gold/silver ornament taken in exchange: value in ₹, deducted from the bill */
+  const [oldGoldAmount, setOldGoldAmount] = useState('');
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [gstMode, setGstMode] = useState<GstMode>('intra');
   const [billType, setBillType] = useState<BillType>('TAX_INVOICE');
@@ -428,12 +425,11 @@ export function PosPage() {
               ...(l.stoneValue > 0 ? { stoneValue: l.stoneValue } : {}),
             },
       ),
-      oldGoldWeightG: oldGold.weightG ? parseFloat(oldGold.weightG) : 0,
-      oldGoldRatePerGram: oldGold.ratePerGram ? parseFloat(oldGold.ratePerGram) : 0,
+      ...(parseFloat(oldGoldAmount) > 0 ? { oldGoldAmount: Math.round(parseFloat(oldGoldAmount) * 100) / 100 } : {}),
       isInterstate: gstMode === 'inter',
       billType,
     };
-  }, [lines, oldGold, gstMode, billType]);
+  }, [lines, oldGoldAmount, gstMode, billType]);
 
   // ── Auto-trigger preview when bill changes ────────────────────────────────
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -450,7 +446,7 @@ export function PosPage() {
       if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lines, oldGold, gstMode, billType]);
+  }, [lines, oldGoldAmount, gstMode, billType]);
 
   // ── Close dropdowns on outside click ─────────────────────────────────────
   useEffect(() => {
@@ -551,7 +547,7 @@ export function PosPage() {
 
   function resetForm() {
     setLines([]);
-    setOldGold({ weightG: '', ratePerGram: '' });
+    setOldGoldAmount('');
     setCustomer(null);
     setCustomerSearch('');
     setShowNewCustomerForm(false);
@@ -1015,47 +1011,31 @@ export function PosPage() {
             </div>
           </section>
 
-          {/* ── Old Gold Exchange ── */}
+          {/* ── Old gold / silver exchange: one amount, deducted from the bill ── */}
           <section className="bg-card rounded-xl border overflow-hidden">
             <div className="px-4 py-2.5 border-b flex items-center gap-2">
               <Scale size={14} className="text-muted-foreground/60" />
-              <h3 className="text-sm font-semibold text-foreground/80">Old Gold Exchange</h3>
+              <h3 className="text-sm font-semibold text-foreground/80">Old Gold / Silver Exchange</h3>
               <span className="text-xs text-muted-foreground/60 ml-1">(optional)</span>
             </div>
             <div className="px-4 py-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                    Weight (grams)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.001}
-                    value={oldGold.weightG}
-                    onChange={(e) => setOldGold((p) => ({ ...p, weightG: e.target.value }))}
-                    placeholder="0.000"
-                    className="w-full px-3 py-2 text-sm border rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all tabular-nums font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                    Rate / gram (₹)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    value={oldGold.ratePerGram}
-                    onChange={(e) => setOldGold((p) => ({ ...p, ratePerGram: e.target.value }))}
-                    placeholder="0.00"
-                    className="w-full px-3 py-2 text-sm border rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all tabular-nums font-mono"
-                  />
-                </div>
-              </div>
-              {oldGold.weightG && oldGold.ratePerGram && (
+              <label htmlFor="old-gold-amount" className="block text-xs font-medium text-muted-foreground mb-1.5">
+                Value of the old ornament (₹)
+              </label>
+              <input
+                id="old-gold-amount"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step={0.01}
+                value={oldGoldAmount}
+                onChange={(e) => setOldGoldAmount(e.target.value)}
+                placeholder="0.00"
+                className="w-full px-3 py-2 text-sm border rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all tabular-nums font-mono"
+              />
+              {parseFloat(oldGoldAmount) > 0 && (
                 <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium tabular-nums">
-                  Deduction: ₹{fmt(parseFloat(oldGold.weightG) * parseFloat(oldGold.ratePerGram))}
+                  ₹{fmt(parseFloat(oldGoldAmount))} will be deducted from the bill
                 </p>
               )}
             </div>
@@ -1136,7 +1116,7 @@ export function PosPage() {
                   )}
                   {preview.oldGoldDeduction > 0 && (
                     <SummaryRow
-                      label="Old gold deduction"
+                      label="Old gold / silver exchange"
                       value={fmt(preview.oldGoldDeduction)}
                       deduction
                     />

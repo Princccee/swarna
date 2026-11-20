@@ -151,3 +151,26 @@ describe('BillingService.recordPayment', () => {
     await expect(svc.recordPayment('inv-1', { amount: 1, mode: 'CASH' } as any)).rejects.toThrow(BadRequestException);
   });
 });
+
+describe('BillingService — old gold/silver exchange (amount)', () => {
+  it('takes the old ornament as one amount and deducts it from the bill', async () => {
+    const { svc, prisma } = setup();
+    await svc.createInvoice(
+      { customerId: CUSTOMER.id, billType: 'ESTIMATE', lines: [{ itemId: ITEM.id, qty: 1 }], oldGoldAmount: 15000 } as any,
+      'user-1',
+    );
+    const created = prisma.invoice.create.mock.calls[0][0].data;
+    expect(Number(created.oldGoldDeduction)).toBe(15000);
+    expect(Number(created.totalAmount)).toBe(45000); // 60000 − 15000, no GST
+    // No weight or rate is recorded for an amount-only exchange
+    expect(Number(created.oldGoldWeightG)).toBe(0);
+    expect(Number(created.oldGoldRatePerGram)).toBe(0);
+  });
+
+  it('refuses an old ornament worth more than the items being bought', async () => {
+    const { svc } = setup();
+    await expect(
+      svc.previewInvoice({ lines: [{ itemId: ITEM.id, qty: 1 }], oldGoldAmount: 70000 } as any),
+    ).rejects.toThrow(BadRequestException);
+  });
+});

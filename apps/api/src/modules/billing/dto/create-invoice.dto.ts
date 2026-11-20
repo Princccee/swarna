@@ -31,6 +31,8 @@ export class CreateInvoiceDto {
   @IsOptional() @IsEnum(BillType) billType?: BillType;
   @IsOptional() @IsNumber() @Min(0) oldGoldWeightG?: number;
   @IsOptional() @IsNumber() @Min(0) oldGoldRatePerGram?: number;
+  /** Old gold/silver ornament taken in exchange, as one amount deducted from the bill */
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) oldGoldAmount?: number;
   @IsOptional() @IsString() notes?: string;
   @IsOptional() isInterstate?: boolean;
   @IsOptional() @IsEnum(PaymentMode) paymentMode?: PaymentMode;
@@ -49,6 +51,8 @@ export class PreviewInvoiceDto {
   @IsOptional() @IsEnum(BillType) billType?: BillType;
   @IsOptional() @IsNumber() @Min(0) oldGoldWeightG?: number;
   @IsOptional() @IsNumber() @Min(0) oldGoldRatePerGram?: number;
+  /** Old gold/silver ornament taken in exchange, as one amount deducted from the bill */
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) oldGoldAmount?: number;
   @IsOptional() isInterstate?: boolean;
 }
 

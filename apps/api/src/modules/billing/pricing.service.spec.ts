@@ -116,6 +116,17 @@ describe('PricingService.computeInvoice()', () => {
     expect(result.taxableAmount.toFixed(2)).toBe('39700.00');
   });
 
+  it('4b: deducts an old gold/silver ornament given as an amount, before GST', () => {
+    // lineTotal = 67200; old ornament worth 20000 → taxable 47200; GST 3% = 1416 → total 48616
+    const line = makeLine({
+      netWeightG: D('10'), ratePerGram: D('6000'), makingPct: D('12'), makingPerGram: D('0'), stoneValue: D('0'),
+    });
+    const result = service.computeInvoice([line], ZERO, ZERO, false, true, D('20000'));
+    expect(result.oldGoldDeduction.toFixed(2)).toBe('20000.00');
+    expect(result.taxableAmount.toFixed(2)).toBe('47200.00');
+    expect(result.totalAmount.toFixed(2)).toBe('48616.00');
+  });
+
   // ---------------------------------------------------------------------------
   // 5. Intra-state GST: cgst=1.5%, sgst=1.5%, igst=0
   // ---------------------------------------------------------------------------
