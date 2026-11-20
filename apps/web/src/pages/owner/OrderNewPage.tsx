@@ -7,16 +7,9 @@ import { toast } from 'sonner';
 import { api } from '../../lib/api';
 import { uploadImages } from '../../lib/images';
 import { ImagePicker, PhotoGrid, usePendingPhotos } from '../../components/shared/ImagePicker';
+import { PURITY_CHOICES } from '../../lib/purities';
 
-const PURITY_OPTIONS = [
-  'GOLD_24K',
-  'GOLD_22K',
-  'GOLD_18K',
-  'GOLD_14K',
-  'SILVER_999',
-  'SILVER_925',
-  'PLATINUM_950',
-] as const;
+const PURITY_OPTIONS = PURITY_CHOICES;
 
 const schema = z.object({
   customerId: z.string().uuid('Select a customer'),

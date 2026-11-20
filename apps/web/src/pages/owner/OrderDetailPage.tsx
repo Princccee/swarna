@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { uploadImages } from '../../lib/images';
 import { ImagePicker, PhotoGrid } from '../../components/shared/ImagePicker';
 import { ImageLightbox } from '../../components/catalogue/ImageLightbox';
+import { PURITY_LABEL } from '../../lib/purities';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -16,15 +17,7 @@ const ORDER_TYPE_LABELS: Record<string, string> = {
   BULK: 'Bulk',
 };
 
-const PURITY_LABELS: Record<string, string> = {
-  GOLD_24K: 'Gold 24K',
-  GOLD_22K: 'Gold 22K',
-  GOLD_18K: 'Gold 18K',
-  GOLD_14K: 'Gold 14K',
-  SILVER_999: 'Silver 999',
-  SILVER_925: 'Silver 925',
-  PLATINUM_950: 'Platinum 950',
-};
+const PURITY_LABELS = PURITY_LABEL;
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: 'bg-muted text-muted-foreground',

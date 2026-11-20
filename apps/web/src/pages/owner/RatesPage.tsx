@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import {
-  AlertTriangle, CheckCircle2, Clock, Download, Pencil, RefreshCw, ShieldAlert, X,
+  AlertTriangle, CheckCircle2, Download, Pencil, ShieldAlert, X,
 } from 'lucide-react';
 import { useRateStore } from '../../stores/rate.store';
 import { api } from '../../lib/api';
@@ -44,17 +44,16 @@ const PURITY_COLORS: Record<string, string> = {
   SILVER_999: '#6b7280', SILVER_925: '#9ca3af', PLATINUM_950: '#64748b',
 };
 
+// The shop's purities: 22K, 18K, Silver — and 24K, set only when it's used (see lib/purities)
 const PURITIES = [
-  { purity: 'GOLD_24K', label: 'Gold 24K', fineness: 1 },
   { purity: 'GOLD_22K', label: 'Gold 22K', fineness: 0.916 },
   { purity: 'GOLD_18K', label: 'Gold 18K', fineness: 0.75 },
-  { purity: 'GOLD_14K', label: 'Gold 14K', fineness: 0.585 },
-  { purity: 'SILVER_999', label: 'Silver 999', fineness: 1 },
-  { purity: 'SILVER_925', label: 'Silver 925', fineness: 0.925 },
-  { purity: 'PLATINUM_950', label: 'Platinum 950', fineness: 1 },
+  { purity: 'SILVER_999', label: 'Silver', fineness: 1 },
+  { purity: 'GOLD_24K', label: 'Gold 24K', fineness: 1 },
 ];
 const LABEL = Object.fromEntries(PURITIES.map((p) => [p.purity, p.label]));
-const BILLING_CRITICAL = ['GOLD_24K', 'GOLD_22K', 'GOLD_18K', 'SILVER_999'];
+// Billing needs these rates; 24K only when a 24K item is billed
+const BILLING_CRITICAL = ['GOLD_22K', 'GOLD_18K', 'SILVER_999'];
 
 const SOURCE_BADGE: Record<string, { label: string; cls: string }> = {
   'metals.dev': { label: 'Live · IBJA/MCX', cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' },
@@ -254,7 +253,6 @@ export default function RatesPage() {
       )}
 
       {/* Source / status line */}
-      {status && <SourceStatus status={status} />}
 
       {/* Manual entry */}
       {editing && status && (
@@ -265,7 +263,7 @@ export default function RatesPage() {
       )}
 
       {/* Rate cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {PURITIES.map(({ purity, label }) => {
           const r = rows.find((x) => x.purity === purity);
           const live = liveRates[`${r?.metal}:${purity}`];
@@ -317,58 +315,6 @@ export default function RatesPage() {
           <p className="text-muted-foreground/60 text-sm">No rate history yet.</p>
         )}
       </div>
-    </div>
-  );
-}
-
-// ── Source status ──────────────────────────────────────────────────────────────
-
-function SourceStatus({ status }: { status: RateStatus }) {
-  const { provider, lastFetch, quota, schedule, premiums } = status;
-  return (
-    <div className="bg-card border rounded-xl px-4 py-3 text-sm flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
-        <span>
-          <span className="text-muted-foreground">Source: </span>
-          <span className="font-medium">
-            {provider === 'metals.dev' && 'metals.dev (IBJA gold, MCX silver)'}
-            {provider === 'goldapi.io' && 'goldapi.io (international spot)'}
-            {provider === 'demo' && 'Demo rates (development only)'}
-            {provider === 'manual' && 'Manual entry'}
-          </span>
-        </span>
-        {provider === 'metals.dev' && (
-          <span>
-            <span className="text-muted-foreground">Patna premium: </span>
-            <span className="font-medium tabular-nums">
-              gold {premiums.goldPer10g >= 0 ? '+' : ''}{inr(premiums.goldPer10g)}/10 g, silver {premiums.silverPer10g >= 0 ? '+' : ''}{inr(premiums.silverPer10g)}/10 g
-            </span>
-          </span>
-        )}
-        {quota && (
-          <span>
-            <span className="text-muted-foreground">Free quota this month: </span>
-            <span className={`font-medium tabular-nums ${quota.used >= quota.budget * 0.9 ? 'text-red-600' : ''}`}>{quota.used} / {quota.budget}</span>
-          </span>
-        )}
-      </div>
-      {schedule && (
-        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5" /> Automatic updates at {schedule}. Manual rates override fetched ones until midnight.
-        </p>
-      )}
-      {lastFetch && (
-        <p className={`text-xs flex items-start gap-1.5 ${lastFetch.ok ? 'text-muted-foreground' : 'text-red-600 dark:text-red-400'}`}>
-          {lastFetch.ok ? <RefreshCw className="w-3.5 h-3.5 mt-px shrink-0" /> : <AlertTriangle className="w-3.5 h-3.5 mt-px shrink-0" />}
-          <span>Last fetch {formatIST(lastFetch.at)} ({lastFetch.trigger}): {lastFetch.message}</span>
-        </p>
-      )}
-      {provider !== 'metals.dev' && (
-        <p className="text-xs text-muted-foreground">
-          To update rates automatically, add a free metals.dev API key in{' '}
-          <Link to="/owner/settings" className="underline underline-offset-2">Settings → Live rates</Link>.
-        </p>
-      )}
     </div>
   );
 }

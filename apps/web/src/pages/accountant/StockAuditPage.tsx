@@ -1,10 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import { PURITY_SHORT } from '../../lib/purities';
 
-const PURITY_LABELS: Record<string, string> = {
-  GOLD_24K: '24K', GOLD_22K: '22K', GOLD_18K: '18K', GOLD_14K: '14K',
-  SILVER_999: 'Ag 999', SILVER_925: 'Ag 925', PLATINUM_950: 'Pt 950',
-};
+const PURITY_LABELS = PURITY_SHORT;
 
 export default function StockAuditPage() {
   const { data, isLoading } = useQuery({

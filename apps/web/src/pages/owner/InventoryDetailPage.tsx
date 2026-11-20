@@ -8,11 +8,9 @@ import { ImageLightbox } from '../../components/catalogue/ImageLightbox';
 import { toast } from 'sonner';
 import { uploadImages } from '../../lib/images';
 import { ImagePicker, PhotoGrid } from '../../components/shared/ImagePicker';
+import { PURITY_LABEL } from '../../lib/purities';
 
-const PURITY_LABELS: Record<string, string> = {
-  GOLD_24K: 'Gold 24K', GOLD_22K: 'Gold 22K', GOLD_18K: 'Gold 18K', GOLD_14K: 'Gold 14K',
-  SILVER_999: 'Silver 999', SILVER_925: 'Silver 925', PLATINUM_950: 'Platinum 950',
-};
+const PURITY_LABELS = PURITY_LABEL;
 
 export default function InventoryDetailPage() {
   const { id } = useParams<{ id: string }>();

@@ -23,6 +23,7 @@ import {
 import { api } from '../../lib/api';
 import { useRateStore } from '../../stores/rate.store';
 import { useAuthStore } from '../../stores/auth.store';
+import { PURITY_CHOICES, PURITY_SHORT } from '../../lib/purities';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -81,15 +82,7 @@ const fmt = (n: number) =>
 const fmtWt = (n: number) =>
   n.toLocaleString('en-IN', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
-const PURITY_LABELS: Record<string, string> = {
-  GOLD_24K: '24K',
-  GOLD_22K: '22K',
-  GOLD_18K: '18K',
-  GOLD_14K: '14K',
-  SILVER_999: 'Ag 999',
-  SILVER_925: 'Ag 925',
-  PLATINUM_950: 'Pt 950',
-};
+const PURITY_LABELS = PURITY_SHORT;
 
 const PAYMENT_LABELS: Record<PaymentMode, string> = {
   CASH: 'Cash',
@@ -161,7 +154,7 @@ function SummaryRow({
   );
 }
 
-const MANUAL_PURITIES = ['GOLD_24K', 'GOLD_22K', 'GOLD_18K', 'GOLD_14K', 'SILVER_999', 'SILVER_925', 'PLATINUM_950'];
+const MANUAL_PURITIES: string[] = [...PURITY_CHOICES];
 
 function ManualLineForm({ onAdd, onClose }: { onAdd: (line: BillLine) => void; onClose: () => void }) {
   const [f, setF] = useState({
@@ -578,7 +571,8 @@ export function PosPage() {
             </h2>
             <div className="flex items-center gap-2">
               <RatePill label="22K" rateKey="GOLD:GOLD_22K" />
-              <RatePill label="24K" rateKey="GOLD:GOLD_24K" />
+              <RatePill label="18K" rateKey="GOLD:GOLD_18K" />
+              <RatePill label="Silver" rateKey="SILVER:SILVER_999" />
             </div>
           </div>
 

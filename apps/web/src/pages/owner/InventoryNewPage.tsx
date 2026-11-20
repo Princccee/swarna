@@ -7,12 +7,13 @@ import { api } from '../../lib/api';
 import { toast } from 'sonner';
 import { uploadImages } from '../../lib/images';
 import { ImagePicker, PhotoGrid, usePendingPhotos } from '../../components/shared/ImagePicker';
+import { PURITY_CHOICES, PURITY_LABEL } from '../../lib/purities';
 
 const schema = z.object({
   categoryId: z.string().uuid('Select a category'),
   name: z.string().min(2).max(128),
   description: z.string().optional(),
-  purity: z.enum(['GOLD_24K', 'GOLD_22K', 'GOLD_18K', 'GOLD_14K', 'SILVER_999', 'SILVER_925', 'PLATINUM_950']),
+  purity: z.enum(PURITY_CHOICES),
   grossWeightG: z.coerce.number().positive().transform(String),
   netWeightG: z.coerce.number().positive().transform(String),
   stoneWeightG: z.coerce.number().min(0).transform(String).optional(),
@@ -85,8 +86,8 @@ export default function InventoryNewPage() {
         <div>
           <label className="block text-sm font-medium mb-1">Purity <span className="text-red-500">*</span></label>
           <select {...register('purity')} className="w-full border rounded-lg px-3 py-2 text-sm">
-            {['GOLD_24K','GOLD_22K','GOLD_18K','GOLD_14K','SILVER_999','SILVER_925','PLATINUM_950'].map((p) => (
-              <option key={p} value={p}>{p.replace('_', ' ')}</option>
+            {PURITY_CHOICES.map((p) => (
+              <option key={p} value={p}>{PURITY_LABEL[p]}</option>
             ))}
           </select>
         </div>
