@@ -7,7 +7,7 @@ const DEFAULTS: Record<string, string> = {
   shopPhone: '',
   // Number customers message for bot replies (RATES, NEW…); shown on Share Kit cards
   whatsappNumber: '',
-  gstin: process.env.GSTIN ?? '22AAAAA0000A1Z5',
+  gstin: process.env.GSTIN ?? '27AAAAA0000A1Z5',
   stateCode: '27',
   isInterstate: 'false',
   irnAutoRegister: 'false',
