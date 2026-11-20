@@ -1,11 +1,12 @@
-import { IsDateString, IsEnum, IsNumber, IsOptional, IsString, IsUUID, Min } from 'class-validator';
+import { IsDateString, IsEnum, IsNumber, IsOptional, IsString, IsUUID, Min, IsIn } from 'class-validator';
 import { OrderType, PaymentMode, Purity } from '@prisma/client';
+import { SELECTABLE_PURITIES, SELECTABLE_PURITY_MESSAGE } from '../../../common/purities';
 
 export class CreateOrderDto {
   @IsUUID() customerId: string;
   @IsEnum(OrderType) type: OrderType;
   @IsOptional() @IsString() description?: string;
-  @IsOptional() @IsEnum(Purity) metalPurity?: Purity;
+  @IsOptional() @IsIn(SELECTABLE_PURITIES as unknown as string[], { message: SELECTABLE_PURITY_MESSAGE }) metalPurity?: Purity;
   @IsOptional() @IsNumber() @Min(0) estimatedWeightG?: number;
   @IsOptional() @IsNumber() @Min(0) estimatedValue?: number;
   @IsOptional() @IsNumber() @Min(0) advancePaid?: number;
@@ -16,7 +17,7 @@ export class CreateOrderDto {
 
 export class UpdateOrderDto {
   @IsOptional() @IsString() description?: string;
-  @IsOptional() @IsEnum(Purity) metalPurity?: Purity;
+  @IsOptional() @IsIn(SELECTABLE_PURITIES as unknown as string[], { message: SELECTABLE_PURITY_MESSAGE }) metalPurity?: Purity;
   @IsOptional() @IsNumber() @Min(0) estimatedWeightG?: number;
   @IsOptional() @IsNumber() @Min(0) estimatedValue?: number;
   @IsOptional() @IsDateString() expectedReady?: string;

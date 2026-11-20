@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { downloadInvoicePdf, shareInvoicePdf } from '../../lib/download-pdf';
 
@@ -35,6 +35,8 @@ function fmt(amount: number) {
 
 export default function InvoiceListPage() {
   const navigate = useNavigate();
+  // Owner → /owner/invoices/:id (owner sidebar), staff → /pos/invoices/:id
+  const invoiceBase = useLocation().pathname.startsWith('/owner') ? '/owner/invoices' : '/pos/invoices';
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -130,7 +132,7 @@ export default function InvoiceListPage() {
           return (
             <div
               key={inv.id}
-              onClick={() => navigate(`/pos/invoices/${inv.id}`)}
+              onClick={() => navigate(`${invoiceBase}/${inv.id}`)}
               className="bg-card border rounded-xl p-3.5 active:bg-muted/50 cursor-pointer"
               style={{ fontVariantNumeric: 'tabular-nums' }}
             >
@@ -155,7 +157,7 @@ export default function InvoiceListPage() {
               </div>
               <div className="flex items-center justify-between gap-3 mt-2.5 pt-2.5 border-t text-xs">
                 <span className={due > 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-muted-foreground'}>
-                  {due > 0 ? `Due ${fmt(due)}` : inv.billType === 'ESTIMATE' ? 'Quotation' : 'Paid'}
+                  {due > 0 ? `Due ${fmt(due)}` : inv.billType === 'ESTIMATE' && Number(inv.amountPaid ?? 0) === 0 ? 'Quotation' : 'Paid'}
                 </span>
                 <span className="flex items-center gap-4">
                   <button onClick={(e) => openPdf(e, inv.id, inv.invoiceNumber)} className="font-medium text-amber-700 dark:text-amber-400 py-1">
@@ -202,7 +204,7 @@ export default function InvoiceListPage() {
                 {invoices.map((inv: any) => (
                   <tr
                     key={inv.id}
-                    onClick={() => navigate(`/pos/invoices/${inv.id}`)}
+                    onClick={() => navigate(`${invoiceBase}/${inv.id}`)}
                     className="hover:bg-muted/50 cursor-pointer"
                   >
                     <td className="px-4 py-3 font-mono text-xs text-amber-700 font-semibold">

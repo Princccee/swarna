@@ -75,8 +75,8 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY:-rustfsadmin}
       S3_BUCKET: svarna
       S3_REGION: ${S3_REGION:-ap-south-1}
-      GSTIN: ${GSTIN:-22AAAAA0000A1Z5}
-      GST_STATE_CODE: ${GST_STATE_CODE:-22}
+      GSTIN: ${GSTIN:-27AAAAA0000A1Z5}
+      GST_STATE_CODE: ${GST_STATE_CODE:-27}
       IS_INTERSTATE: ${IS_INTERSTATE:-false}
       SHOP_NAME: ${SHOP_NAME:-Svarna Jewels}
       PII_ENCRYPTION_KEY: ${PII_ENCRYPTION_KEY:-32-byte-hex-key-change-in-prod-xx}

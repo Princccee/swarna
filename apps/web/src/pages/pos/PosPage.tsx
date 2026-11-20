@@ -23,6 +23,7 @@ import {
 import { api } from '../../lib/api';
 import { useRateStore } from '../../stores/rate.store';
 import { useAuthStore } from '../../stores/auth.store';
+import { PURITY_CHOICES, PURITY_SHORT } from '../../lib/purities';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,16 +39,12 @@ interface BillLine {
   makingPct: number;
   makingPerGram: number;
   stoneValue: number;
-  /** Manual lines only: own rate per gram (otherwise today's live rate) */
+  /** Rate per gram typed at the counter for this line (otherwise today's live rate) */
   manualRate?: number;
 }
 
 type BillType = 'TAX_INVOICE' | 'ESTIMATE';
 
-interface OldGold {
-  weightG: string;
-  ratePerGram: string;
-}
 
 interface Customer {
   id: string;
@@ -85,15 +82,7 @@ const fmt = (n: number) =>
 const fmtWt = (n: number) =>
   n.toLocaleString('en-IN', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
-const PURITY_LABELS: Record<string, string> = {
-  GOLD_24K: '24K',
-  GOLD_22K: '22K',
-  GOLD_18K: '18K',
-  GOLD_14K: '14K',
-  SILVER_999: 'Ag 999',
-  SILVER_925: 'Ag 925',
-  PLATINUM_950: 'Pt 950',
-};
+const PURITY_LABELS = PURITY_SHORT;
 
 const PAYMENT_LABELS: Record<PaymentMode, string> = {
   CASH: 'Cash',
@@ -165,7 +154,7 @@ function SummaryRow({
   );
 }
 
-const MANUAL_PURITIES = ['GOLD_24K', 'GOLD_22K', 'GOLD_18K', 'GOLD_14K', 'SILVER_999', 'SILVER_925', 'PLATINUM_950'];
+const MANUAL_PURITIES: string[] = [...PURITY_CHOICES];
 
 function ManualLineForm({ onAdd, onClose }: { onAdd: (line: BillLine) => void; onClose: () => void }) {
   const [f, setF] = useState({
@@ -243,7 +232,8 @@ export function PosPage() {
 
   // Bill state
   const [lines, setLines] = useState<BillLine[]>([]);
-  const [oldGold, setOldGold] = useState<OldGold>({ weightG: '', ratePerGram: '' });
+  /** Old gold/silver ornament taken in exchange: value in ₹, deducted from the bill */
+  const [oldGoldAmount, setOldGoldAmount] = useState('');
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [gstMode, setGstMode] = useState<GstMode>('intra');
   const [billType, setBillType] = useState<BillType>('TAX_INVOICE');
@@ -416,7 +406,7 @@ export function PosPage() {
     return {
       lines: lines.map((l) =>
         l.itemId
-          ? { itemId: l.itemId, qty: l.qty, netWeightG: l.netWeightG }
+          ? { itemId: l.itemId, qty: l.qty, netWeightG: l.netWeightG, ...(l.manualRate ? { ratePerGram: l.manualRate } : {}) }
           : {
               qty: l.qty,
               description: l.name,
@@ -428,12 +418,11 @@ export function PosPage() {
               ...(l.stoneValue > 0 ? { stoneValue: l.stoneValue } : {}),
             },
       ),
-      oldGoldWeightG: oldGold.weightG ? parseFloat(oldGold.weightG) : 0,
-      oldGoldRatePerGram: oldGold.ratePerGram ? parseFloat(oldGold.ratePerGram) : 0,
+      ...(parseFloat(oldGoldAmount) > 0 ? { oldGoldAmount: Math.round(parseFloat(oldGoldAmount) * 100) / 100 } : {}),
       isInterstate: gstMode === 'inter',
       billType,
     };
-  }, [lines, oldGold, gstMode, billType]);
+  }, [lines, oldGoldAmount, gstMode, billType]);
 
   // ── Auto-trigger preview when bill changes ────────────────────────────────
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -450,7 +439,7 @@ export function PosPage() {
       if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lines, oldGold, gstMode, billType]);
+  }, [lines, oldGoldAmount, gstMode, billType]);
 
   // ── Close dropdowns on outside click ─────────────────────────────────────
   useEffect(() => {
@@ -519,6 +508,14 @@ export function PosPage() {
     }
   }
 
+  /** Edit a line's rate per gram; empty goes back to today's live rate */
+  function setLineRate(key: string, val: string) {
+    const n = parseFloat(val);
+    setLines((prev) =>
+      prev.map((l) => (l.key === key ? { ...l, manualRate: val.trim() === '' || !(n > 0) ? undefined : n } : l)),
+    );
+  }
+
   function handleGenerateInvoice() {
     if (lines.length === 0) {
       toast.error('Add at least one item to the bill');
@@ -531,17 +528,19 @@ export function PosPage() {
     const payload = {
       ...buildPayload(),
       customerId: customer.id,
-      // An estimate is a quotation: no payment is taken against it
-      ...(isEstimate
-        ? {}
-        : { paymentMode, paymentAmount: paymentAmount ? parseFloat(paymentAmount) : preview?.grandTotal ?? 0 }),
+      // GST and non-GST bills take payment the same way; anything unpaid stays due
+      paymentMode,
+      // Cash handed over beyond the total is change given back, not a payment on the bill
+      paymentAmount: paymentAmount
+        ? Math.min(parseFloat(paymentAmount), preview?.grandTotal ?? parseFloat(paymentAmount))
+        : preview?.grandTotal ?? 0,
     };
     invoiceMutation.mutate(payload);
   }
 
   function resetForm() {
     setLines([]);
-    setOldGold({ weightG: '', ratePerGram: '' });
+    setOldGoldAmount('');
     setCustomer(null);
     setCustomerSearch('');
     setShowNewCustomerForm(false);
@@ -572,7 +571,8 @@ export function PosPage() {
             </h2>
             <div className="flex items-center gap-2">
               <RatePill label="22K" rateKey="GOLD:GOLD_22K" />
-              <RatePill label="24K" rateKey="GOLD:GOLD_24K" />
+              <RatePill label="18K" rateKey="GOLD:GOLD_18K" />
+              <RatePill label="Silver" rateKey="SILVER:SILVER_999" />
             </div>
           </div>
 
@@ -696,12 +696,11 @@ export function PosPage() {
                             {!line.itemId && line.makingPct > 0 ? ` · making ${line.makingPct}%` : ''}
                             {!line.itemId && line.makingPerGram > 0 ? ` · making ₹${fmt(line.makingPerGram)}/g` : ''}
                             {!line.itemId && line.stoneValue > 0 ? ` · stone ₹${fmt(line.stoneValue)}` : ''}
-                            {line.manualRate ? ` · rate ₹${fmt(line.manualRate)}/g` : ''}
                           </p>
                         </div>
                         <button
                           onClick={() => removeLine(line.key)}
-                          className="shrink-0 text-muted-foreground/40 hover:text-red-400 transition-colors p-1 -mr-1 opacity-0 group-hover:opacity-100"
+                          className="shrink-0 text-muted-foreground/40 hover:text-red-400 transition-colors p-1 -mr-1 sm:opacity-0 sm:group-hover:opacity-100"
                           title="Remove"
                         >
                           <Trash2 size={14} />
@@ -733,15 +732,36 @@ export function PosPage() {
                           </button>
                         </div>
 
-                        <div className="flex items-center gap-3 text-xs tabular-nums">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs tabular-nums">
                           <span className="text-muted-foreground/60">
                             {fmtWt(line.netWeightG * line.qty)}g total
                           </span>
-                          {priced && (
-                            <span className="text-muted-foreground/60">
-                              @₹{fmt(priced.ratePerGram)}/g
-                            </span>
-                          )}
+                          {/* Rate per gram — today's live rate unless edited here */}
+                          <label className="flex items-center gap-1 text-muted-foreground/70">
+                            <span>Rate ₹</span>
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              min={0}
+                              step="0.01"
+                              aria-label={`Rate per gram for ${line.name}`}
+                              value={line.manualRate ?? ''}
+                              placeholder={priced ? String(Number(priced.ratePerGram)) : 'live'}
+                              onChange={(e) => setLineRate(line.key, e.target.value)}
+                              className={`w-24 h-7 px-1.5 rounded-md border bg-transparent text-right text-xs tabular-nums outline-none focus:border-amber-400 ${line.manualRate ? 'border-amber-400 text-amber-700 dark:text-amber-400 font-semibold' : ''}`}
+                            />
+                            <span>/g</span>
+                            {line.manualRate ? (
+                              <button
+                                type="button"
+                                onClick={() => setLineRate(line.key, '')}
+                                className="text-[11px] underline text-muted-foreground hover:text-foreground"
+                                title="Use today's live rate"
+                              >
+                                live
+                              </button>
+                            ) : null}
+                          </label>
                           {priced && (
                             <span className="font-semibold text-amber-700 dark:text-amber-400">
                               ₹{fmt(priced.lineTotal)}
@@ -985,47 +1005,31 @@ export function PosPage() {
             </div>
           </section>
 
-          {/* ── Old Gold Exchange ── */}
+          {/* ── Old gold / silver exchange: one amount, deducted from the bill ── */}
           <section className="bg-card rounded-xl border overflow-hidden">
             <div className="px-4 py-2.5 border-b flex items-center gap-2">
               <Scale size={14} className="text-muted-foreground/60" />
-              <h3 className="text-sm font-semibold text-foreground/80">Old Gold Exchange</h3>
+              <h3 className="text-sm font-semibold text-foreground/80">Old Gold / Silver Exchange</h3>
               <span className="text-xs text-muted-foreground/60 ml-1">(optional)</span>
             </div>
             <div className="px-4 py-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                    Weight (grams)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.001}
-                    value={oldGold.weightG}
-                    onChange={(e) => setOldGold((p) => ({ ...p, weightG: e.target.value }))}
-                    placeholder="0.000"
-                    className="w-full px-3 py-2 text-sm border rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all tabular-nums font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                    Rate / gram (₹)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    value={oldGold.ratePerGram}
-                    onChange={(e) => setOldGold((p) => ({ ...p, ratePerGram: e.target.value }))}
-                    placeholder="0.00"
-                    className="w-full px-3 py-2 text-sm border rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all tabular-nums font-mono"
-                  />
-                </div>
-              </div>
-              {oldGold.weightG && oldGold.ratePerGram && (
+              <label htmlFor="old-gold-amount" className="block text-xs font-medium text-muted-foreground mb-1.5">
+                Value of the old ornament (₹)
+              </label>
+              <input
+                id="old-gold-amount"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step={0.01}
+                value={oldGoldAmount}
+                onChange={(e) => setOldGoldAmount(e.target.value)}
+                placeholder="0.00"
+                className="w-full px-3 py-2 text-sm border rounded-lg focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 outline-none transition-all tabular-nums font-mono"
+              />
+              {parseFloat(oldGoldAmount) > 0 && (
                 <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium tabular-nums">
-                  Deduction: ₹{fmt(parseFloat(oldGold.weightG) * parseFloat(oldGold.ratePerGram))}
+                  ₹{fmt(parseFloat(oldGoldAmount))} will be deducted from the bill
                 </p>
               )}
             </div>
@@ -1053,7 +1057,7 @@ export function PosPage() {
             </div>
             {isEstimate && (
               <p className="px-4 py-3 text-xs text-muted-foreground">
-                GST is off: this makes an estimate (quotation). No GST, no payment, stock isn't reduced and it isn't counted in sales.
+                GST is off: this makes a non-GST bill (estimate). Take full or part payment below; the rest stays due. It isn't counted in GST sales reports.
               </p>
             )}
             <div className={`px-4 py-3 flex items-center gap-3 ${isEstimate ? 'hidden' : ''}`}>
@@ -1106,7 +1110,7 @@ export function PosPage() {
                   )}
                   {preview.oldGoldDeduction > 0 && (
                     <SummaryRow
-                      label="Old gold deduction"
+                      label="Old gold / silver exchange"
                       value={fmt(preview.oldGoldDeduction)}
                       deduction
                     />
@@ -1132,7 +1136,7 @@ export function PosPage() {
           </section>
 
           {/* ── Payment ── */}
-          <section className={`bg-card rounded-xl border overflow-hidden ${isEstimate ? 'hidden' : ''}`}>
+          <section className="bg-card rounded-xl border overflow-hidden">
             <div className="px-4 py-2.5 border-b flex items-center gap-2">
               <CreditCard size={14} className="text-muted-foreground/60" />
               <h3 className="text-sm font-semibold text-foreground/80">Payment</h3>
@@ -1178,7 +1182,7 @@ export function PosPage() {
                   <p className={`mt-1.5 text-xs font-medium tabular-nums ${ parseFloat(paymentAmount) >= preview.grandTotal ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }`}>
                     {parseFloat(paymentAmount) >= preview.grandTotal
                       ? `Change: ₹${fmt(parseFloat(paymentAmount) - preview.grandTotal)}`
-                      : `Short by: ₹${fmt(preview.grandTotal - parseFloat(paymentAmount))}`}
+                      : `Balance due: ₹${fmt(preview.grandTotal - parseFloat(paymentAmount))} — recorded as due on the bill`}
                   </p>
                 )}
               </div>

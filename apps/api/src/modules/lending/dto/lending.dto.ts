@@ -4,16 +4,16 @@ import {
   IsString, IsUUID, Matches, MaxLength, Min, MinLength, ValidateNested,
 } from 'class-validator';
 import { Purity } from '@svarna/shared-types';
+import { SELECTABLE_PURITIES, SELECTABLE_PURITY_MESSAGE } from '../../../common/purities';
 
-export const LENDABLE_PURITIES = [
-  Purity.GOLD_24K, Purity.GOLD_22K, Purity.GOLD_18K, Purity.GOLD_14K, Purity.SILVER_999, Purity.SILVER_925,
-] as const;
+/** Purities a new loan item can be pledged in (see common/purities) */
+export const LENDABLE_PURITIES = SELECTABLE_PURITIES;
 
 export const PAYMENT_MODES = ['CASH', 'UPI', 'CARD', 'NET_BANKING', 'CHEQUE'] as const;
 
 export class LoanItemDto {
   @IsString() @MinLength(1) @MaxLength(120) description: string;
-  @IsIn(LENDABLE_PURITIES as unknown as string[]) purity: Purity;
+  @IsIn(SELECTABLE_PURITIES as unknown as string[], { message: SELECTABLE_PURITY_MESSAGE }) purity: Purity;
   @IsNumber({ maxDecimalPlaces: 3 }) @Min(0.001) grossWeightG: number;
   @IsNumber({ maxDecimalPlaces: 3 }) @Min(0.001) netWeightG: number;
   @IsOptional() @IsString() @MaxLength(300) notes?: string;

@@ -1,9 +1,10 @@
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsArray, IsEnum, IsNumber, Max, Min, ValidateNested } from 'class-validator';
+import { ArrayMinSize, IsArray, IsEnum, IsNumber, Max, Min, ValidateNested, IsIn } from 'class-validator';
 import { Purity } from '@svarna/shared-types';
+import { SELECTABLE_PURITIES, SELECTABLE_PURITY_MESSAGE } from '../../../common/purities';
 
 export class ManualRateEntryDto {
-  @IsEnum(Purity) purity: Purity;
+  @IsIn(SELECTABLE_PURITIES as unknown as string[], { message: SELECTABLE_PURITY_MESSAGE }) purity: Purity;
 
   /** INR per 10 grams */
   @IsNumber({ maxDecimalPlaces: 2 })

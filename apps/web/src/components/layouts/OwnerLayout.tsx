@@ -12,7 +12,7 @@ import { ThemeToggle } from '@/components/shared/ThemeToggle';
 
 const navItems = [
   { to: '/owner/dashboard',            label: 'Dashboard',  icon: LayoutDashboard },
-  { to: '/pos',                        label: 'POS',        icon: MonitorSmartphone },
+  { to: '/owner/pos',                  label: 'POS',        icon: MonitorSmartphone },
   { to: '/owner/inventory',            label: 'Inventory',  icon: Package, badge: <LowStockAlert /> },
   { to: '/owner/inventory/categories', label: 'Categories', icon: Tag },
   { to: '/owner/rates',                label: 'Rates',      icon: TrendingUp },

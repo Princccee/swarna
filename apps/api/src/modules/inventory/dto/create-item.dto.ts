@@ -1,8 +1,8 @@
 import {
   IsBoolean, IsDecimal, IsEnum, IsOptional, IsString,
-  IsUUID, Matches, MaxLength, MinLength,
-} from 'class-validator';
+  IsUUID, Matches, MaxLength, MinLength, IsIn } from 'class-validator';
 import { Purity } from '@svarna/shared-types';
+import { SELECTABLE_PURITIES, SELECTABLE_PURITY_MESSAGE } from '../../../common/purities';
 
 export class CreateItemDto {
   @IsUUID()
@@ -24,7 +24,7 @@ export class CreateItemDto {
   @MaxLength(512)
   description?: string;
 
-  @IsEnum(Purity)
+  @IsIn(SELECTABLE_PURITIES as unknown as string[], { message: SELECTABLE_PURITY_MESSAGE })
   purity: Purity;
 
   @IsDecimal({ decimal_digits: '0,3', force_decimal: false })

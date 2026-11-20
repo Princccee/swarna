@@ -27,18 +27,16 @@ const OPT_IN_WORDS = new Set(['start', 'subscribe', 'unstop', 'शुरू']);
 const RATE_WORDS = new Set(['rate', 'rates', 'price', 'prices', 'bhav', 'bhaav', 'भाव', 'रेट', 'gold', 'silver', 'sona', 'chandi', 'सोना', 'चांदी']);
 const NEW_WORDS = new Set(['new', 'latest', 'arrival', 'arrivals', 'trending', 'designs', 'design', 'नया', 'नए', 'नई']);
 
-/** Rates shown to customers, in display order. */
+/** Rates shown to customers, in display order: 22K, 18K and the one silver (24K isn't shown by default). */
 const RATE_ROWS: Array<{ purity: string; label: string; group: 'Gold' | 'Silver' }> = [
-  { purity: 'GOLD_24K', label: '24K', group: 'Gold' },
   { purity: 'GOLD_22K', label: '22K', group: 'Gold' },
   { purity: 'GOLD_18K', label: '18K', group: 'Gold' },
-  { purity: 'SILVER_999', label: '999', group: 'Silver' },
-  { purity: 'SILVER_925', label: '925', group: 'Silver' },
+  { purity: 'SILVER_999', label: 'Silver', group: 'Silver' },
 ];
 
 const PURITY_LABEL: Record<string, string> = {
   GOLD_24K: '24K Gold', GOLD_22K: '22K Gold', GOLD_18K: '18K Gold', GOLD_14K: '14K Gold',
-  SILVER_999: 'Silver 999', SILVER_925: 'Silver 925', PLATINUM_950: 'Platinum 950',
+  SILVER_999: 'Silver', SILVER_925: 'Silver 925', PLATINUM_950: 'Platinum 950',
 };
 
 /** Customer-facing rates are quoted per 10 grams (Indian retail convention). */

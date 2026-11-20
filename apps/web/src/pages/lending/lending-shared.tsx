@@ -1,6 +1,7 @@
 import { useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { api } from '../../lib/api';
+import { PURITY_CHOICES, PURITY_LABEL as ALL_PURITY_LABELS } from '../../lib/purities';
 
 // ── Types (mirror the API) ────────────────────────────────────────────────────
 
@@ -79,11 +80,8 @@ export const grams = (n: number) => `${Number(n).toFixed(3)} g`;
 export const dateIN = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
-export const PURITY_LABEL: Record<string, string> = {
-  GOLD_24K: 'Gold 24K', GOLD_22K: 'Gold 22K', GOLD_18K: 'Gold 18K', GOLD_14K: 'Gold 14K',
-  SILVER_999: 'Silver 999', SILVER_925: 'Silver 925',
-};
-export const LENDABLE_PURITIES = Object.keys(PURITY_LABEL);
+export const PURITY_LABEL = ALL_PURITY_LABELS;
+export const LENDABLE_PURITIES: string[] = [...PURITY_CHOICES];
 
 export const MODE_LABEL: Record<string, string> = {
   CASH: 'Cash', UPI: 'UPI', CARD: 'Card', NET_BANKING: 'Bank transfer', CHEQUE: 'Cheque',

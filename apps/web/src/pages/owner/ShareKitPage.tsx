@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, Share2, Download, Copy, MessageCircle, RefreshCw, Search,
+  Share2, Download, Copy, MessageCircle, RefreshCw, Search,
   Check, Coins, Sparkles, Info, ImageOff, Loader2,
 } from 'lucide-react';
 import { api } from '../../lib/api';
@@ -12,6 +12,7 @@ import {
   renderRateCard, renderCollage, loadImage, shareImage, downloadBlob, canShareFiles,
   whatsappTextUrl, formatInr, formatDateIST, RATE_UNIT_GRAMS, type RateRow, type ShopInfo,
 } from '../../lib/share-cards';
+import { PURITY_LABEL } from '../../lib/purities';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -34,18 +35,14 @@ interface ShareItem {
 type Tab = 'rates' | 'designs';
 
 const PURITIES: Array<{ purity: string; group: 'gold' | 'silver'; label: string; sub: string; defaultOn: boolean }> = [
-  { purity: 'GOLD_24K',   group: 'gold',   label: '24K', sub: 'Pure gold · 999',      defaultOn: true },
-  { purity: 'GOLD_22K',   group: 'gold',   label: '22K', sub: 'Jewellery gold · 916', defaultOn: true },
-  { purity: 'GOLD_18K',   group: 'gold',   label: '18K', sub: '750',                  defaultOn: true },
-  { purity: 'GOLD_14K',   group: 'gold',   label: '14K', sub: '585',                  defaultOn: false },
-  { purity: 'SILVER_999', group: 'silver', label: '999', sub: 'Fine silver',          defaultOn: true },
-  { purity: 'SILVER_925', group: 'silver', label: '925', sub: 'Sterling silver',      defaultOn: false },
+  { purity: 'GOLD_22K',   group: 'gold',   label: '22K',    sub: 'Jewellery gold · 916', defaultOn: true },
+  { purity: 'GOLD_18K',   group: 'gold',   label: '18K',    sub: '750',                  defaultOn: true },
+  { purity: 'SILVER_999', group: 'silver', label: 'Silver', sub: '999 fine',             defaultOn: true },
+  // 24K can be added to a card, but isn't shown by default
+  { purity: 'GOLD_24K',   group: 'gold',   label: '24K',    sub: 'Pure gold · 999',      defaultOn: false },
 ];
 
-const PURITY_NAME: Record<string, string> = {
-  GOLD_24K: '24K Gold', GOLD_22K: '22K Gold', GOLD_18K: '18K Gold', GOLD_14K: '14K Gold',
-  SILVER_999: 'Silver 999', SILVER_925: 'Silver 925', PLATINUM_950: 'Platinum 950',
-};
+const PURITY_NAME = PURITY_LABEL;
 
 const MAX_DESIGNS = 4;
 const unwrap = (r: any) => r.data?.data ?? r.data;
@@ -255,13 +252,8 @@ export default function ShareKitPage() {
     <div className="p-4 sm:p-6 space-y-6 max-w-6xl">
       {/* Header */}
       <div>
-        <Link
-          to="/owner/marketing"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="w-4 h-4" /> Marketing
-        </Link>
-        <div className="flex items-center gap-2 mt-2">
+        {/* Share Kit is the Marketing tab's main page */}
+        <div className="flex items-center gap-2">
           <Share2 className="w-5 h-5 text-emerald-600" />
           <h1 className="text-2xl font-bold text-foreground">Share Kit</h1>
           <span className="text-[10px] font-semibold uppercase tracking-wide bg-emerald-600 text-white rounded px-1.5 py-0.5">Free</span>
@@ -324,7 +316,7 @@ export default function ShareKitPage() {
                         onChange={(e) => setEnabled((s) => ({ ...s, [p.purity]: e.target.checked }))}
                       />
                       <span className="flex-1 min-w-0">
-                        <span className="font-medium">{p.group === 'gold' ? 'Gold' : 'Silver'} {p.label}</span>
+                        <span className="font-medium">{p.group === 'gold' ? `Gold ${p.label}` : p.label}</span>
                         <span className="block text-xs text-muted-foreground">{p.sub}</span>
                       </span>
                       <span className="font-semibold tabular-nums">
