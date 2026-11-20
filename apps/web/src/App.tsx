@@ -80,6 +80,8 @@ export default function App() {
         >
           <Route index element={<Navigate to="/owner/dashboard" replace />} />
           <Route path="dashboard" element={<OwnerDashboard />} />
+          {/* Billing inside the owner layout, so the sidebar keeps every tab */}
+          <Route path="pos" element={<PosPage />} />
           <Route path="inventory" element={<InventoryListPage />} />
           <Route path="inventory/new" element={<InventoryNewPage />} />
           <Route path="inventory/categories" element={<CategoriesPage />} />

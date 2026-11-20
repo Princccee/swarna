@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { downloadInvoicePdf, shareInvoicePdf } from '../../lib/download-pdf';
 
@@ -35,6 +35,8 @@ function fmt(amount: number) {
 
 export default function InvoiceListPage() {
   const navigate = useNavigate();
+  // Owner → /owner/invoices/:id (owner sidebar), staff → /pos/invoices/:id
+  const invoiceBase = useLocation().pathname.startsWith('/owner') ? '/owner/invoices' : '/pos/invoices';
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -130,7 +132,7 @@ export default function InvoiceListPage() {
           return (
             <div
               key={inv.id}
-              onClick={() => navigate(`/pos/invoices/${inv.id}`)}
+              onClick={() => navigate(`${invoiceBase}/${inv.id}`)}
               className="bg-card border rounded-xl p-3.5 active:bg-muted/50 cursor-pointer"
               style={{ fontVariantNumeric: 'tabular-nums' }}
             >
@@ -202,7 +204,7 @@ export default function InvoiceListPage() {
                 {invoices.map((inv: any) => (
                   <tr
                     key={inv.id}
-                    onClick={() => navigate(`/pos/invoices/${inv.id}`)}
+                    onClick={() => navigate(`${invoiceBase}/${inv.id}`)}
                     className="hover:bg-muted/50 cursor-pointer"
                   >
                     <td className="px-4 py-3 font-mono text-xs text-amber-700 font-semibold">
