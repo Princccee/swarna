@@ -316,7 +316,7 @@ export default function ShareKitPage() {
                         onChange={(e) => setEnabled((s) => ({ ...s, [p.purity]: e.target.checked }))}
                       />
                       <span className="flex-1 min-w-0">
-                        <span className="font-medium">{p.group === 'gold' ? 'Gold' : 'Silver'} {p.label}</span>
+                        <span className="font-medium">{p.group === 'gold' ? `Gold ${p.label}` : p.label}</span>
                         <span className="block text-xs text-muted-foreground">{p.sub}</span>
                       </span>
                       <span className="font-semibold tabular-nums">
