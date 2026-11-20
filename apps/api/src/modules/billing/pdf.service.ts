@@ -67,8 +67,8 @@ function amountInWords(amount: number): string {
 /** Item table columns (A4 content width 505 pt). No HSN column. */
 export const ITEM_COLUMNS = [
   { label: '#',            w: 20,  align: 'center' as const },
-  { label: 'DESCRIPTION',  w: 196, align: 'left'   as const },
-  { label: 'PURITY',       w: 40,  align: 'center' as const },
+  { label: 'DESCRIPTION',  w: 180, align: 'left'   as const },
+  { label: 'PURITY',       w: 56,  align: 'center' as const }, // fits "GOLD 22K" on one line
   { label: 'WT (g)',       w: 50,  align: 'right'  as const },
   { label: 'QTY',          w: 24,  align: 'center' as const },
   { label: 'RATE/g (Rs.)', w: 58,  align: 'right'  as const },
