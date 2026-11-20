@@ -239,7 +239,6 @@ function RatesStrip() {
   const connected = useRateStore((s) => s.connected);
 
   const LABELS: Record<string, string> = {
-    'GOLD:GOLD_24K': t('home.ratesStrip.gold24k'),
     'GOLD:GOLD_22K': t('home.ratesStrip.gold22k'),
     'GOLD:GOLD_18K': t('home.ratesStrip.gold18k'),
     'SILVER:SILVER_999': t('home.ratesStrip.silver999'),

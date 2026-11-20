@@ -127,7 +127,7 @@ export class BillingService {
   /**
    * Resolve every bill line to a priced input. Inventory lines take weight/making/stone from the
    * item; manual lines carry their own description, purity, weight and making. Rates come from
-   * the live rate cache (guarded), except a manual line may give its own rate.
+   * the live rate cache (guarded), unless the counter typed a rate for the line (any line).
    * Returns: priceLineInputs (same order as `lines`), itemMap, and the live rates used.
    */
   private async resolveLines(lines: InvoiceLineDto[]): Promise<{
@@ -157,11 +157,11 @@ export class BillingService {
       }
     });
 
-    // Live rates are needed for every inventory purity and for manual lines without their own rate
+    // Live rates are needed only for lines without a rate typed at the counter
     const neededPurities = new Set<Purity>();
     for (const l of lines) {
-      if (l.itemId) neededPurities.add(itemMap.get(l.itemId)!.purity);
-      else if (l.ratePerGram == null) neededPurities.add(l.purity!);
+      if (l.ratePerGram != null) continue;
+      neededPurities.add(l.itemId ? itemMap.get(l.itemId)!.purity : l.purity!);
     }
     const rateMap = new Map<Purity, Prisma.Decimal>();
     await Promise.all(
@@ -179,7 +179,7 @@ export class BillingService {
           purity: item.purity,
           qty: l.qty,
           netWeightG: l.netWeightG !== undefined ? new Prisma.Decimal(String(l.netWeightG)) : item.netWeightG,
-          ratePerGram: rateMap.get(item.purity)!,
+          ratePerGram: l.ratePerGram != null ? new Prisma.Decimal(String(l.ratePerGram)) : rateMap.get(item.purity)!,
           makingPct: item.makingPct,
           makingPerGram: item.makingPerGram,
           stoneValue: item.stoneValue,
@@ -201,6 +201,15 @@ export class BillingService {
     return { priceLineInputs, itemMap, rateMap };
   }
 
+  /** The old ornament can't be worth more than the items being bought (the bill would go negative). */
+  private assertExchangeFits(calc: InvoiceCalculation) {
+    if (calc.taxableAmount.lessThan(ZERO)) {
+      throw new BadRequestException(
+        `Old gold/silver exchange (₹${calc.oldGoldDeduction.toFixed(2)}) is more than the items' value (₹${calc.subtotal.toFixed(2)}).`,
+      );
+    }
+  }
+
   // -------------------------------------------------------------------------
   // 1. createInvoice
   // -------------------------------------------------------------------------
@@ -208,8 +217,10 @@ export class BillingService {
     const isEstimate = dto.billType === BillType.ESTIMATE;
     const { priceLineInputs } = await this.resolveLines(dto.lines);
 
-    const oldGoldWeightG = new Prisma.Decimal(String(dto.oldGoldWeightG ?? 0));
-    const oldGoldRatePerGram = new Prisma.Decimal(String(dto.oldGoldRatePerGram ?? 0));
+    // Old ornament exchange is entered as one amount; weight × rate is still accepted
+    const oldGoldAmount = dto.oldGoldAmount ? new Prisma.Decimal(String(dto.oldGoldAmount)) : undefined;
+    const oldGoldWeightG = new Prisma.Decimal(String(oldGoldAmount ? 0 : dto.oldGoldWeightG ?? 0));
+    const oldGoldRatePerGram = new Prisma.Decimal(String(oldGoldAmount ? 0 : dto.oldGoldRatePerGram ?? 0));
     const isInterstate = dto.isInterstate ?? false;
 
     const calc = this.pricing.computeInvoice(
@@ -218,7 +229,14 @@ export class BillingService {
       oldGoldRatePerGram,
       isInterstate,
       !isEstimate,
+      oldGoldAmount,
     );
+    this.assertExchangeFits(calc);
+
+    // Paying at the counter: never more than the bill (GST and non-GST bills alike)
+    if (dto.paymentMode && dto.paymentAmount != null && new Prisma.Decimal(String(dto.paymentAmount)).greaterThan(calc.totalAmount)) {
+      throw new BadRequestException(`Amount paid can't be more than the bill total (₹${calc.totalAmount.toFixed(2)}).`);
+    }
 
     // Separate number series so the tax-invoice sequence stays continuous
     const invoiceNumber = await this.nextInvoiceNumber(isEstimate ? 'EST' : 'SVR');
@@ -230,11 +248,11 @@ export class BillingService {
       throw new BadRequestException('Bills must be made out to a real customer. Find or add the customer by name and phone.');
     }
 
-    // One RateSnapshot per distinct (purity, rate) actually billed. A manual line's own rate is
+    // One RateSnapshot per distinct (purity, rate) actually billed. A rate typed at the counter is
     // recorded with source 'manual-bill'. The first line's snapshot is the invoice's primary one.
     const snapshotIds = new Map<string, string>();
     const lineSnapshotKey = priceLineInputs.map((l, idx) => {
-      const manualRate = !l.itemId && dto.lines[idx].ratePerGram != null;
+      const manualRate = dto.lines[idx].ratePerGram != null;
       return { key: `${l.purity}:${l.ratePerGram.toString()}:${manualRate ? 'manual' : 'live'}`, manualRate, l };
     });
     for (const { key, manualRate, l } of lineSnapshotKey) {
@@ -273,9 +291,9 @@ export class BillingService {
           igst: calc.igst,
           totalAmount: calc.totalAmount,
           amountPaid: ZERO,
-          // An estimate is a quotation: nothing is owed against it
-          balanceDue: isEstimate ? ZERO : calc.totalAmount,
-          status: isEstimate ? InvoiceStatus.DRAFT : InvoiceStatus.CONFIRMED,
+          // GST and non-GST (estimate) bills are both sales: the total is owed until paid
+          balanceDue: calc.totalAmount,
+          status: InvoiceStatus.CONFIRMED,
           notes: dto.notes,
           invoicedAt: new Date(),
           lines: {
@@ -314,18 +332,6 @@ export class BillingService {
           });
         }
 
-        if (dto.paymentMode) {
-          const paid = new Prisma.Decimal(String(dto.paymentAmount ?? calc.totalAmount));
-          const balanceDue = calc.totalAmount.sub(paid).toDecimalPlaces(2);
-          await tx.payment.create({
-            data: { invoice: { connect: { id: created.id } }, amount: paid, mode: dto.paymentMode },
-          });
-          await tx.invoice.update({
-            where: { id: created.id },
-            data: { amountPaid: paid, balanceDue },
-          });
-        }
-
         await tx.registerEntry.create({
           data: {
             createdById: userId,
@@ -337,13 +343,27 @@ export class BillingService {
         });
       }
 
+      // Payment at the counter — same for GST and non-GST bills; the rest stays due
+      if (dto.paymentMode) {
+        const paid = new Prisma.Decimal(String(dto.paymentAmount ?? calc.totalAmount));
+        if (paid.greaterThan(ZERO)) {
+          await tx.payment.create({
+            data: { invoice: { connect: { id: created.id } }, amount: paid, mode: dto.paymentMode },
+          });
+          await tx.invoice.update({
+            where: { id: created.id },
+            data: { amountPaid: paid, balanceDue: calc.totalAmount.sub(paid).toDecimalPlaces(2) },
+          });
+        }
+      }
+
       return tx.invoice.findUniqueOrThrow({
         where: { id: created.id },
         include: { customer: true, lines: { include: { item: true } }, payments: true, rateSnapshot: true },
       });
     });
 
-    if (isEstimate) return invoice; // a quotation: no sales total, no e-invoice
+    if (isEstimate) return invoice; // non-GST: not in the GST sales register, no e-invoice
 
     // Update customer totalSpent (outside transaction — non-critical)
     this.prisma.customer
@@ -381,17 +401,22 @@ export class BillingService {
   async previewInvoice(dto: PreviewInvoiceDto): Promise<InvoiceCalculation> {
     const { priceLineInputs } = await this.resolveLines(dto.lines);
 
-    const oldGoldWeightG = new Prisma.Decimal(String(dto.oldGoldWeightG ?? 0));
-    const oldGoldRatePerGram = new Prisma.Decimal(String(dto.oldGoldRatePerGram ?? 0));
+    // Old ornament exchange is entered as one amount; weight × rate is still accepted
+    const oldGoldAmount = dto.oldGoldAmount ? new Prisma.Decimal(String(dto.oldGoldAmount)) : undefined;
+    const oldGoldWeightG = new Prisma.Decimal(String(oldGoldAmount ? 0 : dto.oldGoldWeightG ?? 0));
+    const oldGoldRatePerGram = new Prisma.Decimal(String(oldGoldAmount ? 0 : dto.oldGoldRatePerGram ?? 0));
     const isInterstate = dto.isInterstate ?? false;
 
-    return this.pricing.computeInvoice(
+    const calc = this.pricing.computeInvoice(
       priceLineInputs,
       oldGoldWeightG,
       oldGoldRatePerGram,
       isInterstate,
       dto.billType !== BillType.ESTIMATE,
+      oldGoldAmount,
     );
+    this.assertExchangeFits(calc);
+    return calc;
   }
 
   // -------------------------------------------------------------------------
@@ -477,6 +502,12 @@ export class BillingService {
     }
 
     const paymentAmount = new Prisma.Decimal(String(dto.amount));
+    if (invoice.balanceDue.lessThanOrEqualTo(ZERO)) {
+      throw new BadRequestException('This bill is already fully paid.');
+    }
+    if (paymentAmount.greaterThan(invoice.balanceDue)) {
+      throw new BadRequestException(`Payment can't be more than the balance due (₹${invoice.balanceDue.toFixed(2)}).`);
+    }
     const newAmountPaid = invoice.amountPaid.add(paymentAmount).toDecimalPlaces(2);
     const newBalanceDue = invoice.totalAmount.sub(newAmountPaid).toDecimalPlaces(2);
 

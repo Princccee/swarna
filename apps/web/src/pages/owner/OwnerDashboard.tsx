@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Activity,
 } from 'lucide-react';
+import { DEFAULT_RATE_PURITIES, PURITY_LABEL } from '../../lib/purities';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -31,14 +32,10 @@ function formatRupees(amount: number): string {
   }).format(amount);
 }
 
-const RATE_LABELS: Record<string, string> = {
-  GOLD_24K: 'Gold 24K',
-  GOLD_22K: 'Gold 22K',
-  GOLD_18K: 'Gold 18K',
-  SILVER_999: 'Silver 999',
-};
+const RATE_LABELS = PURITY_LABEL;
 
-const RATE_ORDER = ['GOLD_24K', 'GOLD_22K', 'GOLD_18K', 'SILVER_999'];
+// 22K, 18K and Silver (24K isn't shown by default)
+const RATE_ORDER: string[] = [...DEFAULT_RATE_PURITIES];
 
 const ACTION_COLORS: Record<string, string> = {
   CREATE: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400',

@@ -6,7 +6,7 @@ const DISPLAY_PURITIES = ['GOLD:GOLD_22K', 'GOLD:GOLD_18K', 'SILVER:SILVER_999']
 const LABELS: Record<string, string> = {
   'GOLD:GOLD_22K':    'Gold 22K',
   'GOLD:GOLD_18K':    'Gold 18K',
-  'SILVER:SILVER_999': 'Silver 999',
+  'SILVER:SILVER_999': 'Silver',
 };
 
 export function RateTicker() {

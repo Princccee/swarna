@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsArray, IsEnum, IsNumber, IsOptional, IsString, IsUUID, Matches, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
+import { ArrayMinSize, IsArray, IsEnum, IsNumber, IsOptional, IsString, IsUUID, Matches, MaxLength, Min, MinLength, ValidateNested, IsIn } from 'class-validator';
 import { BillType, PaymentMode, Purity } from '@prisma/client';
+import { SELECTABLE_PURITIES, SELECTABLE_PURITY_MESSAGE } from '../../../common/purities';
 
 /**
  * A bill line is either an inventory item (itemId) or a manual line typed in at the counter
@@ -11,11 +12,12 @@ export class InvoiceLineDto {
   @IsNumber() @Min(1) qty: number;
   @IsOptional() @IsNumber({ maxDecimalPlaces: 3 }) @Min(0) netWeightG?: number; // inventory: override item's net weight
 
+  /** Any line: rate per gram typed at the counter; defaults to today's live rate for the purity */
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 4 }) @Min(0.01) ratePerGram?: number;
+
   // ── Manual lines only ──
   @IsOptional() @IsString() @MaxLength(120) description?: string;
-  @IsOptional() @IsEnum(Purity) purity?: Purity;
-  /** Rate per gram; defaults to today's live rate for the purity */
-  @IsOptional() @IsNumber({ maxDecimalPlaces: 4 }) @Min(0.01) ratePerGram?: number;
+  @IsOptional() @IsIn(SELECTABLE_PURITIES as unknown as string[], { message: SELECTABLE_PURITY_MESSAGE }) purity?: Purity;
   @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) makingPct?: number;
   @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) makingPerGram?: number;
   @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) stoneValue?: number;
@@ -30,6 +32,8 @@ export class CreateInvoiceDto {
   @IsOptional() @IsEnum(BillType) billType?: BillType;
   @IsOptional() @IsNumber() @Min(0) oldGoldWeightG?: number;
   @IsOptional() @IsNumber() @Min(0) oldGoldRatePerGram?: number;
+  /** Old gold/silver ornament taken in exchange, as one amount deducted from the bill */
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) oldGoldAmount?: number;
   @IsOptional() @IsString() notes?: string;
   @IsOptional() isInterstate?: boolean;
   @IsOptional() @IsEnum(PaymentMode) paymentMode?: PaymentMode;
@@ -48,6 +52,8 @@ export class PreviewInvoiceDto {
   @IsOptional() @IsEnum(BillType) billType?: BillType;
   @IsOptional() @IsNumber() @Min(0) oldGoldWeightG?: number;
   @IsOptional() @IsNumber() @Min(0) oldGoldRatePerGram?: number;
+  /** Old gold/silver ornament taken in exchange, as one amount deducted from the bill */
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) oldGoldAmount?: number;
   @IsOptional() isInterstate?: boolean;
 }
 

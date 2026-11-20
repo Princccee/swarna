@@ -25,7 +25,7 @@ export default registerAs('app', () => ({
   },
   gst: {
     gstin: process.env.GSTIN || '',
-    stateCode: process.env.GST_STATE_CODE || '22',
+    stateCode: process.env.GST_STATE_CODE || '27', // Maharashtra
     isInterstate: process.env.IS_INTERSTATE === 'true',
   },
   shop: {

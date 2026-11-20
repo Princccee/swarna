@@ -85,7 +85,8 @@ export default function OrdersPage() {
     },
   });
 
-  const orders: any[] = data?.orders ?? [];
+  // GET /orders returns { items, meta }
+  const orders: any[] = data?.items ?? [];
   const meta = data?.meta;
 
   const handleRowClick = (id: string) => navigate(`/owner/orders/${id}`);

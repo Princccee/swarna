@@ -59,7 +59,8 @@ export default function InvoiceDetailPage() {
   });
 
   const addPaymentMutation = useMutation({
-    mutationFn: (payload: { amount: number; mode: string; note?: string }) =>
+    // The API accepts the note as `reference`; any other field is rejected with a 400
+    mutationFn: (payload: { amount: number; mode: string; reference?: string }) =>
       api.post(`/billing/invoices/${id}/payments`, payload),
     onSuccess: () => {
       toast.success('Payment recorded');
@@ -98,11 +99,11 @@ export default function InvoiceDetailPage() {
     e.preventDefault();
     const amount = parseFloat(payAmount);
     if (!amount || amount <= 0) { toast.error('Enter a valid amount'); return; }
-    addPaymentMutation.mutate({ amount, mode: payMode, note: payNote || undefined });
+    addPaymentMutation.mutate({ amount, mode: payMode, reference: payNote || undefined });
   };
 
   const handleMarkPaid = () => {
-    addPaymentMutation.mutate({ amount: balanceDue, mode: markPaidMode, note: 'Full settlement' });
+    addPaymentMutation.mutate({ amount: balanceDue, mode: markPaidMode, reference: 'Full settlement' });
   };
 
   if (isLoading) return <div className="p-6 text-muted-foreground/60">Loading…</div>;
@@ -110,7 +111,6 @@ export default function InvoiceDetailPage() {
 
   const lineItems: any[] = invoice.lines ?? invoice.lineItems ?? invoice.items ?? [];
   const payments: any[] = invoice.payments ?? [];
-  const gst = invoice.gstBreakdown ?? invoice.taxBreakdown ?? null;
   const isOwner = user?.role === Role.OWNER;
   const canCancel = isOwner && (invoice.status === 'DRAFT' || invoice.status === 'CONFIRMED');
   const isEstimate = invoice.billType === 'ESTIMATE';
@@ -118,7 +118,15 @@ export default function InvoiceDetailPage() {
   const balanceDue = Number(invoice.balanceDue ?? 0);
   const totalPaid = payments.reduce((sum: number, p: any) => sum + Number(p.amount ?? 0), 0);
   const isFullyPaid = balanceDue <= 0;
-  const canAddPayment = !isEstimate && invoice.status !== 'CANCELLED' && !isFullyPaid;
+  // GST and non-GST bills take payments the same way
+  const canAddPayment = invoice.status !== 'CANCELLED' && !isFullyPaid;
+  // Estimates made before non-GST bills took payments were quotations: nothing paid, nothing owed
+  const isOldQuotation = isEstimate && totalPaid === 0 && balanceDue <= 0;
+  // GST is stored as CGST + SGST (same state) or IGST (other state); 3% on jewellery
+  const cgst = Number(invoice.cgst ?? 0);
+  const sgst = Number(invoice.sgst ?? 0);
+  const igst = Number(invoice.igst ?? 0);
+  const totalTax = cgst + sgst + igst;
 
   return (
     <div className="p-6 space-y-6 max-w-4xl">
@@ -280,18 +288,23 @@ export default function InvoiceDetailPage() {
         {/* GST Breakdown */}
         <div className="bg-card rounded-xl border p-5 space-y-3">
           <h2 className="font-semibold text-foreground/80">GST Breakdown</h2>
-          {gst ? (
+          {isEstimate ? (
+            <p className="text-sm text-muted-foreground/60">Non-GST bill — no GST charged</p>
+          ) : (
             <>
-              {gst.cgst != null && <Row label={`CGST (${gst.cgstRate ?? ''}%)`} value={fmt(gst.cgst)} />}
-              {gst.sgst != null && <Row label={`SGST (${gst.sgstRate ?? ''}%)`} value={fmt(gst.sgst)} />}
-              {gst.igst != null && <Row label={`IGST (${gst.igstRate ?? ''}%)`} value={fmt(gst.igst)} />}
-              {gst.cess != null && gst.cess > 0 && <Row label="Cess" value={fmt(gst.cess)} />}
+              <Row label="Taxable amount" value={fmt(invoice.taxableAmount ?? 0)} />
+              {igst > 0 ? (
+                <Row label="IGST (3%)" value={fmt(igst)} />
+              ) : (
+                <>
+                  <Row label="CGST (1.5%)" value={fmt(cgst)} />
+                  <Row label="SGST (1.5%)" value={fmt(sgst)} />
+                </>
+              )}
               <div className="border-t pt-2">
-                <Row label="Total Tax" value={fmt(gst.totalTax ?? gst.total ?? 0)} bold />
+                <Row label="Total GST" value={fmt(totalTax)} bold />
               </div>
             </>
-          ) : (
-            <p className="text-sm text-muted-foreground/60">No GST data</p>
           )}
           <div className="border-t pt-3 space-y-2">
             <Row label="Subtotal" value={fmt(invoice.subTotal ?? invoice.subtotal ?? 0)} />
@@ -305,6 +318,9 @@ export default function InvoiceDetailPage() {
         {/* Payment Summary */}
         <div className="bg-card rounded-xl border p-5 space-y-3">
           <h2 className="font-semibold text-foreground/80">Payment Summary</h2>
+          {isOldQuotation && (
+            <p className="text-xs text-muted-foreground/70">Quotation — no payment was taken on this estimate.</p>
+          )}
           <Row label="Grand Total" value={fmt(invoice.totalAmount ?? invoice.grandTotal ?? 0)} />
           <Row label="Total Paid" value={<span className="text-green-700 dark:text-green-400">{fmt(totalPaid)}</span>} bold />
           <div className="border-t pt-2">

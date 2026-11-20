@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Role } from '@svarna/shared-types';
 
 export function LoginPage() {
-  const [email, setEmail] = useState('owner@svarna.local');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, isAuthenticated, user, getHomeRoute } = useAuth();
@@ -83,7 +83,8 @@ export function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="owner@svarna.local"
+                  placeholder="you@example.com"
+                  autoComplete="username"
                   required
                   className="w-full px-3.5 py-2.5 border border-border rounded-lg text-[14px] text-foreground bg-background placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 transition"
                 />
@@ -115,17 +116,6 @@ export function LoginPage() {
           </div>
         </div>
 
-        {/* Hint */}
-        <p className="text-center text-[11px] text-muted-foreground mt-5">
-          Default:{' '}
-          <code className="bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-mono">
-            owner@svarna.local
-          </code>
-          {' / '}
-          <code className="bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-mono">
-            svarna@2026
-          </code>
-        </p>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import * as PDFDocument from 'pdfkit';
+import { shopAddressParts } from '../../common/shop-address';
 
 // ── Palette ────────────────────────────────────────────────────────────────────
 const GOLD      = '#B8880F';
@@ -64,6 +65,33 @@ function amountInWords(amount: number): string {
 }
 
 // ── Service ────────────────────────────────────────────────────────────────────
+/** Item table columns (A4 content width 505 pt). No HSN column. */
+export const ITEM_COLUMNS = [
+  { label: '#',            w: 20,  align: 'center' as const },
+  { label: 'DESCRIPTION',  w: 180, align: 'left'   as const },
+  { label: 'PURITY',       w: 56,  align: 'center' as const }, // fits "GOLD 22K" on one line
+  { label: 'WT (g)',       w: 50,  align: 'right'  as const },
+  { label: 'QTY',          w: 24,  align: 'center' as const },
+  { label: 'RATE/g (Rs.)', w: 58,  align: 'right'  as const },
+  { label: 'MAKING (Rs.)', w: 52,  align: 'right'  as const },
+  { label: 'AMOUNT (Rs.)', w: 65,  align: 'right'  as const },
+];
+
+/** Purity is printed for gold items only (e.g. "GOLD 22K"); blank for silver and others. */
+export function pdfPurityLabel(purity: string | null | undefined): string {
+  return purity && purity.startsWith('GOLD') ? purity.replace(/_/g, ' ') : '';
+}
+
+/**
+ * Payment status shown on the bill. GST and non-GST bills alike: PAID or BALANCE DUE.
+ * Estimates made before non-GST bills took payments (nothing paid, nothing owed) are QUOTATION.
+ */
+export function billStatus(inv: { billType?: string; balanceDue?: any; amountPaid?: any }): 'PAID' | 'BALANCE DUE' | 'QUOTATION' {
+  const due = Number(inv.balanceDue ?? 0);
+  if (inv.billType === 'ESTIMATE' && due <= 0 && Number(inv.amountPaid ?? 0) <= 0) return 'QUOTATION';
+  return due <= 0 ? 'PAID' : 'BALANCE DUE';
+}
+
 @Injectable()
 export class PdfService {
   constructor(private readonly prisma: PrismaService) {}
@@ -73,12 +101,15 @@ export class PdfService {
     const rows = await this.prisma.setting.findMany();
     const settings: Record<string, string> = {};
     for (const r of rows) settings[r.key] = r.value;
+    const addr = shopAddressParts(settings);
     const shop = {
-      name:    settings.shopName    ?? 'Svarna Jewels',
-      address: settings.shopAddress ?? '',
-      phone:   settings.shopPhone   ?? '',
-      gstin:   settings.gstin       ?? '22AAAAA0000A1Z5',
-      state:   settings.stateName   ?? 'Maharashtra',
+      name:      settings.shopName    ?? 'Svarna Jewels',
+      street:    addr.street,
+      placeLine: addr.placeLine, // "Dist. Vaishali, Bihar - 843114"
+      oneLine:   addr.oneLine,
+      phone:     settings.shopPhone   ?? '',
+      gstin:     settings.gstin       ?? '',
+      state:     addr.state,
     };
 
     return new Promise((resolve, reject) => {
@@ -125,9 +156,9 @@ export class PdfService {
 
     // Tagline / address
     y += 22;
-    if (shop.address) {
+    if (shop.oneLine) {
       doc.fontSize(8).fillColor(MUTED).font('Helvetica')
-         .text(shop.address, ML, y, { width: 260, lineBreak: false });
+         .text(shop.oneLine, ML, y, { width: 300, lineBreak: false });
       y += 11;
     }
     const contactLine = [shop.phone ? `Tel: ${shop.phone}` : '', isEstimate ? '' : `GSTIN: ${shop.gstin}`]
@@ -158,11 +189,13 @@ export class PdfService {
        .text(dateStr(inv.invoicedAt ?? inv.createdAt), invBlockX + 88, metaY + 10, { width: 82, align: 'right' });
 
     // Status badge
-    const isPaid = Number(inv.balanceDue ?? 0) <= 0;
-    const badgeColor = isEstimate ? '#475569' : isPaid ? '#059669' : '#D97706';
-    const badgeLabel = isEstimate ? 'QUOTATION' : isPaid ? 'PAID' : 'BALANCE DUE';
+    const status = billStatus(inv);
+    const isQuotation = status === 'QUOTATION';
+    const isPaid = status === 'PAID';
+    const badgeColor = isQuotation ? '#475569' : isPaid ? '#059669' : '#D97706';
+    const badgeLabel = status;
     const badgeY = metaY + 26;
-    doc.roundedRect(invBlockX + 88, badgeY, 82, 14, 3).fill(isEstimate ? '#E2E8F0' : isPaid ? '#D1FAE5' : '#FEF3C7');
+    doc.roundedRect(invBlockX + 88, badgeY, 82, 14, 3).fill(isQuotation ? '#E2E8F0' : isPaid ? '#D1FAE5' : '#FEF3C7');
     doc.fontSize(7).fillColor(badgeColor).font('Helvetica-Bold')
        .text(badgeLabel, invBlockX + 88, badgeY + 3, { width: 82, align: 'center' });
 
@@ -174,17 +207,18 @@ export class PdfService {
     y += 10;
     const colW = (W - 14) / 2;
 
-    this.partyBox(doc, ML, y, colW, 80, 'BILLED BY', [
+    this.partyBox(doc, ML, y, colW, 92, 'BILLED BY', [
       { bold: shop.name, normal: '' },
-      { bold: '', normal: shop.address },
+      { bold: '', normal: shop.street },
+      { bold: '', normal: shop.placeLine },
       { bold: '', normal: shop.phone ? `Phone: ${shop.phone}` : '' },
-      { bold: '', normal: isEstimate ? '' : `GSTIN: ${shop.gstin}` },
+      { bold: '', normal: isEstimate || !shop.gstin ? '' : `GSTIN: ${shop.gstin}` },
       { bold: '', normal: `State: ${shop.state}` },
     ]);
 
     const cx = ML + colW + 14;
     const cust = inv.customer;
-    this.partyBox(doc, cx, y, colW, 80, 'BILLED TO', [
+    this.partyBox(doc, cx, y, colW, 92, 'BILLED TO', [
       { bold: cust?.name ?? 'Walk-in Customer', normal: '' },
       { bold: '', normal: cust?.address ? cust.address : '' },
       { bold: '', normal: cust?.phone ? `Phone: ${cust.phone}` : '' },
@@ -192,21 +226,10 @@ export class PdfService {
       { bold: '', normal: cust?.kycVerified ? 'KYC Verified' : '', color: '#059669' },
     ]);
 
-    y += 90;
+    y += 102; // party boxes are 92 high (district/PIN line added)
 
     // ── Items table ───────────────────────────────────────────────────────────
-    const COLS = [
-      { label: '#',       w: 20,  align: 'center' as const },
-      { label: 'DESCRIPTION',    w: 158, align: 'left'   as const },
-      { label: 'HSN',     w: 38,  align: 'center' as const },
-      { label: 'PURITY',  w: 40,  align: 'center' as const },
-      { label: 'WT (g)',  w: 50,  align: 'right'  as const },
-      { label: 'QTY',     w: 24,  align: 'center' as const },
-      { label: 'RATE/g (Rs.)', w: 58,  align: 'right'  as const },
-      { label: 'MAKING (Rs.)', w: 52,  align: 'right'  as const },
-      { label: 'AMOUNT (Rs.)', w: 65,  align: 'right'  as const },
-    ];
-    // Total: 20+158+38+40+50+24+58+52+65 = 505 ✓
+    const COLS = ITEM_COLUMNS;
 
     const HEADER_H = 20;
     const ROW_H    = 22;
@@ -229,8 +252,7 @@ export class PdfService {
       doc.rect(ML, y, W, ROW_H).fill(rowFill);
       doc.rect(ML, y + ROW_H - 0.5, W, 0.5).fill(RULE);
 
-      const purityStr = (line.purity ?? line.item?.purity ?? '').replace(/_/g, ' ');
-      const hsnCode   = line.item?.hsnCode ?? '7113';
+      const purityStr = pdfPurityLabel(line.purity ?? line.item?.purity);
 
       cx2 = ML;
       // #
@@ -249,39 +271,34 @@ export class PdfService {
       }
       cx2 += COLS[1].w;
 
-      // HSN
-      doc.fillColor(MUTED).fontSize(8).font('Helvetica')
-         .text(hsnCode, cx2 + 4, y + 7, { width: COLS[2].w - 8, align: 'center', lineBreak: false });
-      cx2 += COLS[2].w;
-
-      // Purity
+      // Purity (gold items only)
       doc.fillColor(INK).fontSize(8).font('Helvetica')
-         .text(purityStr, cx2 + 4, y + 7, { width: COLS[3].w - 8, align: 'center', lineBreak: false });
-      cx2 += COLS[3].w;
+         .text(purityStr, cx2 + 4, y + 7, { width: COLS[2].w - 8, align: 'center', lineBreak: false });
+      cx2 += COLS[2].w;
 
       // Net Wt
       doc.fillColor(INK).fontSize(8).font('Helvetica')
-         .text(wt(line.netWeightG), cx2 + 4, y + 7, { width: COLS[4].w - 8, align: 'right', lineBreak: false });
-      cx2 += COLS[4].w;
+         .text(wt(line.netWeightG), cx2 + 4, y + 7, { width: COLS[3].w - 8, align: 'right', lineBreak: false });
+      cx2 += COLS[3].w;
 
       // Qty
       doc.fillColor(INK).fontSize(8).font('Helvetica-Bold')
-         .text(String(line.qty ?? 1), cx2 + 4, y + 7, { width: COLS[5].w - 8, align: 'center', lineBreak: false });
-      cx2 += COLS[5].w;
+         .text(String(line.qty ?? 1), cx2 + 4, y + 7, { width: COLS[4].w - 8, align: 'center', lineBreak: false });
+      cx2 += COLS[4].w;
 
       // Rate/g
       doc.fillColor(INK).fontSize(8).font('Helvetica')
-         .text(amt(line.ratePerGram ?? 0), cx2 + 4, y + 7, { width: COLS[6].w - 8, align: 'right', lineBreak: false });
-      cx2 += COLS[6].w;
+         .text(amt(line.ratePerGram ?? 0), cx2 + 4, y + 7, { width: COLS[5].w - 8, align: 'right', lineBreak: false });
+      cx2 += COLS[5].w;
 
       // Making
       doc.fillColor(INK).fontSize(8).font('Helvetica')
-         .text(amt(line.makingCharge ?? 0), cx2 + 4, y + 7, { width: COLS[7].w - 8, align: 'right', lineBreak: false });
-      cx2 += COLS[7].w;
+         .text(amt(line.makingCharge ?? 0), cx2 + 4, y + 7, { width: COLS[6].w - 8, align: 'right', lineBreak: false });
+      cx2 += COLS[6].w;
 
       // Amount
       doc.fillColor(GOLD_DARK).fontSize(8).font('Helvetica-Bold')
-         .text(amt(line.lineTotal ?? 0), cx2 + 4, y + 7, { width: COLS[8].w - 8, align: 'right', lineBreak: false });
+         .text(amt(line.lineTotal ?? 0), cx2 + 4, y + 7, { width: COLS[7].w - 8, align: 'right', lineBreak: false });
 
       y += ROW_H;
     });
@@ -301,7 +318,7 @@ export class PdfService {
     if (Number(inv.stoneTotal) > 0)
       totalRows.push({ label: 'Stone Value', value: rupees(inv.stoneTotal) });
     if (Number(inv.oldGoldDeduction) > 0)
-      totalRows.push({ label: 'Old Gold Deduction', value: rupees(inv.oldGoldDeduction), deduct: true });
+      totalRows.push({ label: 'Old Gold/Silver Exchange', value: rupees(inv.oldGoldDeduction), deduct: true });
     if (!isEstimate) totalRows.push({ label: 'Taxable Amount', value: rupees(inv.taxableAmount) });
     if (Number(inv.cgst) > 0) {
       totalRows.push({ label: 'CGST @ 1.5%', value: rupees(inv.cgst) });
@@ -329,11 +346,11 @@ export class PdfService {
        .text(rupees(inv.totalAmount), TX + 8, y + 7, { width: TW - 16, align: 'right', lineBreak: false });
     y += 32;
 
-    // Payment status
-    if (isEstimate) {
+    // Payment status — same for GST and non-GST bills
+    if (isQuotation) {
       doc.fontSize(8).fillColor(MUTED).font('Helvetica-Bold')
-         .text('Estimate only. Not a bill of sale.', TX, y, { width: TW, align: 'right' });
-    } else if (Number(inv.balanceDue ?? 0) <= 0) {
+         .text('Quotation only. No payment taken.', TX, y, { width: TW, align: 'right' });
+    } else if (isPaid) {
       doc.fontSize(8).fillColor('#059669').font('Helvetica-Bold')
          .text('Payment Received in Full', TX, y, { width: TW, align: 'right' });
     } else {
@@ -385,8 +402,10 @@ export class PdfService {
        .text('DECLARATION', ML, declY + 8);
     doc.fontSize(7).fillColor(MUTED).font('Helvetica')
        .text(
-         isEstimate
-           ? 'This is an estimate (quotation) only and not a tax invoice. Prices are based on the rates on the date shown and may change. GST will be charged on the final tax invoice.'
+         isQuotation
+           ? 'This is an estimate (quotation) only and not a tax invoice. Prices are based on the rates on the date shown and may change.'
+           : isEstimate
+           ? 'This is a non-GST estimate bill, not a tax invoice. No GST has been charged on it.'
            : 'We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct. This is a system-generated invoice and is valid without a physical signature.',
          ML, declY + 18,
          { width: declW, lineBreak: true }

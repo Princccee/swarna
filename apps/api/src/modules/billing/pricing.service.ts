@@ -50,6 +50,8 @@ export class PricingService {
     isInterstate: boolean,
     /** false for ESTIMATE (non-GST) bills: no CGST/SGST/IGST */
     applyGst = true,
+    /** Old gold/silver ornament taken in exchange, as one amount (used instead of weight × rate) */
+    oldGoldAmount?: Prisma.Decimal,
   ): InvoiceCalculation {
     const computedLines: PriceLineResult[] = lines.map((line) => {
       const wastagePct = line.wastagePct ?? ZERO;
@@ -119,10 +121,11 @@ export class PricingService {
       .reduce((acc, l) => acc.add(l.stoneValue), ZERO)
       .toDecimalPlaces(2);
 
-    // oldGoldDeduction = oldGoldWeightG * oldGoldRatePerGram
-    const oldGoldDeduction = oldGoldWeightG
-      .mul(oldGoldRatePerGram)
-      .toDecimalPlaces(2);
+    // Old ornament exchange: the amount entered at the counter, or weight × rate
+    const oldGoldDeduction = (oldGoldAmount && oldGoldAmount.greaterThan(ZERO)
+      ? oldGoldAmount
+      : oldGoldWeightG.mul(oldGoldRatePerGram)
+    ).toDecimalPlaces(2);
 
     // taxableAmount = invoiceSubtotal - oldGoldDeduction
     const taxableAmount = subtotal
