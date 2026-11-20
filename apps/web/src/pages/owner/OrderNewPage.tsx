@@ -96,6 +96,59 @@ export default function OrderNewPage() {
     }, 300);
   }
 
+  // ── New customer (same as POS): saved first, then selected for this order ──
+  const [showNewCustomer, setShowNewCustomer] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({ name: '', phone: '', address: '' });
+  const [savingCustomer, setSavingCustomer] = useState(false);
+
+  function openNewCustomer() {
+    // Pre-fill from what was searched: digits → mobile, anything else → name
+    const q = customerSearch.trim();
+    const digits = q.replace(/\D/g, '');
+    setNewCustomer({
+      name: digits.length >= 6 ? '' : q,
+      phone: digits.length >= 6 ? digits.slice(-10) : '',
+      address: '',
+    });
+    setDropdownOpen(false);
+    setShowNewCustomer(true);
+  }
+
+  function saveNewCustomer() {
+    const name = newCustomer.name.trim();
+    const phone = newCustomer.phone.trim();
+    if (name.length < 2) {
+      toast.error("Enter the customer's name");
+      return;
+    }
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+      toast.error('Enter a valid 10-digit mobile number');
+      return;
+    }
+    setSavingCustomer(true);
+    api
+      .post('/billing/customers', { name, phone, ...(newCustomer.address.trim() ? { address: newCustomer.address.trim() } : {}) })
+      .then((r: any) => {
+        const c = r.data?.data ?? r.data;
+        selectCustomer({ id: c.id, name: c.name, phone: c.phone });
+        setShowNewCustomer(false);
+        toast.success(`Customer "${c.name}" added`);
+      })
+      .catch((err: any) => {
+        // Phone already registered: use that customer instead of creating a duplicate
+        const existing = err?.response?.status === 409 ? err.response.data?.customer : null;
+        if (existing) {
+          selectCustomer({ id: existing.id, name: existing.name, phone: existing.phone });
+          setShowNewCustomer(false);
+          toast.info(`${existing.name} is already registered with this phone. Selected.`);
+          return;
+        }
+        const m = err?.response?.data?.message;
+        toast.error('Failed to add customer', { description: Array.isArray(m) ? m.join(', ') : m ?? 'Please try again.' });
+      })
+      .finally(() => setSavingCustomer(false));
+  }
+
   function selectCustomer(customer: Customer) {
     setSelectedCustomer(customer);
     setCustomerSearch(customer.name);
@@ -192,8 +245,82 @@ export default function OrderNewPage() {
             </ul>
           )}
           {dropdownOpen && customers.length === 0 && !searching && customerSearch.trim() && (
-            <div className="absolute z-20 mt-1 w-full bg-card border rounded-lg shadow-md px-3 py-2.5 text-sm text-muted-foreground">
-              No customers found
+            <div className="absolute z-20 mt-1 w-full bg-card border rounded-lg shadow-md px-3 py-2.5 text-sm text-muted-foreground flex items-center justify-between gap-2">
+              <span>No customers found</span>
+              <button type="button" onClick={openNewCustomer} className="text-primary font-medium hover:underline">
+                + Add as new customer
+              </button>
+            </div>
+          )}
+
+          {!selectedCustomer && !showNewCustomer && (
+            <button
+              type="button"
+              onClick={openNewCustomer}
+              className="mt-2 text-sm font-medium text-primary hover:underline"
+            >
+              + New customer
+            </button>
+          )}
+
+          {/* New customer — a section, not a nested <form> (this sits inside the order form) */}
+          {showNewCustomer && (
+            <div className="mt-3 rounded-lg border bg-muted/30 p-4 space-y-3">
+              <p className="text-sm font-semibold">New customer</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium mb-1">
+                    Name <span className="text-destructive">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newCustomer.name}
+                    onChange={(e) => setNewCustomer((c) => ({ ...c, name: e.target.value }))}
+                    placeholder="Full name"
+                    className="w-full border rounded-lg px-3 py-2 text-sm bg-card"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">
+                    Mobile <span className="text-destructive">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    value={newCustomer.phone}
+                    onChange={(e) => setNewCustomer((c) => ({ ...c, phone: e.target.value.replace(/\D/g, '') }))}
+                    placeholder="10-digit mobile"
+                    className="w-full border rounded-lg px-3 py-2 text-sm bg-card"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">Address (optional)</label>
+                <input
+                  type="text"
+                  value={newCustomer.address}
+                  onChange={(e) => setNewCustomer((c) => ({ ...c, address: e.target.value }))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm bg-card"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={saveNewCustomer}
+                  disabled={savingCustomer}
+                  className="bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60"
+                >
+                  {savingCustomer ? 'Saving…' : 'Save & Select'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowNewCustomer(false)}
+                  className="border rounded-lg px-4 py-2 text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           )}
           {/* Hidden field for RHF validation */}
